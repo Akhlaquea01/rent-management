@@ -1,0 +1,76 @@
+// Sticky columns with explicit widths
+.sticky-col {
+  position: sticky !important;
+  background: #fff !important;
+  z-index: 2;
+  border-right: 1px solid #e0e0e0;
+  border-left: 1px solid #e0e0e0;
+}
+.sticky-col-left {
+  left: 0;
+}
+.sticky-col-right {
+  right: 0;
+}
+
+// Assign explicit widths to sticky columns for proper alignment
+th[mat-header-cell][mat-sticky].sticky-col-left,
+td[mat-cell][mat-sticky].sticky-col-left {
+  min-width: 120px;
+  max-width: 120px;
+}
+th[mat-header-cell][mat-sticky-end].sticky-col-right,
+td[mat-cell][mat-sticky-end].sticky-col-right {
+  min-width: 120px;
+  max-width: 120px;
+}
+
+// Set widths for each sticky column (adjust as needed)
+th[mat-header-cell][mat-sticky].sticky-col-left:nth-of-type(1),
+td[mat-cell][mat-sticky].sticky-col-left:nth-of-type(1) { min-width: 80px; max-width: 80px; }
+th[mat-header-cell][mat-sticky].sticky-col-left:nth-of-type(2),
+td[mat-cell][mat-sticky].sticky-col-left:nth-of-type(2) { min-width: 160px; max-width: 160px; }
+th[mat-header-cell][mat-sticky].sticky-col-left:nth-of-type(3),
+td[mat-cell][mat-sticky].sticky-col-left:nth-of-type(3) { min-width: 140px; max-width: 140px; }
+th[mat-header-cell][mat-sticky].sticky-col-left:nth-of-type(4),
+td[mat-cell][mat-sticky].sticky-col-left:nth-of-type(4) { min-width: 120px; max-width: 120px; }
+th[mat-header-cell][mat-sticky].sticky-col-left:nth-of-type(5),
+td[mat-cell][mat-sticky].sticky-col-left:nth-of-type(5) { min-width: 140px; max-width: 140px; }
+th[mat-header-cell][mat-sticky].sticky-col-left:nth-of-type(6),
+td[mat-cell][mat-sticky].sticky-col-left:nth-of-type(6) { min-width: 160px; max-width: 160px; }
+th[mat-header-cell][mat-sticky].sticky-col-left:nth-of-type(7),
+td[mat-cell][mat-sticky].sticky-col-left:nth-of-type(7) { min-width: 100px; max-width: 100px; }
+
+th[mat-header-cell][mat-sticky-end].sticky-col-right,
+td[mat-cell][mat-sticky-end].sticky-col-right {
+  background: #fff !important;
+}
+
+.dashboard-table-wrapper {
+  overflow-x: auto;
+  width: 100%;
+  background: #fafbfc;
+}
+.dashboard-mat-table {
+  min-width: 1800px;
+  width: 100%;
+  border-collapse: separate;
+}
+
+th, td {
+  border-bottom: 1px solid #e0e0e0 !important;
+  border-right: 1px solid #e0e0e0 !important;
+  padding: 8px 12px !important;
+  background: #fff;
+  color: #222;
+  font-size: 15px;
+}
+
+th {
+  font-weight: 600;
+  background: #f5f6fa !important;
+}
+
+tr.mat-row:hover td {
+  background: #f0f4ff !important;
+}
