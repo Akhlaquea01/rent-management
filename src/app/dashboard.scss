@@ -1,4 +1,4 @@
-// Sticky columns with explicit widths
+// Sticky columns with explicit left offsets for each left column
 .sticky-col {
   position: sticky !important;
   background: #fff !important;
@@ -6,44 +6,33 @@
   border-right: 1px solid #e0e0e0;
   border-left: 1px solid #e0e0e0;
 }
-.sticky-col-left {
-  left: 0;
-}
+
+// Assign left offsets for each sticky left column (Shop.No to Jan)
+th[mat-header-cell][mat-sticky].sticky-col-left:nth-of-type(1),
+td[mat-cell][mat-sticky].sticky-col-left:nth-of-type(1) { left: 0; min-width: 80px; }
+th[mat-header-cell][mat-sticky].sticky-col-left:nth-of-type(2),
+td[mat-cell][mat-sticky].sticky-col-left:nth-of-type(2) { left: 80px; min-width: 160px; }
+th[mat-header-cell][mat-sticky].sticky-col-left:nth-of-type(3),
+td[mat-cell][mat-sticky].sticky-col-left:nth-of-type(3) { left: 240px; min-width: 140px; }
+th[mat-header-cell][mat-sticky].sticky-col-left:nth-of-type(4),
+td[mat-cell][mat-sticky].sticky-col-left:nth-of-type(4) { left: 380px; min-width: 120px; }
+th[mat-header-cell][mat-sticky].sticky-col-left:nth-of-type(5),
+td[mat-cell][mat-sticky].sticky-col-left:nth-of-type(5) { left: 500px; min-width: 140px; }
+th[mat-header-cell][mat-sticky].sticky-col-left:nth-of-type(6),
+td[mat-cell][mat-sticky].sticky-col-left:nth-of-type(6) { left: 640px; min-width: 160px; }
+th[mat-header-cell][mat-sticky].sticky-col-left:nth-of-type(7),
+td[mat-cell][mat-sticky].sticky-col-left:nth-of-type(7) { left: 800px; min-width: 100px; }
+th[mat-header-cell][mat-sticky].sticky-col-left:nth-of-type(8),
+td[mat-cell][mat-sticky].sticky-col-left:nth-of-type(8) { left: 900px; min-width: 100px; }
+
 .sticky-col-right {
   right: 0;
 }
 
-// Assign explicit widths to sticky columns for proper alignment
-th[mat-header-cell][mat-sticky].sticky-col-left,
-td[mat-cell][mat-sticky].sticky-col-left {
-  min-width: 120px;
-  max-width: 120px;
-}
-th[mat-header-cell][mat-sticky-end].sticky-col-right,
-td[mat-cell][mat-sticky-end].sticky-col-right {
-  min-width: 120px;
-  max-width: 120px;
-}
-
-// Set widths for each sticky column (adjust as needed)
-th[mat-header-cell][mat-sticky].sticky-col-left:nth-of-type(1),
-td[mat-cell][mat-sticky].sticky-col-left:nth-of-type(1) { min-width: 80px; max-width: 80px; }
-th[mat-header-cell][mat-sticky].sticky-col-left:nth-of-type(2),
-td[mat-cell][mat-sticky].sticky-col-left:nth-of-type(2) { min-width: 160px; max-width: 160px; }
-th[mat-header-cell][mat-sticky].sticky-col-left:nth-of-type(3),
-td[mat-cell][mat-sticky].sticky-col-left:nth-of-type(3) { min-width: 140px; max-width: 140px; }
-th[mat-header-cell][mat-sticky].sticky-col-left:nth-of-type(4),
-td[mat-cell][mat-sticky].sticky-col-left:nth-of-type(4) { min-width: 120px; max-width: 120px; }
-th[mat-header-cell][mat-sticky].sticky-col-left:nth-of-type(5),
-td[mat-cell][mat-sticky].sticky-col-left:nth-of-type(5) { min-width: 140px; max-width: 140px; }
-th[mat-header-cell][mat-sticky].sticky-col-left:nth-of-type(6),
-td[mat-cell][mat-sticky].sticky-col-left:nth-of-type(6) { min-width: 160px; max-width: 160px; }
-th[mat-header-cell][mat-sticky].sticky-col-left:nth-of-type(7),
-td[mat-cell][mat-sticky].sticky-col-left:nth-of-type(7) { min-width: 100px; max-width: 100px; }
-
 th[mat-header-cell][mat-sticky-end].sticky-col-right,
 td[mat-cell][mat-sticky-end].sticky-col-right {
   background: #fff !important;
+  min-width: 120px;
 }
 
 .dashboard-table-wrapper {
