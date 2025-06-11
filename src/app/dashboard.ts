@@ -6,121 +6,120 @@ import { MatTableModule } from '@angular/material/table';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
-
-interface Shop {
-  no: number;
-  name: string;
-  mobile: string;
-  agreement: boolean;
-  totalAdvance: number;
-  advanceRemaining: number;
-  amount: number;
-  monthly: (number|null)[]; // 12 months
-  remark: string;
-  dueHistory: { month: string, year: number }[]; // for tooltip
-}
+import { FormBuilder, FormGroup, FormArray, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ShopDataService, ShopData } from './shop-data.service';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
   imports: [
-    NgFor, NgIf, FormsModule, DecimalPipe,
+    NgFor, NgIf, FormsModule, ReactiveFormsModule, DecimalPipe,
     MatTableModule, MatInputModule, MatButtonModule, MatTooltipModule
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss'
 })
 export class Dashboard {
+  years = [2022, 2023, 2024];
+  selectedYear = 2024;
   months = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
-
   displayedColumns = [
     'no', 'name', 'mobile', 'agreement', 'totalAdvance', 'advanceRemaining', 'amount',
     ...this.months.map(m => m.toLowerCase()),
-    'totalPaid', 'totalDue', 'dueMonths', 'remark', 'action'
+    'prevDue', 'totalPaid', 'totalDue', 'dueMonths', 'remark', 'action'
   ];
+  form?: FormGroup;
+  shops: ShopData[] = [];
+  prevYearDues: { [shopNo: number]: number } = {};
 
-  shops: Shop[] = [
-    {
-      no: 1, name: 'Amit Kumar', mobile: '9876543210', agreement: true,
-      totalAdvance: 20000, advanceRemaining: 10000, amount: 3400,
-      monthly: [3400, 3400, 3400, null, null, null, null, null, null, null, null, null],
-      remark: '', dueHistory: [{ month: 'Apr', year: 2024 }, { month: 'May', year: 2024 }]
-    },
-    {
-      no: 2, name: 'Priya Singh', mobile: '9123456780', agreement: false,
-      totalAdvance: 15000, advanceRemaining: 5000, amount: 4000,
-      monthly: [4000, 4000, null, null, null, null, null, null, null, null, null, null],
-      remark: '', dueHistory: [{ month: 'Mar', year: 2024 }, { month: 'Apr', year: 2024 }]
-    },
-    {
-      no: 3, name: 'Ravi Patel', mobile: '9988776655', agreement: true,
-      totalAdvance: 18000, advanceRemaining: 8000, amount: 3200,
-      monthly: [3200, 3200, 3200, 3200, null, null, null, null, null, null, null, null],
-      remark: '', dueHistory: [{ month: 'May', year: 2024 }]
-    },
-    {
-      no: 4, name: 'Sunita Sharma', mobile: '9001122334', agreement: true,
-      totalAdvance: 25000, advanceRemaining: 15000, amount: 3500,
-      monthly: [3500, 3500, 3500, 3500, 3500, null, null, null, null, null, null, null],
-      remark: '', dueHistory: [{ month: 'Jun', year: 2024 }]
-    },
-    {
-      no: 5, name: 'Vikas Gupta', mobile: '9112233445', agreement: false,
-      totalAdvance: 12000, advanceRemaining: 2000, amount: 3000,
-      monthly: [null, null, null, null, null, null, null, null, null, null, null, null],
-      remark: '', dueHistory: [
-        { month: 'Jan', year: 2024 }, { month: 'Feb', year: 2024 }, { month: 'Mar', year: 2024 }
-      ]
-    },
-    {
-      no: 6, name: 'Meena Joshi', mobile: '9876501234', agreement: true,
-      totalAdvance: 22000, advanceRemaining: 12000, amount: 3700,
-      monthly: [3700, 3700, 3700, 3700, 3700, 3700, null, null, null, null, null, null],
-      remark: '', dueHistory: [{ month: 'Jul', year: 2024 }]
-    },
-    {
-      no: 7, name: 'Suresh Yadav', mobile: '9009988776', agreement: false,
-      totalAdvance: 16000, advanceRemaining: 6000, amount: 3100,
-      monthly: [3100, 3100, 3100, 3100, null, null, null, null, null, null, null, null],
-      remark: '', dueHistory: [{ month: 'May', year: 2024 }]
-    },
-    {
-      no: 8, name: 'Anjali Verma', mobile: '9123456700', agreement: true,
-      totalAdvance: 14000, advanceRemaining: 4000, amount: 2900,
-      monthly: [2900, 2900, 2900, 2900, 2900, 2900, 2900, null, null, null, null, null],
-      remark: '', dueHistory: [{ month: 'Aug', year: 2024 }]
-    },
-    {
-      no: 9, name: 'Deepak Saini', mobile: '9876543200', agreement: true,
-      totalAdvance: 17000, advanceRemaining: 7000, amount: 3300,
-      monthly: [3300, 3300, 3300, 3300, 3300, null, null, null, null, null, null, null],
-      remark: '', dueHistory: [{ month: 'Jun', year: 2024 }]
-    },
-    {
-      no: 10, name: 'Kavita Rao', mobile: '9001122000', agreement: false,
-      totalAdvance: 11000, advanceRemaining: 1000, amount: 2800,
-      monthly: [2800, 2800, 2800, null, null, null, null, null, null, null, null, null],
-      remark: '', dueHistory: [{ month: 'Apr', year: 2024 }]
+  constructor(private fb: FormBuilder, private shopDataService: ShopDataService) {
+    this.loadShopsForYear(this.selectedYear);
+  }
+
+  get shopsFormArray(): FormArray {
+    return this.form?.get('shops') as FormArray;
+  }
+
+  createShopGroup(shop: ShopData): FormGroup {
+    return this.fb.group({
+      no: [shop.no],
+      name: [shop.name],
+      mobile: [shop.mobile],
+      agreement: [shop.agreement],
+      totalAdvance: [shop.totalAdvance],
+      advanceRemaining: [shop.advanceRemaining],
+      amount: [shop.amount],
+      monthly: this.fb.array(shop.monthly.map(val => this.fb.control(val, Validators.required))),
+      remark: [shop.remark, Validators.required],
+      prevDue: [shop.prevDue || 0]
+    });
+  }
+
+  loadShopsForYear(year: number) {
+    this.shops = this.shopDataService.getShopsForYear(year);
+    this.form = this.fb.group({
+      shops: this.fb.array(this.shops.map(shop => this.createShopGroup(shop)))
+    });
+    this.setupValueChangeHandlers();
+  }
+
+  onYearChange(year: number) {
+    this.selectedYear = year;
+    this.loadShopsForYear(year);
+  }
+
+  setupValueChangeHandlers() {
+    this.shopsFormArray.controls.forEach((ctrl) => {
+      const shopGroup = ctrl as FormGroup;
+      shopGroup.get('monthly')?.valueChanges.subscribe(() => {
+        shopGroup.updateValueAndValidity({ onlySelf: true });
+      });
+      shopGroup.get('remark')?.valueChanges.subscribe(() => {
+        shopGroup.updateValueAndValidity({ onlySelf: true });
+      });
+    });
+  }
+
+  getTotalPaid(shopGroup: FormGroup): number {
+    const monthly = shopGroup.get('monthly') as FormArray;
+    return monthly.controls.reduce((sum, ctrl) => sum + (ctrl.value ? Number(ctrl.value) : 0), 0);
+  }
+
+  getTotalDue(shopGroup: FormGroup): number {
+    const monthly = shopGroup.get('monthly') as FormArray;
+    const amount = shopGroup.get('amount')?.value;
+    const unpaid = monthly.controls.filter(ctrl => !ctrl.value).length;
+    const prevDue = shopGroup.get('prevDue')?.value || 0;
+    return unpaid * amount + prevDue;
+  }
+
+  getDueMonths(shopGroup: FormGroup): number {
+    const monthly = shopGroup.get('monthly') as FormArray;
+    return monthly.controls.filter(ctrl => !ctrl.value).length;
+  }
+
+  getDueMonthsTooltip(shopGroup: FormGroup): string {
+    const monthly = shopGroup.get('monthly') as FormArray;
+    return monthly.controls
+      .map((ctrl, i) => !ctrl.value ? this.months[i] : null)
+      .filter(Boolean)
+      .join(', ');
+  }
+
+  onSave() {
+    if (this.form?.invalid) {
+      alert('Please fill all required fields.');
+      return;
     }
-  ];
-
-  getTotalPaid(shop: Shop): number {
-    return shop.monthly.reduce((sum: number, val: number | null) => sum + (val ?? 0), 0);
+    // Here you would send this.form.value to your backend
+    console.log('Saved data:', this.form?.value);
+    alert('Data saved! (see console)');
   }
 
-  getTotalDue(shop: Shop): number {
-    const unpaid = shop.monthly.filter(val => val === null).length;
-    return unpaid * shop.amount;
-  }
-
-  getDueMonths(shop: Shop): number {
-    return shop.monthly.filter(val => val === null).length;
-  }
-
-  getDueMonthsTooltip(shop: Shop): string {
-    return shop.dueHistory.map(d => `${d.month} ${d.year}`).join(', ');
+  get dataSource() {
+    return this.shopsFormArray ? [...this.shopsFormArray.controls] : [];
   }
 }

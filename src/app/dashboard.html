@@ -1,88 +1,109 @@
 <div class="dashboard-table-wrapper">
-  <table mat-table [dataSource]="shops" class="dashboard-mat-table mat-elevation-z2" multiTemplateDataRows>
-    <!-- Shop.No -->
-    <ng-container matColumnDef="no">
-      <th mat-header-cell *matHeaderCellDef mat-sticky class="sticky-col sticky-col-left">Shop.No</th>
-      <td mat-cell *matCellDef="let shop" mat-sticky class="sticky-col sticky-col-left">{{ shop.no }}</td>
-    </ng-container>
-    <!-- Name -->
-    <ng-container matColumnDef="name">
-      <th mat-header-cell *matHeaderCellDef mat-sticky class="sticky-col sticky-col-left">Name</th>
-      <td mat-cell *matCellDef="let shop" mat-sticky class="sticky-col sticky-col-left">{{ shop.name }}</td>
-    </ng-container>
-    <!-- Mobile Number -->
-    <ng-container matColumnDef="mobile">
-      <th mat-header-cell *matHeaderCellDef mat-sticky class="sticky-col sticky-col-left">Mobile Number</th>
-      <td mat-cell *matCellDef="let shop" mat-sticky class="sticky-col sticky-col-left">{{ shop.mobile }}</td>
-    </ng-container>
-    <!-- Agreement -->
-    <ng-container matColumnDef="agreement">
-      <th mat-header-cell *matHeaderCellDef mat-sticky class="sticky-col sticky-col-left">Agreement</th>
-      <td mat-cell *matCellDef="let shop" mat-sticky class="sticky-col sticky-col-left">{{ shop.agreement ? 'YES' : 'NO' }}</td>
-    </ng-container>
-    <!-- Total Advance -->
-    <ng-container matColumnDef="totalAdvance">
-      <th mat-header-cell *matHeaderCellDef mat-sticky class="sticky-col sticky-col-left">Total Advance</th>
-      <td mat-cell *matCellDef="let shop" mat-sticky class="sticky-col sticky-col-left">₹{{ shop.totalAdvance | number }}</td>
-    </ng-container>
-    <!-- Advance Remaining -->
-    <ng-container matColumnDef="advanceRemaining">
-      <th mat-header-cell *matHeaderCellDef mat-sticky class="sticky-col sticky-col-left">Advance Remaining</th>
-      <td mat-cell *matCellDef="let shop" mat-sticky class="sticky-col sticky-col-left">₹{{ shop.advanceRemaining | number }}</td>
-    </ng-container>
-    <!-- Amount -->
-    <ng-container matColumnDef="amount">
-      <th mat-header-cell *matHeaderCellDef mat-sticky class="sticky-col sticky-col-left">Amount</th>
-      <td mat-cell *matCellDef="let shop" mat-sticky class="sticky-col sticky-col-left">₹{{ shop.amount | number }}</td>
-    </ng-container>
-    <!-- Jan (last sticky left column) -->
-    <ng-container matColumnDef="jan">
-      <th mat-header-cell *matHeaderCellDef mat-sticky class="sticky-col sticky-col-left">Jan</th>
-      <td mat-cell *matCellDef="let shop" mat-sticky class="sticky-col sticky-col-left">
-        <span *ngIf="shop.monthly[0] !== null">₹{{ shop.monthly[0] | number }}</span>
-        <span *ngIf="shop.monthly[0] === null">-</span>
-      </td>
-    </ng-container>
-    <!-- Months (Feb-Dec) -->
-    <ng-container *ngFor="let month of months.slice(1); let mi = index" [matColumnDef]="month.toLowerCase()">
-      <th mat-header-cell *matHeaderCellDef class="bg-gray-50">{{ month }}</th>
-      <td mat-cell *matCellDef="let shop">
-        <span *ngIf="shop.monthly[mi+1] !== null">₹{{ shop.monthly[mi+1] | number }}</span>
-        <span *ngIf="shop.monthly[mi+1] === null">-</span>
-      </td>
-    </ng-container>
-    <!-- Total Paid -->
-    <ng-container matColumnDef="totalPaid">
-      <th mat-header-cell *matHeaderCellDef mat-sticky-end class="sticky-col sticky-col-right">Total Paid</th>
-      <td mat-cell *matCellDef="let shop" mat-sticky-end class="sticky-col sticky-col-right">₹{{ getTotalPaid(shop) | number }}</td>
-    </ng-container>
-    <!-- Total Due -->
-    <ng-container matColumnDef="totalDue">
-      <th mat-header-cell *matHeaderCellDef mat-sticky-end class="sticky-col sticky-col-right">Total Due</th>
-      <td mat-cell *matCellDef="let shop" mat-sticky-end class="sticky-col sticky-col-right">₹{{ getTotalDue(shop) | number }}</td>
-    </ng-container>
-    <!-- Due Months -->
-    <ng-container matColumnDef="dueMonths">
-      <th mat-header-cell *matHeaderCellDef mat-sticky-end class="sticky-col sticky-col-right">Due Months</th>
-      <td mat-cell *matCellDef="let shop" mat-sticky-end class="sticky-col sticky-col-right">
-        <span matTooltip="{{ getDueMonthsTooltip(shop) }}">{{ getDueMonths(shop) }}</span>
-      </td>
-    </ng-container>
-    <!-- Remark -->
-    <ng-container matColumnDef="remark">
-      <th mat-header-cell *matHeaderCellDef mat-sticky-end class="sticky-col sticky-col-right">Remark</th>
-      <td mat-cell *matCellDef="let shop" mat-sticky-end class="sticky-col sticky-col-right">
-        <input matInput [(ngModel)]="shop.remark" placeholder="Add remark..." />
-      </td>
-    </ng-container>
-    <!-- Action -->
-    <ng-container matColumnDef="action">
-      <th mat-header-cell *matHeaderCellDef mat-sticky-end class="sticky-col sticky-col-right">Action</th>
-      <td mat-cell *matCellDef="let shop" mat-sticky-end class="sticky-col sticky-col-right">
-        <button mat-raised-button color="primary">Action</button>
-      </td>
-    </ng-container>
-    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-  </table>
+  <div class="dashboard-toolbar sticky-toolbar">
+    <label for="year-select">Select Year:</label>
+    <select id="year-select" [(ngModel)]="selectedYear" (change)="onYearChange(selectedYear)">
+      <option *ngFor="let year of years" [value]="year">{{ year }}</option>
+    </select>
+  </div>
+  <form *ngIf="form" [formGroup]="form" (ngSubmit)="onSave()">
+    <table mat-table [dataSource]="dataSource" class="dashboard-mat-table mat-elevation-z2" multiTemplateDataRows>
+      <!-- Shop.No -->
+      <ng-container matColumnDef="no">
+        <th mat-header-cell *matHeaderCellDef mat-sticky class="sticky-col sticky-col-left">Shop.No</th>
+        <td mat-cell *matCellDef="let shopGroup" mat-sticky class="sticky-col sticky-col-left">{{ shopGroup.get('no').value }}</td>
+      </ng-container>
+      <!-- Name -->
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef mat-sticky class="sticky-col sticky-col-left">Name</th>
+        <td mat-cell *matCellDef="let shopGroup" mat-sticky class="sticky-col sticky-col-left">{{ shopGroup.get('name').value }}</td>
+      </ng-container>
+      <!-- Mobile Number -->
+      <ng-container matColumnDef="mobile">
+        <th mat-header-cell *matHeaderCellDef mat-sticky class="sticky-col sticky-col-left">Mobile Number</th>
+        <td mat-cell *matCellDef="let shopGroup" mat-sticky class="sticky-col sticky-col-left">{{ shopGroup.get('mobile').value }}</td>
+      </ng-container>
+      <!-- Agreement -->
+      <ng-container matColumnDef="agreement">
+        <th mat-header-cell *matHeaderCellDef mat-sticky class="sticky-col sticky-col-left">Agreement</th>
+        <td mat-cell *matCellDef="let shopGroup" mat-sticky class="sticky-col sticky-col-left">{{ shopGroup.get('agreement').value ? 'YES' : 'NO' }}</td>
+      </ng-container>
+      <!-- Total Advance -->
+      <ng-container matColumnDef="totalAdvance">
+        <th mat-header-cell *matHeaderCellDef mat-sticky class="sticky-col sticky-col-left">Total Advance</th>
+        <td mat-cell *matCellDef="let shopGroup" mat-sticky class="sticky-col sticky-col-left">₹{{ shopGroup.get('totalAdvance').value | number }}</td>
+      </ng-container>
+      <!-- Advance Remaining -->
+      <ng-container matColumnDef="advanceRemaining">
+        <th mat-header-cell *matHeaderCellDef mat-sticky class="sticky-col sticky-col-left">Advance Remaining</th>
+        <td mat-cell *matCellDef="let shopGroup" mat-sticky class="sticky-col sticky-col-left">₹{{ shopGroup.get('advanceRemaining').value | number }}</td>
+      </ng-container>
+      <!-- Amount -->
+      <ng-container matColumnDef="amount">
+        <th mat-header-cell *matHeaderCellDef mat-sticky class="sticky-col sticky-col-left">Amount</th>
+        <td mat-cell *matCellDef="let shopGroup" mat-sticky class="sticky-col sticky-col-left">₹{{ shopGroup.get('amount').value | number }}</td>
+      </ng-container>
+      <!-- Prev Due -->
+      <ng-container matColumnDef="prevDue">
+        <th mat-header-cell *matHeaderCellDef mat-sticky-end class="sticky-col sticky-col-right">Prev Due</th>
+        <td mat-cell *matCellDef="let shopGroup" mat-sticky-end class="sticky-col sticky-col-right">₹{{ shopGroup.get('prevDue').value | number }}</td>
+      </ng-container>
+      <!-- Jan (last sticky left column) -->
+      <ng-container matColumnDef="jan">
+        <th mat-header-cell *matHeaderCellDef mat-sticky class="sticky-col sticky-col-left">Jan</th>
+        <td mat-cell *matCellDef="let shopGroup; let i = index" mat-sticky class="sticky-col sticky-col-left">
+          <input matInput type="number" [formControl]="shopGroup.get('monthly').at(0)" placeholder="-" style="width: 80px;" required />
+          <div *ngIf="shopGroup.get('monthly').at(0).invalid && (shopGroup.get('monthly').at(0).dirty || shopGroup.get('monthly').at(0).touched)" class="error-text">Required</div>
+        </td>
+      </ng-container>
+      <!-- Months (Feb-Dec) -->
+      <ng-container *ngFor="let month of months.slice(1); let mi = index" [matColumnDef]="month.toLowerCase()">
+        <th mat-header-cell *matHeaderCellDef class="bg-gray-50">{{ month }}</th>
+        <td mat-cell *matCellDef="let shopGroup">
+          <input matInput type="number" [formControl]="shopGroup.get('monthly').at(mi+1)" placeholder="-" style="width: 80px;" required />
+          <div *ngIf="shopGroup.get('monthly').at(mi+1).invalid && (shopGroup.get('monthly').at(mi+1).dirty || shopGroup.get('monthly').at(mi+1).touched)" class="error-text">Required</div>
+        </td>
+      </ng-container>
+      <!-- Total Paid -->
+      <ng-container matColumnDef="totalPaid">
+        <th mat-header-cell *matHeaderCellDef mat-sticky-end class="sticky-col sticky-col-right">Total Paid</th>
+        <td mat-cell *matCellDef="let shopGroup" mat-sticky-end class="sticky-col sticky-col-right">₹{{ getTotalPaid(shopGroup) | number }}</td>
+      </ng-container>
+      <!-- Total Due -->
+      <ng-container matColumnDef="totalDue">
+        <th mat-header-cell *matHeaderCellDef mat-sticky-end class="sticky-col sticky-col-right">Total Due</th>
+        <td mat-cell *matCellDef="let shopGroup" mat-sticky-end class="sticky-col sticky-col-right">₹{{ getTotalDue(shopGroup) | number }}</td>
+      </ng-container>
+      <!-- Due Months -->
+      <ng-container matColumnDef="dueMonths">
+        <th mat-header-cell *matHeaderCellDef mat-sticky-end class="sticky-col sticky-col-right">Due Months</th>
+        <td mat-cell *matCellDef="let shopGroup" mat-sticky-end class="sticky-col sticky-col-right">
+          <span matTooltip="{{ getDueMonthsTooltip(shopGroup) }}">{{ getDueMonths(shopGroup) }}</span>
+        </td>
+      </ng-container>
+      <!-- Remark -->
+      <ng-container matColumnDef="remark">
+        <th mat-header-cell *matHeaderCellDef mat-sticky-end class="sticky-col sticky-col-right">Remark</th>
+        <td mat-cell *matCellDef="let shopGroup" mat-sticky-end class="sticky-col sticky-col-right">
+          <input matInput [formControl]="shopGroup.get('remark')" placeholder="Add remark..." required />
+          <div *ngIf="shopGroup.get('remark').invalid && (shopGroup.get('remark').dirty || shopGroup.get('remark').touched)" class="error-text">Required</div>
+        </td>
+      </ng-container>
+      <!-- Action -->
+      <ng-container matColumnDef="action">
+        <th mat-header-cell *matHeaderCellDef mat-sticky-end class="sticky-col sticky-col-right">Action</th>
+        <td mat-cell *matCellDef="let shopGroup" mat-sticky-end class="sticky-col sticky-col-right">
+          <button mat-raised-button color="primary" type="button">Action</button>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+    <div class="sticky-save">
+      <button mat-raised-button color="accent" type="submit">Save</button>
+    </div>
+  </form>
 </div>
+
+<style>
+  .error-text { color: red; font-size: 11px; }
+</style>
