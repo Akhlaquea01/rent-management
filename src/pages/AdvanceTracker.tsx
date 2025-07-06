@@ -31,8 +31,12 @@ import toast from 'react-hot-toast';
 
 const AdvanceTracker: React.FC = () => {
   const { data } = useRentStore();
-  const currentYear = new Date().getFullYear().toString();
-  const shops = data.years[currentYear]?.shops || {};
+  const years = Object.keys(data.years).sort().reverse();
+  const defaultYear = years.includes(new Date().getFullYear().toString())
+    ? new Date().getFullYear().toString()
+    : years[0];
+  const [selectedYear, setSelectedYear] = useState<string>(defaultYear);
+  const shops = data.years[selectedYear]?.shops || {};
   const [selectedShop, setSelectedShop] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [formData, setFormData] = useState({
@@ -50,10 +54,34 @@ const AdvanceTracker: React.FC = () => {
       name: shop.tenant.name,
     }));
 
+  // Build all tenants list from shops
+  const allShops = Object.entries(shops)
+    .map(([shopNumber, shop]: [string, any]) => ({
+      shopNumber,
+      name: shop.tenant.name,
+    }));
+
+  // Build shops with advance transactions
+  const shopsWithAdvance = Object.entries(shops)
+    .filter(([shopNumber, _]: [string, any]) => Array.isArray(data.advanceTransactions[shopNumber]) && data.advanceTransactions[shopNumber].length > 0)
+    .map(([shopNumber, shop]: [string, any]) => ({
+      shopNumber,
+      name: shop.tenant.name,
+    }));
+
   // Get transactions for selected shop
   const transactions = selectedShop ? (data.advanceTransactions[selectedShop] as any[] || []) : [];
   // Compute current balance
   const currentBalance = transactions.reduce((acc: number, t: any) => t.type === 'Deposit' ? acc + t.amount : acc - t.amount, 0);
+
+  // When shopsWithAdvance or selectedYear changes, select the first tenant by default
+  React.useEffect(() => {
+    if (shopsWithAdvance.length > 0) {
+      setSelectedShop(shopsWithAdvance[0].shopNumber);
+    } else {
+      setSelectedShop('');
+    }
+  }, [selectedYear, shopsWithAdvance.length]);
 
   const handleSubmit = () => {
     if (!selectedShop || formData.amount <= 0 || !formData.description) {
@@ -102,6 +130,20 @@ const AdvanceTracker: React.FC = () => {
       <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
         Advance Tracker
       </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+        <FormControl size="small" sx={{ minWidth: 120 }}>
+          <InputLabel>Year</InputLabel>
+          <Select
+            value={selectedYear}
+            label="Year"
+            onChange={(e) => setSelectedYear(e.target.value)}
+          >
+            {years.map((year) => (
+              <MenuItem key={year} value={year}>{year}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
       <Grid container spacing={3}>
         <Grid item xs={12} md={4}>
           <Card>
@@ -116,7 +158,7 @@ const AdvanceTracker: React.FC = () => {
                   label="Choose Tenant"
                   onChange={(e) => setSelectedShop(e.target.value)}
                 >
-                  {activeShops.map((shop) => (
+                  {shopsWithAdvance.map((shop) => (
                     <MenuItem key={shop.shopNumber} value={shop.shopNumber}>
                       {shop.name} - Shop {shop.shopNumber}
                     </MenuItem>
