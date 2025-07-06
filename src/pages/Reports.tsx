@@ -20,13 +20,17 @@ import {
   Button,
   Divider,
 } from '@mui/material';
-import { Download as DownloadIcon, Print as PrintIcon } from '@mui/icons-material';
+import { Download as DownloadIcon } from '@mui/icons-material';
+import * as XLSX from 'xlsx';
 import { useRentStore } from '../store/rentStore';
 
 const Reports: React.FC = () => {
   const { data } = useRentStore();
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth(); // 0-based
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [selectedMonth, setSelectedMonth] = useState(`${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`);
 
   // Get available years from data
   const availableYears = Object.keys(data.years).map(Number).sort((a, b) => b - a);
@@ -82,17 +86,18 @@ const Reports: React.FC = () => {
   const getYearlyStats = () => {
     let totalRent = 0;
     let totalCollected = 0;
-
+    const now = new Date();
+    const isCurrentYear = selectedYear === now.getFullYear();
+    const monthsToInclude = isCurrentYear ? now.getMonth() + 1 : 12;
     shopsArray.forEach((shop: any) => {
       const monthlyData = shop.monthlyData || {};
-      Object.values(monthlyData).forEach((month: any) => {
-        totalRent += month.rent || shop.rentAmount;
-        totalCollected += month.paid || 0;
+      months.slice(0, monthsToInclude).forEach((month) => {
+        const monthData = monthlyData[month] || { rent: shop.rentAmount, paid: 0 };
+        totalRent += monthData.rent || shop.rentAmount;
+        totalCollected += monthData.paid || 0;
       });
     });
-
     const totalPending = totalRent - totalCollected;
-
     return {
       totalRent,
       totalCollected,
@@ -132,15 +137,114 @@ const Reports: React.FC = () => {
             variant="outlined"
             startIcon={<DownloadIcon />}
             sx={{ mr: 1 }}
+            onClick={() => {
+              // Export Monthly Report
+              const monthName = new Date(selectedMonth + '-01').toLocaleDateString('en-US', { month: 'long' });
+              const exportData = shopsArray.map((shop: any) => {
+                const monthData = shop.monthlyData?.[monthName] || { rent: shop.rentAmount, paid: 0, status: 'Pending' };
+                return {
+                  Shop: shop.shopNumber,
+                  'Tenant Name': shop.tenant.name,
+                  'Rent Amount': monthData.rent || shop.rentAmount,
+                  'Paid Amount': monthData.paid || 0,
+                  Status: monthData.status,
+                };
+              });
+              const ws = XLSX.utils.json_to_sheet(exportData);
+              const wb = XLSX.utils.book_new();
+              XLSX.utils.book_append_sheet(wb, ws, 'MonthlyReport');
+              XLSX.writeFile(wb, `MonthlyReport_${selectedYear}_${monthName}.xlsx`);
+            }}
           >
-            Export Data
+            Export Monthly Report
           </Button>
           <Button
             variant="outlined"
-            startIcon={<PrintIcon />}
-            onClick={handlePrint}
+            startIcon={<DownloadIcon />}
+            onClick={() => {
+              // Export Annual Report (tabular, styled)
+              const now = new Date();
+              const isCurrentYear = selectedYear === now.getFullYear();
+              const monthsToInclude = isCurrentYear ? now.getMonth() + 1 : 12;
+              const monthCols = months.slice(0, monthsToInclude);
+              const exportData: any[] = [];
+              const wsRows: any[] = [];
+              // Header
+              const header = [
+                'Shop', 'Tenant Name', 'Rent Amount', 'Advance Remaining', 'Previous Year Pending Months', 'Current Year Pending Months', ...monthCols
+              ];
+              wsRows.push(header);
+              shopsArray.forEach((shop: any) => {
+                // Advance Remaining
+                const transactions = data.advanceTransactions[shop.shopNumber] || [];
+                const advanceRemaining = transactions.reduce((acc: number, t: any) => t.type === 'Deposit' ? acc + t.amount : acc - t.amount, 0);
+                // Previous Year Pending Months
+                const prevPending = (shop.previousYearDues?.dueMonths || []).join(', ');
+                // Current Year Pending Months
+                const monthlyData = shop.monthlyData || {};
+                const currPendingMonths = monthCols.filter(month => {
+                  const m = monthlyData[month];
+                  return !m || m.status !== 'Paid';
+                }).join(', ');
+                // Dues flag
+                const hasDues = (shop.totalDuesBalance || 0) > 0 || (shop.previousYearDues?.totalDues || 0) > 0;
+                // Row
+                const row = [
+                  shop.shopNumber,
+                  shop.tenant.name,
+                  shop.rentAmount,
+                  advanceRemaining,
+                  prevPending,
+                  currPendingMonths,
+                  ...monthCols.map(month => {
+                    const m = monthlyData[month];
+                    return m && m.status === 'Paid' ? m.paid : '';
+                  })
+                ];
+                wsRows.push(row);
+              });
+              // Create worksheet
+              const ws = XLSX.utils.aoa_to_sheet(wsRows);
+              // Style: highlight pending months and rows with dues
+              shopsArray.forEach((shop: any, i: number) => {
+                const rowIdx = i + 1; // header is row 0
+                const monthlyData = shop.monthlyData || {};
+                const hasDues = (shop.totalDuesBalance || 0) > 0 || (shop.previousYearDues?.totalDues || 0) > 0;
+                // Row highlight for dues
+                if (hasDues) {
+                  for (let c = 0; c < wsRows[0].length; c++) {
+                    const cell = XLSX.utils.encode_cell({ r: rowIdx, c });
+                    if (!ws[cell]) ws[cell] = { t: 's', v: '' };
+                    ws[cell].s = { fill: { fgColor: { rgb: 'FFEBEE' } } }; // light red
+                  }
+                }
+                // Highlight pending months
+                monthCols.forEach((month, mIdx) => {
+                  const m = monthlyData[month];
+                  if (!m || m.status !== 'Paid') {
+                    const cell = XLSX.utils.encode_cell({ r: rowIdx, c: 6 + mIdx });
+                    if (!ws[cell]) ws[cell] = { t: 's', v: '' };
+                    ws[cell].s = { fill: { fgColor: { rgb: 'FFF9C4' } } }; // yellow
+                  }
+                });
+              });
+              // Set column widths
+              ws['!cols'] = [
+                { wch: 10 }, // Shop
+                { wch: 24 }, // Tenant Name
+                { wch: 12 }, // Rent Amount
+                { wch: 16 }, // Advance Remaining
+                { wch: 28 }, // Prev Year Pending
+                { wch: 28 }, // Curr Year Pending
+                ...monthCols.map(() => ({ wch: 10 }))
+              ];
+              // Create workbook and export
+              const wb = XLSX.utils.book_new();
+              XLSX.utils.book_append_sheet(wb, ws, 'AnnualReport');
+              XLSX.writeFile(wb, `AnnualReport_${selectedYear}_tabular.xlsx`);
+            }}
           >
-            Print Report
+            Export Annual Report
           </Button>
         </Box>
       </Box>
@@ -256,7 +360,7 @@ const Reports: React.FC = () => {
               <Typography variant="h6" gutterBottom>
                 Monthly Payment Status - {new Date(selectedMonth + '-01').toLocaleDateString('en-US', { month: 'long' })}
               </Typography>
-              <TableContainer component={Paper}>
+              <TableContainer component={Paper} sx={{ maxHeight: 400, overflow: 'auto' }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>

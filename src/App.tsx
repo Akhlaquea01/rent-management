@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline, Box } from '@mui/material';
@@ -12,6 +12,7 @@ import RentEntry from './pages/RentEntry';
 import AdvanceTracker from './pages/AdvanceTracker';
 import TenantHistory from './pages/TenantHistory';
 import Reports from './pages/Reports';
+import { useRentStore } from './store/rentStore';
 
 const theme = createTheme({
   palette: {
@@ -63,6 +64,12 @@ const theme = createTheme({
 });
 
 function App() {
+  const { fetchData, loading, error } = useRentStore();
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+  if (loading) return <div style={{ padding: 40, fontSize: 20 }}>Loading data...</div>;
+  if (error) return <div style={{ padding: 40, fontSize: 20, color: 'red' }}>{error}</div>;
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />

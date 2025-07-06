@@ -78,15 +78,19 @@ const StatCard: React.FC<{
 };
 
 const Dashboard: React.FC = () => {
-  const { data } = useRentStore();
-  const years = Object.keys(data.years).sort().reverse();
+  const { data, loading, error } = useRentStore();
+  const years = data && data.years ? Object.keys(data.years).sort().reverse() : [];
   const defaultYear = years.includes(new Date().getFullYear().toString())
     ? new Date().getFullYear().toString()
     : years[0];
   const [selectedYear, setSelectedYear] = useState<string>(defaultYear);
-  const shops = data.years[selectedYear]?.shops || {};
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div style={{ color: 'red' }}>{error}</div>;
+  if (!data || !data.years) return <div>No data available.</div>;
+  const shops = data.years[selectedYear]?.shops || {};
 
   // Compute dashboard stats from new data structure
   const shopsArray = Object.entries(shops).map(([shopNumber, shop]: [string, any]) => ({

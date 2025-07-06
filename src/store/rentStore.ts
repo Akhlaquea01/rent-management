@@ -1,17 +1,17 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { RentManagementData, ShopData, Tenant } from '../types';
-import dummyData from '../data/dummyData.json';
 
-// Transform dummyData to match RentManagementData interface
-const { advanceTransactions, ...yearsData } = dummyData as any;
 const initialData: RentManagementData = {
-  years: yearsData,
-  advanceTransactions: advanceTransactions || {},
+  years: {},
+  advanceTransactions: {},
 };
 
 interface RentStore {
   data: RentManagementData;
+  loading: boolean;
+  error: string | null;
+  fetchData: () => Promise<void>;
   addTenant: (year: string, shopNumber: string, shopData: ShopData) => void;
   updateTenant: (year: string, shopNumber: string, shopData: ShopData) => void;
   deleteTenant: (year: string, shopNumber: string) => void;
@@ -22,6 +22,20 @@ export const useRentStore = create<RentStore>()(
   persist(
     (set, get) => ({
       data: initialData,
+      loading: true,
+      error: null,
+      fetchData: async () => {
+        set({ loading: true, error: null });
+        try {
+          const res = await fetch('https://akhlaquea01.github.io/records_siwaipatti/data.json');
+          const json = await res.json();
+          // Transform response to { years: { ... }, advanceTransactions: ... }
+          const { advanceTransactions, ...years } = json;
+          set({ data: { years, advanceTransactions: advanceTransactions || {} }, loading: false });
+        } catch (err) {
+          set({ error: 'Failed to load data', loading: false });
+        }
+      },
       addTenant: (year, shopNumber, shopData) => {
         set((state) => {
           const newData = { ...state.data };
