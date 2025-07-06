@@ -1,0 +1,328 @@
+{
+  "2024": {
+    "shops": {
+      "A-101": {
+        "tenant": {
+          "name": "ABC Electronics",
+          "phoneNumber": "+91-9876543210",
+          "email": "abc@electronics.com",
+          "address": "123 Main Street, City Center",
+          "status": "Active",
+          "agreementDate": "2024-01-15"
+        },
+        "rentAmount": 25000,
+        "advanceAmount": 50000,
+        "previousYearDues": {
+          "totalDues": 75000,
+          "dueMonths": ["October 2023", "November 2023", "December 2023"],
+          "description": "Carried forward from 2023"
+        },
+        "currentYearDues": {
+          "totalDues": 50000,
+          "dueMonths": ["August 2024", "September 2024"],
+          "description": "Current year pending payments"
+        },
+        "totalDuesBalance": 125000,
+        "monthlyData": {
+          "January": { "rent": 25000, "paid": 25000, "status": "Paid", "date": "2024-01-05", "advanceUsed": 0 },
+          "February": { "rent": 25000, "paid": 25000, "status": "Paid", "date": "2024-02-05", "advanceUsed": 0 },
+          "March": { "rent": 25000, "paid": 25000, "status": "Paid", "date": "2024-03-05", "advanceUsed": 0 },
+          "April": { "rent": 25000, "paid": 25000, "status": "Paid", "date": "2024-04-05", "advanceUsed": 0 },
+          "May": { "rent": 25000, "paid": 25000, "status": "Paid", "date": "2024-05-05", "advanceUsed": 0 },
+          "June": { "rent": 25000, "paid": 25000, "status": "Paid", "date": "2024-06-05", "advanceUsed": 0 },
+          "July": { "rent": 25000, "paid": 25000, "status": "Paid", "date": "2024-07-05", "advanceUsed": 0 },
+          "August": { "rent": 25000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "September": { "rent": 25000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "October": { "rent": 25000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "November": { "rent": 25000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "December": { "rent": 25000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 }
+        }
+      },
+      "A-102": {
+        "tenant": {
+          "name": "Fashion Store",
+          "phoneNumber": "+91-9876543211",
+          "email": "fashion@store.com",
+          "address": "124 Main Street, City Center",
+          "status": "Active",
+          "agreementDate": "2024-01-20"
+        },
+        "rentAmount": 30000,
+        "advanceAmount": 60000,
+        "previousYearDues": {
+          "totalDues": 60000,
+          "dueMonths": ["November 2023", "December 2023"],
+          "description": "Carried forward from 2023"
+        },
+        "currentYearDues": {
+          "totalDues": 30000,
+          "dueMonths": ["September 2024"],
+          "description": "Current year pending payments"
+        },
+        "totalDuesBalance": 90000,
+        "monthlyData": {
+          "January": { "rent": 30000, "paid": 30000, "status": "Paid", "date": "2024-01-20", "advanceUsed": 0 },
+          "February": { "rent": 30000, "paid": 30000, "status": "Paid", "date": "2024-02-20", "advanceUsed": 0 },
+          "March": { "rent": 30000, "paid": 30000, "status": "Paid", "date": "2024-03-20", "advanceUsed": 0 },
+          "April": { "rent": 30000, "paid": 30000, "status": "Paid", "date": "2024-04-20", "advanceUsed": 0 },
+          "May": { "rent": 30000, "paid": 30000, "status": "Paid", "date": "2024-05-20", "advanceUsed": 0 },
+          "June": { "rent": 30000, "paid": 30000, "status": "Paid", "date": "2024-06-20", "advanceUsed": 0 },
+          "July": { "rent": 30000, "paid": 20000, "status": "Partial", "date": "2024-07-10", "advanceUsed": 10000 },
+          "August": { "rent": 30000, "paid": 30000, "status": "Paid", "date": "2024-08-20", "advanceUsed": 0 },
+          "September": { "rent": 30000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "October": { "rent": 30000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "November": { "rent": 30000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "December": { "rent": 30000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 }
+        }
+      },
+      "B-201": {
+        "tenant": {
+          "name": "Restaurant Delight",
+          "phoneNumber": "+91-9876543212",
+          "email": "delight@restaurant.com",
+          "address": "125 Main Street, City Center",
+          "status": "Active",
+          "agreementDate": "2024-02-01"
+        },
+        "rentAmount": 45000,
+        "advanceAmount": 90000,
+        "previousYearDues": {
+          "totalDues": 0,
+          "dueMonths": [],
+          "description": "No previous dues"
+        },
+        "currentYearDues": {
+          "totalDues": 90000,
+          "dueMonths": ["August 2024", "September 2024"],
+          "description": "Current year pending payments"
+        },
+        "totalDuesBalance": 90000,
+        "monthlyData": {
+          "January": { "rent": 45000, "paid": 45000, "status": "Paid", "date": "2024-02-01", "advanceUsed": 0 },
+          "February": { "rent": 45000, "paid": 45000, "status": "Paid", "date": "2024-02-01", "advanceUsed": 0 },
+          "March": { "rent": 45000, "paid": 45000, "status": "Paid", "date": "2024-03-01", "advanceUsed": 0 },
+          "April": { "rent": 45000, "paid": 45000, "status": "Paid", "date": "2024-04-01", "advanceUsed": 0 },
+          "May": { "rent": 45000, "paid": 45000, "status": "Paid", "date": "2024-05-01", "advanceUsed": 0 },
+          "June": { "rent": 45000, "paid": 45000, "status": "Paid", "date": "2024-06-01", "advanceUsed": 0 },
+          "July": { "rent": 45000, "paid": 45000, "status": "Paid", "date": "2024-07-01", "advanceUsed": 0 },
+          "August": { "rent": 45000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "September": { "rent": 45000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "October": { "rent": 45000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "November": { "rent": 45000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "December": { "rent": 45000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 }
+        }
+      },
+      "B-202": {
+        "tenant": {
+          "name": "Mobile World",
+          "phoneNumber": "+91-9876543213",
+          "email": "mobile@world.com",
+          "address": "126 Main Street, City Center",
+          "status": "Active",
+          "agreementDate": "2024-02-10"
+        },
+        "rentAmount": 28000,
+        "advanceAmount": 56000,
+        "previousYearDues": {
+          "totalDues": 0,
+          "dueMonths": [],
+          "description": "No previous dues"
+        },
+        "currentYearDues": {
+          "totalDues": 28000,
+          "dueMonths": ["September 2024"],
+          "description": "Current year pending payments"
+        },
+        "totalDuesBalance": 28000,
+        "monthlyData": {
+          "January": { "rent": 28000, "paid": 28000, "status": "Paid", "date": "2024-02-10", "advanceUsed": 0 },
+          "February": { "rent": 28000, "paid": 28000, "status": "Paid", "date": "2024-02-10", "advanceUsed": 0 },
+          "March": { "rent": 28000, "paid": 28000, "status": "Paid", "date": "2024-03-10", "advanceUsed": 0 },
+          "April": { "rent": 28000, "paid": 28000, "status": "Paid", "date": "2024-04-10", "advanceUsed": 0 },
+          "May": { "rent": 28000, "paid": 28000, "status": "Paid", "date": "2024-05-10", "advanceUsed": 0 },
+          "June": { "rent": 28000, "paid": 28000, "status": "Paid", "date": "2024-06-10", "advanceUsed": 0 },
+          "July": { "rent": 28000, "paid": 28000, "status": "Paid", "date": "2024-07-10", "advanceUsed": 0 },
+          "August": { "rent": 28000, "paid": 28000, "status": "Paid", "date": "2024-08-10", "advanceUsed": 0 },
+          "September": { "rent": 28000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "October": { "rent": 28000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "November": { "rent": 28000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "December": { "rent": 28000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 }
+        }
+      },
+      "C-301": {
+        "tenant": {
+          "name": "Book Store",
+          "phoneNumber": "+91-9876543214",
+          "email": "books@store.com",
+          "address": "127 Main Street, City Center",
+          "status": "Inactive",
+          "agreementDate": "2024-01-05"
+        },
+        "rentAmount": 20000,
+        "advanceAmount": 40000,
+        "previousYearDues": {
+          "totalDues": 40000,
+          "dueMonths": ["November 2023", "December 2023"],
+          "description": "Carried forward from 2023"
+        },
+        "currentYearDues": {
+          "totalDues": 140000,
+          "dueMonths": ["March 2024", "April 2024", "May 2024", "June 2024", "July 2024", "August 2024", "September 2024"],
+          "description": "Inactive tenant pending payments"
+        },
+        "totalDuesBalance": 180000,
+        "monthlyData": {
+          "January": { "rent": 20000, "paid": 20000, "status": "Paid", "date": "2024-01-05", "advanceUsed": 0 },
+          "February": { "rent": 20000, "paid": 20000, "status": "Paid", "date": "2024-02-05", "advanceUsed": 0 },
+          "March": { "rent": 20000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "April": { "rent": 20000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "May": { "rent": 20000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "June": { "rent": 20000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "July": { "rent": 20000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "August": { "rent": 20000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "September": { "rent": 20000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "October": { "rent": 20000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "November": { "rent": 20000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "December": { "rent": 20000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 }
+        }
+      }
+    }
+  },
+  "2023": {
+    "shops": {
+      "A-101": {
+        "tenant": {
+          "name": "ABC Electronics",
+          "phoneNumber": "+91-9876543210",
+          "email": "abc@electronics.com",
+          "address": "123 Main Street, City Center",
+          "status": "Active",
+          "agreementDate": "2023-01-15"
+        },
+        "rentAmount": 22000,
+        "advanceAmount": 44000,
+        "previousYearDues": {
+          "totalDues": 0,
+          "dueMonths": [],
+          "description": "No previous dues"
+        },
+        "currentYearDues": {
+          "totalDues": 66000,
+          "dueMonths": ["October 2023", "November 2023", "December 2023"],
+          "description": "Year end pending payments"
+        },
+        "totalDuesBalance": 66000,
+        "monthlyData": {
+          "January": { "rent": 22000, "paid": 22000, "status": "Paid", "date": "2023-01-05", "advanceUsed": 0 },
+          "February": { "rent": 22000, "paid": 22000, "status": "Paid", "date": "2023-02-05", "advanceUsed": 0 },
+          "March": { "rent": 22000, "paid": 22000, "status": "Paid", "date": "2023-03-05", "advanceUsed": 0 },
+          "April": { "rent": 22000, "paid": 22000, "status": "Paid", "date": "2023-04-05", "advanceUsed": 0 },
+          "May": { "rent": 22000, "paid": 22000, "status": "Paid", "date": "2023-05-05", "advanceUsed": 0 },
+          "June": { "rent": 22000, "paid": 22000, "status": "Paid", "date": "2023-06-05", "advanceUsed": 0 },
+          "July": { "rent": 22000, "paid": 22000, "status": "Paid", "date": "2023-07-05", "advanceUsed": 0 },
+          "August": { "rent": 22000, "paid": 22000, "status": "Paid", "date": "2023-08-05", "advanceUsed": 0 },
+          "September": { "rent": 22000, "paid": 22000, "status": "Paid", "date": "2023-09-05", "advanceUsed": 0 },
+          "October": { "rent": 22000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "November": { "rent": 22000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "December": { "rent": 22000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 }
+        }
+      },
+      "A-102": {
+        "tenant": {
+          "name": "Fashion Store",
+          "phoneNumber": "+91-9876543211",
+          "email": "fashion@store.com",
+          "address": "124 Main Street, City Center",
+          "status": "Active",
+          "agreementDate": "2023-01-20"
+        },
+        "rentAmount": 25000,
+        "advanceAmount": 50000,
+        "previousYearDues": {
+          "totalDues": 0,
+          "dueMonths": [],
+          "description": "No previous dues"
+        },
+        "currentYearDues": {
+          "totalDues": 50000,
+          "dueMonths": ["November 2023", "December 2023"],
+          "description": "Year end pending payments"
+        },
+        "totalDuesBalance": 50000,
+        "monthlyData": {
+          "January": { "rent": 25000, "paid": 25000, "status": "Paid", "date": "2023-01-20", "advanceUsed": 0 },
+          "February": { "rent": 25000, "paid": 25000, "status": "Paid", "date": "2023-02-20", "advanceUsed": 0 },
+          "March": { "rent": 25000, "paid": 25000, "status": "Paid", "date": "2023-03-20", "advanceUsed": 0 },
+          "April": { "rent": 25000, "paid": 25000, "status": "Paid", "date": "2023-04-20", "advanceUsed": 0 },
+          "May": { "rent": 25000, "paid": 25000, "status": "Paid", "date": "2023-05-20", "advanceUsed": 0 },
+          "June": { "rent": 25000, "paid": 25000, "status": "Paid", "date": "2023-06-20", "advanceUsed": 0 },
+          "July": { "rent": 25000, "paid": 25000, "status": "Paid", "date": "2023-07-20", "advanceUsed": 0 },
+          "August": { "rent": 25000, "paid": 25000, "status": "Paid", "date": "2023-08-20", "advanceUsed": 0 },
+          "September": { "rent": 25000, "paid": 25000, "status": "Paid", "date": "2023-09-20", "advanceUsed": 0 },
+          "October": { "rent": 25000, "paid": 25000, "status": "Paid", "date": "2023-10-20", "advanceUsed": 0 },
+          "November": { "rent": 25000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "December": { "rent": 25000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 }
+        }
+      },
+      "C-301": {
+        "tenant": {
+          "name": "Book Store",
+          "phoneNumber": "+91-9876543214",
+          "email": "books@store.com",
+          "address": "127 Main Street, City Center",
+          "status": "Active",
+          "agreementDate": "2023-01-05"
+        },
+        "rentAmount": 18000,
+        "advanceAmount": 36000,
+        "previousYearDues": {
+          "totalDues": 0,
+          "dueMonths": [],
+          "description": "No previous dues"
+        },
+        "currentYearDues": {
+          "totalDues": 36000,
+          "dueMonths": ["November 2023", "December 2023"],
+          "description": "Year end pending payments"
+        },
+        "totalDuesBalance": 36000,
+        "monthlyData": {
+          "January": { "rent": 18000, "paid": 18000, "status": "Paid", "date": "2023-01-05", "advanceUsed": 0 },
+          "February": { "rent": 18000, "paid": 18000, "status": "Paid", "date": "2023-02-05", "advanceUsed": 0 },
+          "March": { "rent": 18000, "paid": 18000, "status": "Paid", "date": "2023-03-05", "advanceUsed": 0 },
+          "April": { "rent": 18000, "paid": 18000, "status": "Paid", "date": "2023-04-05", "advanceUsed": 0 },
+          "May": { "rent": 18000, "paid": 18000, "status": "Paid", "date": "2023-05-05", "advanceUsed": 0 },
+          "June": { "rent": 18000, "paid": 18000, "status": "Paid", "date": "2023-06-05", "advanceUsed": 0 },
+          "July": { "rent": 18000, "paid": 18000, "status": "Paid", "date": "2023-07-05", "advanceUsed": 0 },
+          "August": { "rent": 18000, "paid": 18000, "status": "Paid", "date": "2023-08-05", "advanceUsed": 0 },
+          "September": { "rent": 18000, "paid": 18000, "status": "Paid", "date": "2023-09-05", "advanceUsed": 0 },
+          "October": { "rent": 18000, "paid": 18000, "status": "Paid", "date": "2023-10-05", "advanceUsed": 0 },
+          "November": { "rent": 18000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "December": { "rent": 18000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 }
+        }
+      }
+    }
+  },
+  "advanceTransactions": {
+    "A-101": [
+      { "type": "Deposit", "amount": 44000, "date": "2023-01-15", "description": "Initial advance 2023" },
+      { "type": "Deposit", "amount": 6000, "date": "2024-01-15", "description": "Additional advance 2024" },
+      { "type": "Advance Deduction", "amount": 5000, "date": "2024-04-01", "description": "Advance used for rent Apr 2024" }
+    ],
+    "A-102": [
+      { "type": "Deposit", "amount": 50000, "date": "2023-01-20", "description": "Initial advance 2023" },
+      { "type": "Deposit", "amount": 10000, "date": "2024-01-20", "description": "Additional advance 2024" },
+      { "type": "Advance Deduction", "amount": 7000, "date": "2024-05-01", "description": "Advance used for rent May 2024" }
+    ],
+    "B-201": [
+      { "type": "Deposit", "amount": 90000, "date": "2024-02-01", "description": "Initial advance 2024" }
+    ],
+    "B-202": [
+      { "type": "Deposit", "amount": 56000, "date": "2024-02-10", "description": "Initial advance 2024" }
+    ],
+    "C-301": [
+      { "type": "Deposit", "amount": 36000, "date": "2023-01-05", "description": "Initial advance 2023" },
+      { "type": "Deposit", "amount": 4000, "date": "2024-01-05", "description": "Additional advance 2024" }
+    ]
+  }
+} 
