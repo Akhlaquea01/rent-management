@@ -14,6 +14,10 @@ import {
   FormControlLabel,
   Checkbox,
   Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import { useRentStore } from '../store/rentStore';
 import toast from 'react-hot-toast';
@@ -32,7 +36,7 @@ interface RentEntryFormData {
 }
 
 const RentEntry: React.FC = () => {
-  const { data } = useRentStore();
+  const { data, addAdvanceTransaction } = useRentStore();
   const currentYear = new Date().getFullYear().toString();
   const shops = data.years[currentYear]?.shops || {};
   const [formData, setFormData] = useState<RentEntryFormData>({
@@ -49,7 +53,8 @@ const RentEntry: React.FC = () => {
   });
 
   const [selectedShop, setSelectedShop] = useState<any>(null);
-  const [advanceBalance, setAdvanceBalance] = useState(0);
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [bulkJson, setBulkJson] = useState('');
 
   // Build active shops list
   const activeShops = Object.entries(shops)
@@ -70,14 +75,9 @@ const RentEntry: React.FC = () => {
           rentAmount: shop.rentAmount,
           paidAmount: shop.rentAmount,
         }));
-        // Calculate advance balance from transactions
-        const transactions = data.advanceTransactions[formData.shopNumber] || [];
-        const balance = transactions.reduce((acc: number, t: any) => 
-          t.type === 'Deposit' ? acc + t.amount : acc - t.amount, 0);
-        setAdvanceBalance(balance);
       }
     }
-  }, [formData.shopNumber, shops, data.advanceTransactions]);
+  }, [formData.shopNumber, shops]);
 
   const handleSubmit = () => {
     if (!formData.shopNumber || formData.paidAmount <= 0) {
@@ -85,44 +85,121 @@ const RentEntry: React.FC = () => {
       return;
     }
 
-    if (formData.useAdvance && formData.advanceDeduction > advanceBalance) {
-      toast.error('Advance deduction cannot exceed available balance');
-      return;
-    }
-
     try {
-      // Calculate final status
-      let status: 'Paid' | 'Pending' | 'Partial' | 'Overdue' = 'Paid';
-      if (formData.paidAmount < formData.rentAmount) {
-        status = formData.paidAmount > 0 ? 'Partial' : 'Pending';
-      }
+      // Calculate total to allocate
+      let totalToAllocate = formData.paidAmount + (formData.useAdvance ? formData.advanceDeduction : 0);
+      const monthDate = new Date(formData.month + '-01');
+      const monthName = monthDate.toLocaleDateString('en-US', { month: 'long' });
+      const year = monthDate.getFullYear().toString();
 
-      // Update monthly data in store
       useRentStore.setState((state) => {
-        const newData = { ...state.data };
-        const shop = newData.years[currentYear].shops[formData.shopNumber];
-        if (shop) {
-          const monthName = new Date(formData.month + '-01').toLocaleDateString('en-US', { month: 'long' });
+        // Deep clone years and shops
+        const newYears = { ...state.data.years };
+        // Deep clone all years (for previousYearDues update)
+        Object.keys(newYears).forEach((y) => {
+          newYears[y] = { ...newYears[y], shops: { ...newYears[y].shops } };
+          Object.keys(newYears[y].shops).forEach((shopNum) => {
+            newYears[y].shops[shopNum] = { ...newYears[y].shops[shopNum], monthlyData: { ...newYears[y].shops[shopNum].monthlyData } };
+            if (newYears[y].shops[shopNum].previousYearDues) {
+              newYears[y].shops[shopNum].previousYearDues = { ...newYears[y].shops[shopNum].previousYearDues };
+            }
+          });
+        });
+        const yearData = newYears[year];
+        const shops = yearData.shops;
+        const shop = shops[formData.shopNumber];
+        const monthlyData = shop.monthlyData;
+
+        // Gather all due months (previous years first, then current year), oldest to newest
+        const allDueMonths: Array<{ year: string, month: string, shopKey: string }> = [];
+        Object.keys(newYears)
+          .filter(y => y < year)
+          .sort()
+          .forEach(y => {
+            const shop = newYears[y]?.shops[formData.shopNumber];
+            if (shop && shop.monthlyData) {
+              Object.entries(shop.monthlyData).forEach(([m, md]: [string, any]) => {
+                if (md.status !== 'Paid') {
+                  allDueMonths.push({ year: y, month: m, shopKey: formData.shopNumber });
+                }
+              });
+            }
+          });
+        if (shop && shop.monthlyData) {
+          const monthsOrder = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+          ];
+          for (const m of monthsOrder) {
+            if (monthsOrder.indexOf(m) > monthDate.getMonth()) break;
+            const md = shop.monthlyData[m];
+            if (md && md.status !== 'Paid') {
+              allDueMonths.push({ year, month: m, shopKey: formData.shopNumber });
+            }
+          }
+        }
+
+        // Allocate payment to dues
+        let remaining = totalToAllocate;
+        for (const due of allDueMonths) {
+          const dueShop = newYears[due.year]?.shops[due.shopKey];
+          if (!dueShop) continue;
+          const md = dueShop.monthlyData[due.month];
+          const dueAmount = (md?.rent || dueShop.rentAmount) - (md?.paid || 0);
+          if (dueAmount > 0) {
+            const pay = Math.min(remaining, dueAmount);
+            dueShop.monthlyData[due.month] = {
+              ...md,
+              paid: (md?.paid || 0) + pay,
+              status: (pay + (md?.paid || 0)) >= (md?.rent || dueShop.rentAmount) ? 'Paid' : (pay > 0 ? 'Partial' : 'Pending'),
+              date: formData.paymentDate,
+              advanceUsed: 0,
+            };
+            remaining -= pay;
+          }
+          if (remaining <= 0) break;
+        }
+
+        // If still remaining, apply to current month
+        if (remaining > 0 && shop) {
+          const md = shop.monthlyData[monthName] || { rent: shop.rentAmount, paid: 0, status: 'Pending', advanceUsed: 0 };
+          const pay = Math.min(remaining, md.rent - (md.paid || 0));
           shop.monthlyData[monthName] = {
-            rent: formData.rentAmount,
-            paid: formData.paidAmount,
-            status: status as any,
+            ...md,
+            paid: (md.paid || 0) + pay,
+            status: ((md.paid || 0) + pay) >= md.rent ? 'Paid' : (pay > 0 ? 'Partial' : 'Pending'),
             date: formData.paymentDate,
             advanceUsed: formData.useAdvance ? formData.advanceDeduction : 0,
           };
+          remaining -= pay;
         }
-        return { data: newData };
-      });
 
-      // Add advance transaction if advance is used
-      if (formData.useAdvance && formData.advanceDeduction > 0) {
-        useRentStore.setState((state) => {
-          const newData = { ...state.data };
-          if (!newData.advanceTransactions[formData.shopNumber]) {
-            newData.advanceTransactions[formData.shopNumber] = [];
+        // Update previousYearDues if all previous months are paid
+        Object.keys(newYears)
+          .filter(y => y < year)
+          .forEach(y => {
+            const shop = newYears[y]?.shops[formData.shopNumber];
+            if (shop && shop.previousYearDues) {
+              const unpaid = Object.entries(shop.monthlyData || {}).filter(([_, md]: [string, any]) => md.status !== 'Paid');
+              if (unpaid.length === 0) {
+                shop.previousYearDues.totalDues = 0;
+                shop.previousYearDues.dueMonths = [];
+              } else {
+                shop.previousYearDues.dueMonths = unpaid.map(([m]) => m);
+                shop.previousYearDues.totalDues = unpaid.reduce((sum, [_, md]: [string, any]) => sum + ((md.rent || 0) - (md.paid || 0)), 0);
+              }
+            }
+          });
+
+        // Deep clone advanceTransactions
+        const newAdvanceTransactions = { ...state.data.advanceTransactions };
+        // Add advance transaction if advance is used
+        if (formData.useAdvance && formData.advanceDeduction > 0) {
+          if (!newAdvanceTransactions[formData.shopNumber]) {
+            newAdvanceTransactions[formData.shopNumber] = [];
           }
-          newData.advanceTransactions[formData.shopNumber] = [
-            ...newData.advanceTransactions[formData.shopNumber],
+          newAdvanceTransactions[formData.shopNumber] = [
+            ...newAdvanceTransactions[formData.shopNumber],
             {
               type: 'Deduction',
               amount: formData.advanceDeduction,
@@ -130,12 +207,12 @@ const RentEntry: React.FC = () => {
               description: `Rent payment for ${formData.month}`,
             },
           ];
-          return { data: newData };
-        });
-      }
+        }
+
+        return { data: { ...state.data, years: newYears, advanceTransactions: newAdvanceTransactions } };
+      });
 
       toast.success('Rent entry added successfully');
-      
       // Reset form
       setFormData({
         shopNumber: '',
@@ -150,27 +227,47 @@ const RentEntry: React.FC = () => {
         remarks: '',
       });
       setSelectedShop(null);
-      setAdvanceBalance(0);
     } catch (error) {
       toast.error('An error occurred');
     }
   };
 
-  const handleAdvanceChange = (checked: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      useAdvance: checked,
-      advanceDeduction: checked ? Math.min(advanceBalance, prev.paidAmount) : 0,
-    }));
-  };
-
-  const handleAdvanceDeductionChange = (value: number) => {
-    const maxDeduction = Math.min(advanceBalance, formData.paidAmount);
-    const deduction = Math.min(value, maxDeduction);
-    setFormData(prev => ({
-      ...prev,
-      advanceDeduction: deduction,
-    }));
+  const handleBulkUpdate = () => {
+    let parsed;
+    try {
+      parsed = JSON.parse(bulkJson);
+    } catch (e) {
+      toast.error('Invalid JSON');
+      return;
+    }
+    // Expecting format: [{ year, shopNumber, month, rentAmount, paidAmount, paymentDate, paymentMode, remarks }]
+    if (!Array.isArray(parsed)) {
+      toast.error('JSON must be an array');
+      return;
+    }
+    useRentStore.setState((state) => {
+      // Deep clone years and shops
+      const newYears = { ...state.data.years };
+      parsed.forEach((entry) => {
+        const { year, shopNumber, month, rentAmount, paidAmount, paymentDate, paymentMode, remarks } = entry;
+        if (!newYears[year] || !newYears[year].shops[shopNumber]) return;
+        newYears[year] = { ...newYears[year], shops: { ...newYears[year].shops } };
+        newYears[year].shops[shopNumber] = { ...newYears[year].shops[shopNumber], monthlyData: { ...newYears[year].shops[shopNumber].monthlyData } };
+        const shop = newYears[year].shops[shopNumber];
+        const monthName = new Date(month + '-01').toLocaleDateString('en-US', { month: 'long' });
+        shop.monthlyData[monthName] = {
+          rent: rentAmount,
+          paid: paidAmount,
+          status: paidAmount >= rentAmount ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending',
+          date: paymentDate,
+          advanceUsed: 0,
+        };
+      });
+      return { data: { ...state.data, years: newYears } };
+    });
+    toast.success('Bulk rent update successful');
+    setBulkDialogOpen(false);
+    setBulkJson('');
   };
 
   return (
@@ -178,6 +275,41 @@ const RentEntry: React.FC = () => {
       <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
         Rent Entry
       </Typography>
+      <Button variant="outlined" sx={{ mb: 2 }} onClick={() => setBulkDialogOpen(true)}>
+        Bulk Rent Update (JSON)
+      </Button>
+      <Dialog open={bulkDialogOpen} onClose={() => setBulkDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Bulk Rent Update (JSON)</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            Paste an array of rent entries. Example:<br/>
+            <pre style={{ background: '#f5f5f5', padding: 8, borderRadius: 4, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+{`[
+  {
+    "year": "2024",
+    "shopNumber": "101",
+    "month": "2024-07",
+    "rentAmount": 10000,
+    "paidAmount": 10000,
+    "paymentDate": "2024-07-05"
+  }
+]`}
+            </pre>
+          </Typography>
+          <TextField
+            fullWidth
+            multiline
+            minRows={8}
+            value={bulkJson}
+            onChange={e => setBulkJson(e.target.value)}
+            placeholder="Paste JSON here"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBulkDialogOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleBulkUpdate}>Update</Button>
+        </DialogActions>
+      </Dialog>
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={8}>
@@ -272,75 +404,7 @@ const RentEntry: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Advance Options
-              </Typography>
-              
-              {selectedShop && (
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="body2" color="textSecondary">
-                    Available Advance Balance
-                  </Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                    ₹{advanceBalance.toLocaleString()}
-                  </Typography>
-                </Box>
-              )}
-
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.useAdvance}
-                    onChange={(e) => handleAdvanceChange(e.target.checked)}
-                    disabled={!selectedShop || advanceBalance <= 0}
-                  />
-                }
-                label="Use Advance Payment"
-              />
-
-              {formData.useAdvance && (
-                <Box sx={{ mt: 2 }}>
-                  <TextField
-                    fullWidth
-                    label="Advance Deduction"
-                    type="number"
-                    value={formData.advanceDeduction}
-                    onChange={(e) => handleAdvanceDeductionChange(Number(e.target.value))}
-                    helperText={`Max: ₹${Math.min(advanceBalance, formData.paidAmount).toLocaleString()}`}
-                  />
-                </Box>
-              )}
-
-              <Divider sx={{ my: 2 }} />
-
-              {selectedShop && (
-                <Box>
-                  <Typography variant="body2" color="textSecondary">
-                    Final Amount to Collect
-                  </Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-                    ₹{(formData.paidAmount - formData.advanceDeduction).toLocaleString()}
-                  </Typography>
-                </Box>
-              )}
-
-              <Button
-                fullWidth
-                variant="contained"
-                size="large"
-                onClick={handleSubmit}
-                sx={{ mt: 2 }}
-                disabled={!formData.shopNumber || formData.paidAmount <= 0}
-              >
-                Record Payment
-              </Button>
-            </CardContent>
-          </Card>
-        </Grid>
+        {/* Bulk JSON update UI will be added here */}
       </Grid>
     </Box>
   );

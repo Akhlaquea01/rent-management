@@ -83,21 +83,22 @@ const AdvanceTracker: React.FC = () => {
     }
   }, [selectedYear, shopsWithAdvance.length]);
 
+  const { addAdvanceTransaction } = useRentStore();
+  
   const handleSubmit = () => {
     if (!selectedShop || formData.amount <= 0 || !formData.description) {
       toast.error('Please fill in all required fields');
       return;
     }
     try {
-      // Add transaction to advanceTransactions in store
-      // (You may want to move this logic to the store for consistency)
+      // Deep clone advanceTransactions
       useRentStore.setState((state) => {
-        const newData = { ...state.data };
-        if (!newData.advanceTransactions[selectedShop]) {
-          newData.advanceTransactions[selectedShop] = [];
+        const newAdvanceTransactions = { ...state.data.advanceTransactions };
+        if (!newAdvanceTransactions[selectedShop]) {
+          newAdvanceTransactions[selectedShop] = [];
         }
-        newData.advanceTransactions[selectedShop] = [
-          ...newData.advanceTransactions[selectedShop],
+        newAdvanceTransactions[selectedShop] = [
+          ...newAdvanceTransactions[selectedShop],
           {
             type: formData.type,
             amount: formData.amount,
@@ -105,7 +106,7 @@ const AdvanceTracker: React.FC = () => {
             description: formData.description,
           },
         ];
-        return { data: newData };
+        return { data: { ...state.data, advanceTransactions: newAdvanceTransactions } };
       });
       toast.success('Advance transaction added successfully');
       setFormData({

@@ -16,6 +16,8 @@ interface RentStore {
   updateTenant: (year: string, shopNumber: string, shopData: ShopData) => void;
   deleteTenant: (year: string, shopNumber: string) => void;
   getTenantByShopNumber: (year: string, shopNumber: string) => ShopData | undefined;
+  updateMonthlyData: (year: string, shopNumber: string, month: string, monthlyData: any) => void;
+  addAdvanceTransaction: (shopNumber: string, transaction: any) => void;
 }
 
 export const useRentStore = create<RentStore>()(
@@ -74,6 +76,31 @@ export const useRentStore = create<RentStore>()(
       getTenantByShopNumber: (year, shopNumber) => {
         const data = get().data;
         return data.years[year]?.shops[shopNumber];
+      },
+      updateMonthlyData: (year, shopNumber, month, monthlyData) => {
+        set((state) => {
+          const newData = { ...state.data };
+          if (newData.years[year] && newData.years[year].shops[shopNumber]) {
+            newData.years[year].shops[shopNumber].monthlyData = {
+              ...newData.years[year].shops[shopNumber].monthlyData,
+              [month]: monthlyData,
+            };
+          }
+          return { data: newData };
+        });
+      },
+      addAdvanceTransaction: (shopNumber, transaction) => {
+        set((state) => {
+          const newData = { ...state.data };
+          if (!newData.advanceTransactions[shopNumber]) {
+            newData.advanceTransactions[shopNumber] = [];
+          }
+          newData.advanceTransactions[shopNumber] = [
+            ...newData.advanceTransactions[shopNumber],
+            transaction,
+          ];
+          return { data: newData };
+        });
       },
     }),
     {
