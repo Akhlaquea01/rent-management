@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Grid,
   Card,
@@ -15,14 +15,20 @@ import {
   TableRow,
   useTheme,
   useMediaQuery,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   People as PeopleIcon,
   Payment as PaymentIcon,
   Warning as WarningIcon,
   AccountBalance as AccountBalanceIcon,
+  FileDownload as FileDownloadIcon,
 } from '@mui/icons-material';
 import { useRentStore } from '../store/rentStore';
+import * as XLSX from 'xlsx';
 
 const StatCard: React.FC<{
   title: string;
@@ -73,8 +79,12 @@ const StatCard: React.FC<{
 
 const Dashboard: React.FC = () => {
   const { data } = useRentStore();
-  const currentYear = new Date().getFullYear().toString();
-  const shops = data.years[currentYear]?.shops || {};
+  const years = Object.keys(data.years).sort().reverse();
+  const defaultYear = years.includes(new Date().getFullYear().toString())
+    ? new Date().getFullYear().toString()
+    : years[0];
+  const [selectedYear, setSelectedYear] = useState<string>(defaultYear);
+  const shops = data.years[selectedYear]?.shops || {};
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -82,6 +92,7 @@ const Dashboard: React.FC = () => {
   const shopsArray = Object.entries(shops).map(([shopNumber, shop]: [string, any]) => ({
     shopNumber,
     ...shop,
+    totalDuesWithPrevious: (shop.totalDuesBalance || 0) + (shop.previousYearDues?.totalDues || 0),
   }));
 
   const totalShops = shopsArray.length;
@@ -120,19 +131,31 @@ const Dashboard: React.FC = () => {
   };
 
   const recentShops = shopsArray
-    .sort((a: any, b: any) => new Date(b.tenant.agreementDate).getTime() - new Date(a.tenant.agreementDate).getTime())
-    .slice(0, 5);
+    .sort((a: any, b: any) => new Date(b.tenant.agreementDate).getTime() - new Date(a.tenant.agreementDate).getTime());
 
   const overdueShops = shopsArray
-    .filter((shop: any) => shop.totalDuesBalance > 0)
-    .sort((a: any, b: any) => b.totalDuesBalance - a.totalDuesBalance)
-    .slice(0, 5);
+    .filter((shop: any) => shop.totalDuesWithPrevious > 0)
+    .sort((a: any, b: any) => b.totalDuesWithPrevious - a.totalDuesWithPrevious);
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
-        Dashboard Overview
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+        <Typography variant="h4" gutterBottom sx={{ mb: 0 }}>
+          Dashboard Overview
+        </Typography>
+        <FormControl size="small" sx={{ minWidth: 120 }}>
+          <InputLabel>Year</InputLabel>
+          <Select
+            value={selectedYear}
+            label="Year"
+            onChange={(e) => setSelectedYear(e.target.value)}
+          >
+            {years.map((year) => (
+              <MenuItem key={year} value={year}>{year}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
 
       {/* Statistics Cards */}
       <Grid container spacing={isMobile ? 2 : 3} sx={{ mb: 4 }}>
@@ -208,7 +231,7 @@ const Dashboard: React.FC = () => {
                   ))}
                 </Box>
               ) : (
-                <TableContainer>
+                <TableContainer sx={{ height: 300, overflow: 'auto' }}>
                   <Table size="small">
                     <TableHead>
                       <TableRow>
@@ -244,8 +267,41 @@ const Dashboard: React.FC = () => {
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Shops with Dues
+              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>Shops with Dues</span>
+                <Box>
+                  <FileDownloadIcon
+                    sx={{ cursor: 'pointer', ml: 1 }}
+                    titleAccess="Export to Excel"
+                    onClick={() => {
+                      // Prepare data for export
+                      const exportData = overdueShops.map((shop: any) => {
+                        // Find due months (from monthlyData where status is Pending or Partial)
+                        const currentYearDueMonths = Object.entries(shop.monthlyData || {})
+                          .filter(([month, data]: [string, any]) => data.status === 'Pending' || data.status === 'Partial')
+                          .map(([month]) => `${month} ${selectedYear}`);
+                        const previousYearDueMonths = shop.previousYearDues?.dueMonths || [];
+                        const dueMonths = [...previousYearDueMonths, ...currentYearDueMonths].join(', ');
+                        return {
+                          Name: shop.tenant.name,
+                          Shop: shop.shopNumber,
+                          'Due Amount': shop.totalDuesWithPrevious,
+                          'Due Months': dueMonths,
+                          'Previous Year Dues': shop.previousYearDues?.totalDues || 0,
+                          'Phone': shop.tenant.phoneNumber
+                        };
+                      });
+                      const ws = XLSX.utils.json_to_sheet(exportData);
+                      const wb = XLSX.utils.book_new();
+                      XLSX.utils.book_append_sheet(wb, ws, 'ShopsWithDues');
+                      // Add date and time to filename
+                      const now = new Date();
+                      const pad = (n: number) => n.toString().padStart(2, '0');
+                      const dateStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+                      XLSX.writeFile(wb, `ShopsWithDues_${dateStr}.xlsx`);
+                    }}
+                  />
+                </Box>
               </Typography>
               {isMobile ? (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -260,7 +316,7 @@ const Dashboard: React.FC = () => {
                         </Box>
                         <Box sx={{ textAlign: 'right' }}>
                           <Typography variant="body2" color="error.main" sx={{ fontWeight: 'bold' }}>
-                            ₹{shop.totalDuesBalance.toLocaleString()}
+                            ₹{shop.totalDuesWithPrevious.toLocaleString()}
                           </Typography>
                           <Typography variant="caption" color="textSecondary">
                             Due Amount
@@ -271,7 +327,7 @@ const Dashboard: React.FC = () => {
                   ))}
                 </Box>
               ) : (
-                <TableContainer>
+                <TableContainer sx={{ height: 300, overflow: 'auto' }}>
                   <Table size="small">
                     <TableHead>
                       <TableRow>
@@ -287,7 +343,7 @@ const Dashboard: React.FC = () => {
                           <TableCell>{shop.shopNumber}</TableCell>
                           <TableCell align="right">
                             <Typography color="error.main" sx={{ fontWeight: 'bold' }}>
-                              ₹{shop.totalDuesBalance.toLocaleString()}
+                              ₹{shop.totalDuesWithPrevious.toLocaleString()}
                             </Typography>
                           </TableCell>
                         </TableRow>

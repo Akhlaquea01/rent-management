@@ -13,7 +13,7 @@
         "rentAmount": 25000,
         "advanceAmount": 50000,
         "previousYearDues": {
-          "totalDues": 75000,
+          "totalDues": 66000,
           "dueMonths": ["October 2023", "November 2023", "December 2023"],
           "description": "Carried forward from 2023"
         },
@@ -50,7 +50,7 @@
         "rentAmount": 30000,
         "advanceAmount": 60000,
         "previousYearDues": {
-          "totalDues": 60000,
+          "totalDues": 50000,
           "dueMonths": ["November 2023", "December 2023"],
           "description": "Carried forward from 2023"
         },
@@ -161,7 +161,7 @@
         "rentAmount": 20000,
         "advanceAmount": 40000,
         "previousYearDues": {
-          "totalDues": 40000,
+          "totalDues": 36000,
           "dueMonths": ["November 2023", "December 2023"],
           "description": "Carried forward from 2023"
         },
@@ -185,6 +185,154 @@
           "November": { "rent": 20000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
           "December": { "rent": 20000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 }
         }
+      },
+      "D-401": {
+        "tenant": {
+          "name": "Gadget Hub",
+          "phoneNumber": "+91-9876543215",
+          "email": "gadget@hub.com",
+          "address": "128 Main Street, City Center",
+          "status": "Active",
+          "agreementDate": "2024-03-01"
+        },
+        "rentAmount": 35000,
+        "advanceAmount": 70000,
+        "previousYearDues": {
+          "totalDues": 0,
+          "dueMonths": [],
+          "description": "No previous dues"
+        },
+        "currentYearDues": {
+          "totalDues": 70000,
+          "dueMonths": ["August 2024", "September 2024"],
+          "description": "Current year pending payments"
+        },
+        "totalDuesBalance": 70000,
+        "monthlyData": {
+          "January": { "rent": 35000, "paid": 35000, "status": "Paid", "date": "2024-03-01", "advanceUsed": 0 },
+          "February": { "rent": 35000, "paid": 35000, "status": "Paid", "date": "2024-03-01", "advanceUsed": 0 },
+          "March": { "rent": 35000, "paid": 35000, "status": "Paid", "date": "2024-03-01", "advanceUsed": 0 },
+          "April": { "rent": 35000, "paid": 35000, "status": "Paid", "date": "2024-04-01", "advanceUsed": 0 },
+          "May": { "rent": 35000, "paid": 35000, "status": "Paid", "date": "2024-05-01", "advanceUsed": 0 },
+          "June": { "rent": 35000, "paid": 35000, "status": "Paid", "date": "2024-06-01", "advanceUsed": 0 },
+          "July": { "rent": 35000, "paid": 35000, "status": "Paid", "date": "2024-07-01", "advanceUsed": 0 },
+          "August": { "rent": 35000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "September": { "rent": 35000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "October": { "rent": 35000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "November": { "rent": 35000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "December": { "rent": 35000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 }
+        }
+      },
+      "E-501": {
+        "tenant": {
+          "name": "Toy Planet",
+          "phoneNumber": "+91-9876543216",
+          "email": "toy@planet.com",
+          "address": "129 Main Street, City Center",
+          "status": "Active",
+          "agreementDate": "2024-03-10"
+        },
+        "rentAmount": 15000,
+        "advanceAmount": 30000,
+        "previousYearDues": {
+          "totalDues": 0,
+          "dueMonths": [],
+          "description": "No previous dues"
+        },
+        "currentYearDues": {
+          "totalDues": 15000,
+          "dueMonths": ["September 2024"],
+          "description": "Current year pending payments"
+        },
+        "totalDuesBalance": 15000,
+        "monthlyData": {
+          "January": { "rent": 15000, "paid": 15000, "status": "Paid", "date": "2024-03-10", "advanceUsed": 0 },
+          "February": { "rent": 15000, "paid": 15000, "status": "Paid", "date": "2024-03-10", "advanceUsed": 0 },
+          "March": { "rent": 15000, "paid": 15000, "status": "Paid", "date": "2024-03-10", "advanceUsed": 0 },
+          "April": { "rent": 15000, "paid": 15000, "status": "Paid", "date": "2024-04-10", "advanceUsed": 0 },
+          "May": { "rent": 15000, "paid": 15000, "status": "Paid", "date": "2024-05-10", "advanceUsed": 0 },
+          "June": { "rent": 15000, "paid": 15000, "status": "Paid", "date": "2024-06-10", "advanceUsed": 0 },
+          "July": { "rent": 15000, "paid": 15000, "status": "Paid", "date": "2024-07-10", "advanceUsed": 0 },
+          "August": { "rent": 15000, "paid": 15000, "status": "Paid", "date": "2024-08-10", "advanceUsed": 0 },
+          "September": { "rent": 15000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "October": { "rent": 15000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "November": { "rent": 15000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "December": { "rent": 15000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 }
+        }
+      },
+      "F-601": {
+        "tenant": {
+          "name": "Shoe Mart",
+          "phoneNumber": "+91-9876543217",
+          "email": "shoe@mart.com",
+          "address": "130 Main Street, City Center",
+          "status": "Active",
+          "agreementDate": "2024-04-01"
+        },
+        "rentAmount": 18000,
+        "advanceAmount": 36000,
+        "previousYearDues": {
+          "totalDues": 0,
+          "dueMonths": [],
+          "description": "No previous dues"
+        },
+        "currentYearDues": {
+          "totalDues": 36000,
+          "dueMonths": ["August 2024", "September 2024"],
+          "description": "Current year pending payments"
+        },
+        "totalDuesBalance": 36000,
+        "monthlyData": {
+          "January": { "rent": 18000, "paid": 18000, "status": "Paid", "date": "2024-04-01", "advanceUsed": 0 },
+          "February": { "rent": 18000, "paid": 18000, "status": "Paid", "date": "2024-04-01", "advanceUsed": 0 },
+          "March": { "rent": 18000, "paid": 18000, "status": "Paid", "date": "2024-04-01", "advanceUsed": 0 },
+          "April": { "rent": 18000, "paid": 18000, "status": "Paid", "date": "2024-04-01", "advanceUsed": 0 },
+          "May": { "rent": 18000, "paid": 18000, "status": "Paid", "date": "2024-05-01", "advanceUsed": 0 },
+          "June": { "rent": 18000, "paid": 18000, "status": "Paid", "date": "2024-06-01", "advanceUsed": 0 },
+          "July": { "rent": 18000, "paid": 18000, "status": "Paid", "date": "2024-07-01", "advanceUsed": 0 },
+          "August": { "rent": 18000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "September": { "rent": 18000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "October": { "rent": 18000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "November": { "rent": 18000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "December": { "rent": 18000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 }
+        }
+      },
+      "G-701": {
+        "tenant": {
+          "name": "Bakery Bliss",
+          "phoneNumber": "+91-9876543218",
+          "email": "bakery@bliss.com",
+          "address": "131 Main Street, City Center",
+          "status": "Active",
+          "agreementDate": "2024-04-15"
+        },
+        "rentAmount": 22000,
+        "advanceAmount": 44000,
+        "previousYearDues": {
+          "totalDues": 0,
+          "dueMonths": [],
+          "description": "No previous dues"
+        },
+        "currentYearDues": {
+          "totalDues": 22000,
+          "dueMonths": ["September 2024"],
+          "description": "Current year pending payments"
+        },
+        "totalDuesBalance": 22000,
+        "monthlyData": {
+          "January": { "rent": 22000, "paid": 22000, "status": "Paid", "date": "2024-04-15", "advanceUsed": 0 },
+          "February": { "rent": 22000, "paid": 22000, "status": "Paid", "date": "2024-04-15", "advanceUsed": 0 },
+          "March": { "rent": 22000, "paid": 22000, "status": "Paid", "date": "2024-04-15", "advanceUsed": 0 },
+          "April": { "rent": 22000, "paid": 22000, "status": "Paid", "date": "2024-04-15", "advanceUsed": 0 },
+          "May": { "rent": 22000, "paid": 22000, "status": "Paid", "date": "2024-05-15", "advanceUsed": 0 },
+          "June": { "rent": 22000, "paid": 22000, "status": "Paid", "date": "2024-06-15", "advanceUsed": 0 },
+          "July": { "rent": 22000, "paid": 22000, "status": "Paid", "date": "2024-07-15", "advanceUsed": 0 },
+          "August": { "rent": 22000, "paid": 22000, "status": "Paid", "date": "2024-08-15", "advanceUsed": 0 },
+          "September": { "rent": 22000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "October": { "rent": 22000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "November": { "rent": 22000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 },
+          "December": { "rent": 22000, "paid": 0, "status": "Pending", "date": "", "advanceUsed": 0 }
+        }
       }
     }
   },
@@ -202,9 +350,9 @@
         "rentAmount": 22000,
         "advanceAmount": 44000,
         "previousYearDues": {
-          "totalDues": 0,
-          "dueMonths": [],
-          "description": "No previous dues"
+          "totalDues": 22000,
+          "dueMonths": ["September 2022"],
+          "description": "Carried forward from 2022"
         },
         "currentYearDues": {
           "totalDues": 66000,
@@ -239,9 +387,9 @@
         "rentAmount": 25000,
         "advanceAmount": 50000,
         "previousYearDues": {
-          "totalDues": 0,
-          "dueMonths": [],
-          "description": "No previous dues"
+          "totalDues": 50000,
+          "dueMonths": ["November 2022", "December 2022"],
+          "description": "Carried forward from 2022"
         },
         "currentYearDues": {
           "totalDues": 50000,
@@ -276,9 +424,9 @@
         "rentAmount": 18000,
         "advanceAmount": 36000,
         "previousYearDues": {
-          "totalDues": 0,
-          "dueMonths": [],
-          "description": "No previous dues"
+          "totalDues": 18000,
+          "dueMonths": ["December 2022"],
+          "description": "Carried forward from 2022"
         },
         "currentYearDues": {
           "totalDues": 36000,
