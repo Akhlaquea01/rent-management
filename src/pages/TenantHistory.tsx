@@ -71,12 +71,10 @@ const TenantHistory: React.FC = () => {
     const months = getMonthsUpToToday(year);
     let totalRent = 0;
     let totalPaid = 0;
-    let totalAdvanceUsed = 0;
     const monthlyDataArray = months.map(month => {
       const monthData = shop.monthlyData?.[month] || { rent: shop.rentAmount, paid: 0, status: 'Pending', advanceUsed: 0 };
       totalRent += monthData.rent || shop.rentAmount;
       totalPaid += monthData.paid || 0;
-      totalAdvanceUsed += monthData.advanceUsed || 0;
       return {
         month,
         rentAmount: monthData.rent || shop.rentAmount,
@@ -132,7 +130,7 @@ const TenantHistory: React.FC = () => {
       }
     });
     return { totalRent, totalPaid, totalPending, advanceBalance, yearSections };
-  }, [selectedShopNumber, selectedYear, data]);
+  }, [selectedShopNumber, selectedYear, data, availableYears, getYearlyData]);
 
   // Tooltip: pending months grouped by year
   const getPendingTooltip = () => {

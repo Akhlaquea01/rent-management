@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -11,9 +11,6 @@ import {
   Select,
   MenuItem,
   Button,
-  FormControlLabel,
-  Checkbox,
-  Divider,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -36,9 +33,9 @@ interface RentEntryFormData {
 }
 
 const RentEntry: React.FC = () => {
-  const { data, addAdvanceTransaction } = useRentStore();
+  const { data } = useRentStore();
   const currentYear = new Date().getFullYear().toString();
-  const shops = data.years[currentYear]?.shops || {};
+  const shops = useMemo(() => data.years[currentYear]?.shops || {}, [data.years, currentYear]);
   const [formData, setFormData] = useState<RentEntryFormData>({
     shopNumber: '',
     month: new Date().toISOString().slice(0, 7),
@@ -51,24 +48,21 @@ const RentEntry: React.FC = () => {
     advanceDeduction: 0,
     remarks: '',
   });
-
-  const [selectedShop, setSelectedShop] = useState<any>(null);
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [bulkJson, setBulkJson] = useState('');
 
   // Build active shops list
-  const activeShops = Object.entries(shops)
+  const activeShops = useMemo(() => Object.entries(shops)
     .filter(([_, shop]: [string, any]) => shop.tenant.status === 'Active')
     .map(([shopNumber, shop]: [string, any]) => ({
       shopNumber,
       name: shop.tenant.name,
       rentAmount: shop.rentAmount,
-    }));
+    })), [shops]);
 
   useEffect(() => {
     if (formData.shopNumber) {
       const shop = shops[formData.shopNumber];
-      setSelectedShop(shop);
       if (shop) {
         setFormData(prev => ({
           ...prev,
@@ -84,7 +78,6 @@ const RentEntry: React.FC = () => {
       toast.error('Please fill in all required fields');
       return;
     }
-
     try {
       // Calculate total to allocate
       let totalToAllocate = formData.paidAmount + (formData.useAdvance ? formData.advanceDeduction : 0);
@@ -108,7 +101,6 @@ const RentEntry: React.FC = () => {
         const yearData = newYears[year];
         const shops = yearData.shops;
         const shop = shops[formData.shopNumber];
-        const monthlyData = shop.monthlyData;
 
         // Gather all due months (previous years first, then current year), oldest to newest
         const allDueMonths: Array<{ year: string, month: string, shopKey: string }> = [];
@@ -226,7 +218,6 @@ const RentEntry: React.FC = () => {
         advanceDeduction: 0,
         remarks: '',
       });
-      setSelectedShop(null);
     } catch (error) {
       toast.error('An error occurred');
     }
@@ -249,7 +240,7 @@ const RentEntry: React.FC = () => {
       // Deep clone years and shops
       const newYears = { ...state.data.years };
       parsed.forEach((entry) => {
-        const { year, shopNumber, month, rentAmount, paidAmount, paymentDate, paymentMode, remarks } = entry;
+        const { year, shopNumber, month, rentAmount, paidAmount, paymentDate } = entry;
         if (!newYears[year] || !newYears[year].shops[shopNumber]) return;
         newYears[year] = { ...newYears[year], shops: { ...newYears[year].shops } };
         newYears[year].shops[shopNumber] = { ...newYears[year].shops[shopNumber], monthlyData: { ...newYears[year].shops[shopNumber].monthlyData } };
@@ -400,6 +391,16 @@ const RentEntry: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
                   />
                 </Grid>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  size="large"
+                  onClick={handleSubmit}
+                  sx={{ mt: 2 }}
+                  disabled={!formData.shopNumber || formData.paidAmount <= 0}
+                >
+                  Record Payment
+                </Button>
               </Grid>
             </CardContent>
           </Card>

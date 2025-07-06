@@ -109,10 +109,6 @@ const Reports: React.FC = () => {
   const monthlyStats = getMonthlyStats();
   const yearlyStats = getYearlyStats();
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Paid':
@@ -167,7 +163,6 @@ const Reports: React.FC = () => {
               const isCurrentYear = selectedYear === now.getFullYear();
               const monthsToInclude = isCurrentYear ? now.getMonth() + 1 : 12;
               const monthCols = months.slice(0, monthsToInclude);
-              const exportData: any[] = [];
               const wsRows: any[] = [];
               // Header
               const header = [
@@ -186,8 +181,6 @@ const Reports: React.FC = () => {
                   const m = monthlyData[month];
                   return !m || m.status !== 'Paid';
                 }).join(', ');
-                // Dues flag
-                const hasDues = (shop.totalDuesBalance || 0) > 0 || (shop.previousYearDues?.totalDues || 0) > 0;
                 // Row
                 const row = [
                   shop.shopNumber,
@@ -209,9 +202,8 @@ const Reports: React.FC = () => {
               shopsArray.forEach((shop: any, i: number) => {
                 const rowIdx = i + 1; // header is row 0
                 const monthlyData = shop.monthlyData || {};
-                const hasDues = (shop.totalDuesBalance || 0) > 0 || (shop.previousYearDues?.totalDues || 0) > 0;
                 // Row highlight for dues
-                if (hasDues) {
+                if ((shop.totalDuesBalance || 0) > 0 || (shop.previousYearDues?.totalDues || 0) > 0) {
                   for (let c = 0; c < wsRows[0].length; c++) {
                     const cell = XLSX.utils.encode_cell({ r: rowIdx, c });
                     if (!ws[cell]) ws[cell] = { t: 's', v: '' };

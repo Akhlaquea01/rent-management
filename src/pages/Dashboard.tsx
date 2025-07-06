@@ -6,7 +6,6 @@ import {
   Typography,
   Box,
   Chip,
-  Paper,
   Table,
   TableBody,
   TableCell,
@@ -162,8 +161,8 @@ const Dashboard: React.FC = () => {
       </Box>
 
       {/* Statistics Cards */}
-      <Grid container spacing={isMobile ? 2 : 3} sx={{ mb: 4 }}>
-        <Grid item xs={6} sm={6} md={3}>
+      <Grid container spacing={isMobile ? 2 : 3} sx={{ mb: 4, width: '100%' }}>
+        <Grid item xs={12} sm={6} md={3} sx={{ minWidth: 0 }}>
           <StatCard
             title="Total Shops"
             value={stats.totalShops}
@@ -172,7 +171,7 @@ const Dashboard: React.FC = () => {
             subtitle={`${stats.activeShops} Active, ${stats.inactiveShops} Inactive`}
           />
         </Grid>
-        <Grid item xs={6} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={3} sx={{ minWidth: 0 }}>
           <StatCard
             title="Rent Collected"
             value={`₹${stats.totalRentCollected.toLocaleString()}`}
@@ -181,7 +180,7 @@ const Dashboard: React.FC = () => {
             subtitle="Total collected this year"
           />
         </Grid>
-        <Grid item xs={6} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={3} sx={{ minWidth: 0 }}>
           <StatCard
             title="Total Dues"
             value={`₹${stats.totalDues.toLocaleString()}`}
@@ -190,7 +189,7 @@ const Dashboard: React.FC = () => {
             subtitle="Pending payments"
           />
         </Grid>
-        <Grid item xs={6} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={3} sx={{ minWidth: 0 }}>
           <StatCard
             title="Advance Balance"
             value={`₹${stats.totalAdvance.toLocaleString()}`}
@@ -203,7 +202,7 @@ const Dashboard: React.FC = () => {
 
       {/* Recent Activity and Overdue Tenants */}
       <Grid container spacing={isMobile ? 2 : 3}>
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={6} sx={{ width: '100%' }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -235,7 +234,7 @@ const Dashboard: React.FC = () => {
                   ))}
                 </Box>
               ) : (
-                <TableContainer sx={{ height: 300, overflow: 'auto' }}>
+                <TableContainer sx={{ height: 300, overflow: 'auto', width: '100%' }}>
                   <Table size="small">
                     <TableHead>
                       <TableRow>
@@ -268,7 +267,7 @@ const Dashboard: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={6} sx={{ width: '100%' }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -331,7 +330,7 @@ const Dashboard: React.FC = () => {
                   ))}
                 </Box>
               ) : (
-                <TableContainer sx={{ height: 300, overflow: 'auto' }}>
+                <TableContainer sx={{ height: 300, overflow: 'auto', width: '100%' }}>
                   <Table size="small">
                     <TableHead>
                       <TableRow>

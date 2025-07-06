@@ -99,7 +99,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   );
 
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: 'flex', maxWidth: '100vw', overflowX: 'hidden', width: '100%' }}>
       <AppBar
         position="fixed"
         sx={{
@@ -159,6 +159,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           p: 3,
           width: { md: `calc(100% - ${drawerWidth}px)` },
           mt: '64px',
+          minWidth: 0,
         }}
       >
         {children}

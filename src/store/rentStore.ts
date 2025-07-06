@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { RentManagementData, ShopData, Tenant } from '../types';
+import { RentManagementData, ShopData } from '../types';
 
 const initialData: RentManagementData = {
   years: {},

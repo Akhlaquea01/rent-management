@@ -26,7 +26,6 @@ import {
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import { useRentStore } from '../store/rentStore';
-import { AdvanceTransaction } from '../types';
 import toast from 'react-hot-toast';
 
 const AdvanceTracker: React.FC = () => {
@@ -45,21 +44,6 @@ const AdvanceTracker: React.FC = () => {
     date: new Date().toISOString().split('T')[0],
     description: '',
   });
-
-  // Build active tenants list from shops
-  const activeShops = Object.entries(shops)
-    .filter(([_, shop]: [string, any]) => shop.tenant.status === 'Active')
-    .map(([shopNumber, shop]: [string, any]) => ({
-      shopNumber,
-      name: shop.tenant.name,
-    }));
-
-  // Build all tenants list from shops
-  const allShops = Object.entries(shops)
-    .map(([shopNumber, shop]: [string, any]) => ({
-      shopNumber,
-      name: shop.tenant.name,
-    }));
 
   // Build shops with advance transactions
   const shopsWithAdvance = Object.entries(shops)
@@ -81,10 +65,8 @@ const AdvanceTracker: React.FC = () => {
     } else {
       setSelectedShop('');
     }
-  }, [selectedYear, shopsWithAdvance.length]);
+  }, [selectedYear, shopsWithAdvance]);
 
-  const { addAdvanceTransaction } = useRentStore();
-  
   const handleSubmit = () => {
     if (!selectedShop || formData.amount <= 0 || !formData.description) {
       toast.error('Please fill in all required fields');
