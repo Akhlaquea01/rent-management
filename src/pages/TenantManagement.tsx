@@ -27,6 +27,7 @@ import {
   TableRow,
   Paper,
   Tooltip,
+  Stack,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -217,7 +218,7 @@ const TenantManagement: React.FC = () => {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Typography variant="h4">Tenant Management</Typography>
           <FormControl size="small" sx={{ minWidth: 120 }}>
@@ -240,7 +241,7 @@ const TenantManagement: React.FC = () => {
         >
           Add Tenant
         </Button>
-      </Box>
+      </Stack>
       <Card>
         <CardContent>
           {isMobile ? (
