@@ -30,8 +30,7 @@ import { ShopData, RentManagementData, YearData, MonthlyData } from "../types";
 
 // Utility function to encode text for WhatsApp URL
 const encodeWhatsAppText = (text: string): string => {
-  // WhatsApp expects %0A for newlines
-  return encodeURIComponent(text.replace(/\n/g, '%0A'));
+  return encodeURIComponent(text); // Only encode, do not replace newlines
 };
 
 // Utility function to get dues information
@@ -66,9 +65,14 @@ const getDuesInfo = (shopNumber: string, data: RentManagementData) => {
 
 // Utility function to format pending months for WhatsApp message
 const formatPendingMonths = (yearBreakdown: Record<string, { months: string[]; amount: number }>): string => {
-  return Object.entries(yearBreakdown)
-    .map(([year, info]) => `${info.months.join(', ')}(${year})`)
-    .join(', ');
+  // Flatten to [Month(Year), ...]
+  const all: string[] = [];
+  Object.entries(yearBreakdown).forEach(([year, info]) => {
+    info.months.forEach(month => {
+      all.push(`${month}(${year})`);
+    });
+  });
+  return all.join(', ');
 };
 
 // Utility function to generate WhatsApp message
