@@ -5,12 +5,10 @@ import {
   Card,
   CardContent,
   Grid,
-  TextField,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Button,
   Table,
   TableBody,
   TableCell,
@@ -19,48 +17,41 @@ import {
   TableRow,
   Paper,
   Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  Button,
 } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
+import * as XLSX from 'xlsx';
 import { useRentContext } from "../context/RentContext";
-import toast from "react-hot-toast";
 
 const AdvanceTracker: React.FC = () => {
-  const { state, addAdvanceTransaction } = useRentContext();
+  const { state } = useRentContext();
   const { data } = state;
-  const years = Object.keys(data.years).sort().reverse();
-  const defaultYear = years.includes(new Date().getFullYear().toString())
-    ? new Date().getFullYear().toString()
-    : years[0];
-  const [selectedYear, setSelectedYear] = useState<string>(defaultYear);
-  const shops = data.years[selectedYear]?.shops || {};
-  const [selectedShop, setSelectedShop] = useState("");
-  const [openDialog, setOpenDialog] = useState(false);
-  const [formData, setFormData] = useState({
-    type: "Deposit" as "Deposit" | "Deduction",
-    amount: 0,
-    date: new Date().toISOString().split("T")[0],
-    description: "",
-  });
 
-  // Build shops with advance transactions
-  const shopsWithAdvance = Object.entries(shops)
-    .filter(
-      ([shopNumber, _]: [string, any]) =>
-        Array.isArray(data.advanceTransactions[shopNumber]) &&
-        data.advanceTransactions[shopNumber].length > 0
+  // Gather all shops from all years, deduplicate by shopNumber
+  const allShopsMap = Object.values(data.years).reduce((acc, yearData) => {
+    Object.entries(yearData.shops).forEach(([shopNumber, shop]) => {
+      acc[shopNumber] = shop;
+    });
+    return acc;
+  }, {} as Record<string, any>);
+  // Only include shops with at least one advance transaction
+  const allShops = Object.entries(allShopsMap)
+    .filter(([shopNumber]) =>
+      Array.isArray(data.advanceTransactions[shopNumber]) &&
+      data.advanceTransactions[shopNumber].length > 0
     )
-    .map(([shopNumber, shop]: [string, any]) => ({
+    .map(([shopNumber, shop]) => ({
       shopNumber,
       name: shop.tenant.name,
+      phoneNumber: shop.tenant.phoneNumber,
+      email: shop.tenant.email,
+      status: shop.tenant.status,
     }));
+  // Set initial selectedShop only on mount
+  const [selectedShop, setSelectedShop] = useState(() => allShops[0]?.shopNumber || "");
 
   // Get transactions for selected shop
   const transactions = selectedShop
-    ? (data.advanceTransactions[selectedShop] as any[]) || []
+    ? data.advanceTransactions[selectedShop] || []
     : [];
   // Compute current balance
   const currentBalance = transactions.reduce(
@@ -69,66 +60,43 @@ const AdvanceTracker: React.FC = () => {
     0
   );
 
-  // When shopsWithAdvance or selectedYear changes, select the first tenant by default
-  React.useEffect(() => {
-    if (shopsWithAdvance.length > 0) {
-      setSelectedShop(shopsWithAdvance[0].shopNumber);
-    } else {
-      setSelectedShop("");
-    }
-  }, [selectedYear, shopsWithAdvance]);
-
-  const handleSubmit = () => {
-    if (!selectedShop || formData.amount <= 0 || !formData.description) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-    try {
-      // Deep clone advanceTransactions
-      addAdvanceTransaction(selectedShop, {
-        type: formData.type,
-        amount: formData.amount,
-        date: formData.date,
-        description: formData.description,
-      });
-      toast.success("Advance transaction added successfully");
-      setFormData({
-        type: "Deposit",
-        amount: 0,
-        date: new Date().toISOString().split("T")[0],
-        description: "",
-      });
-      setOpenDialog(false);
-    } catch (error) {
-      toast.error("An error occurred");
-    }
-  };
-
-  const getTenantName = (shopNumber: string) => {
-    const shop = shops[shopNumber];
-    return shop ? `${shop.tenant.name} - Shop ${shopNumber}` : "Unknown Tenant";
+  // Export to Excel
+  const handleExport = () => {
+    const exportData = allShops.map((shop) => {
+      const advTrans = data.advanceTransactions[shop.shopNumber] || [];
+      const totalDeposit = advTrans
+        .filter((t: any) => t.type === "Deposit")
+        .reduce((sum: number, t: any) => sum + t.amount, 0);
+      const totalDeduct = advTrans
+        .filter((t: any) => t.type === "Advance Deduction" || t.type === "Deduction")
+        .reduce((sum: number, t: any) => sum + t.amount, 0);
+      const remain = totalDeposit - totalDeduct;
+      return {
+        "Tenant Name": shop.name,
+        "Shop Number": shop.shopNumber,
+        "Phone": shop.phoneNumber,
+        "Email": shop.email,
+        "Status": shop.status,
+        "Total Deposited Advance": totalDeposit,
+        "Total Deducted Advance": totalDeduct,
+        "Remaining Advance": remain,
+      };
+    });
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Advance Summary");
+    XLSX.writeFile(wb, "advance_tracker.xlsx");
   };
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
-        Advance Tracker
-      </Typography>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
-        <FormControl size="small" sx={{ minWidth: 120 }}>
-          <InputLabel>Year</InputLabel>
-          <Select
-            value={selectedYear}
-            label="Year"
-            onChange={(e) => setSelectedYear(e.target.value)}
-          >
-            {years.map((year) => (
-              <MenuItem key={year} value={year}>
-                {year}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" gutterBottom>
+          Advance Tracker
+        </Typography>
+        <Button variant="contained" color="primary" onClick={handleExport}>
+          Export to Excel
+        </Button>
       </Box>
       <Grid container spacing={3}>
         <Grid item xs={12} md={4}>
@@ -144,7 +112,7 @@ const AdvanceTracker: React.FC = () => {
                   label="Choose Tenant"
                   onChange={(e) => setSelectedShop(e.target.value)}
                 >
-                  {shopsWithAdvance.map((shop) => (
+                  {allShops.map((shop) => (
                     <MenuItem key={shop.shopNumber} value={shop.shopNumber}>
                       {shop.name} - Shop {shop.shopNumber}
                     </MenuItem>
@@ -162,31 +130,6 @@ const AdvanceTracker: React.FC = () => {
                   >
                     ₹{currentBalance.toLocaleString()}
                   </Typography>
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={() => setOpenDialog(true)}
-                    sx={{ mt: 2 }}
-                  >
-                    Add Transaction
-                  </Button>
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    onClick={() => {
-                      // Test advance transaction to verify context is working
-                      addAdvanceTransaction("101", {
-                        type: "Deposit",
-                        amount: 5000,
-                        date: new Date().toISOString().split("T")[0],
-                        description: "Test deposit",
-                      });
-                    }}
-                    sx={{ mt: 1 }}
-                  >
-                    Test Advance (Shop 101)
-                  </Button>
                 </Box>
               )}
             </CardContent>
@@ -262,84 +205,6 @@ const AdvanceTracker: React.FC = () => {
           </Card>
         </Grid>
       </Grid>
-      {/* Add Transaction Dialog */}
-      <Dialog
-        open={openDialog}
-        onClose={() => setOpenDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Add Advance Transaction</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                Tenant: {getTenantName(selectedShop)}
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Type</InputLabel>
-                <Select
-                  value={formData.type}
-                  label="Type"
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      type: e.target.value as "Deposit" | "Deduction",
-                    })
-                  }
-                >
-                  <MenuItem value="Deposit">Deposit</MenuItem>
-                  <MenuItem value="Deduction">Deduction</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Amount *"
-                type="number"
-                value={formData.amount}
-                onChange={(e) =>
-                  setFormData({ ...formData, amount: Number(e.target.value) })
-                }
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Date *"
-                type="date"
-                value={formData.date}
-                onChange={(e) =>
-                  setFormData({ ...formData, date: e.target.value })
-                }
-                required
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Description *"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-                required
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained">
-            Add
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };

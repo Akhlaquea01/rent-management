@@ -2,12 +2,6 @@ import React, { useState } from 'react';
 import {
   Box,
   Typography,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
   FormControl,
   InputLabel,
   Select,
@@ -16,7 +10,6 @@ import {
   Card,
   CardContent,
   Chip,
-  IconButton,
   useTheme,
   useMediaQuery,
   Table,
@@ -28,23 +21,14 @@ import {
   Paper,
   Tooltip,
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-} from '@mui/icons-material';
+
 import { useRentContext } from "../context/RentContext";
-import { Tenant } from "../types";
 import { ShopData } from "../types";
-import toast from "react-hot-toast";
 
 const TenantManagement: React.FC = () => {
   // Update: get data from new structure
   const {
     state,
-    addTenant,
-    updateTenant,
-    deleteTenant,
   } = useRentContext();
   const { data } = state;
   const years = Object.keys(data.years).sort().reverse();
@@ -55,123 +39,11 @@ const TenantManagement: React.FC = () => {
   const shops = data.years[selectedYear]?.shops || {};
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const [openDialog, setOpenDialog] = useState(false);
-  const [editingShopNumber, setEditingShopNumber] = useState<string | null>(
-    null
-  );
-  const [formData, setFormData] = useState<{
-    shopNumber: string;
-    rentAmount: number;
-    advanceAmount: number;
-    tenant: Tenant;
-  }>({
-    shopNumber: "",
-    rentAmount: 0,
-    advanceAmount: 0,
-    tenant: {
-      name: "",
-      status: "Active",
-      agreementDate: new Date().toISOString().split("T")[0],
-      phoneNumber: "",
-      email: "",
-      address: "",
-    },
-  });
 
-  const handleOpenDialog = (shopNumber?: string) => {
-    if (shopNumber && shops[shopNumber]) {
-      setEditingShopNumber(shopNumber);
-      const shopData = shops[shopNumber];
-      setFormData({
-        shopNumber,
-        rentAmount: shopData.rentAmount,
-        advanceAmount: shopData.advanceAmount,
-        tenant: {
-          ...shopData.tenant,
-          agreementDate: shopData.tenant.agreementDate.split("T")[0],
-        },
-      });
-    } else {
-      setEditingShopNumber(null);
-      setFormData({
-        shopNumber: "",
-        rentAmount: 0,
-        advanceAmount: 0,
-        tenant: {
-          name: "",
-          status: "Active",
-          agreementDate: new Date().toISOString().split("T")[0],
-          phoneNumber: "",
-          email: "",
-          address: "",
-        },
-      });
-    }
-    setOpenDialog(true);
-  };
 
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-    setEditingShopNumber(null);
-  };
+  
 
-  const handleSubmit = () => {
-    if (
-      !formData.tenant.name ||
-      !formData.shopNumber ||
-      formData.rentAmount <= 0
-    ) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-    // TODO: update addTenant, updateTenant, deleteTenant in store to work with new structure
-    if (!editingShopNumber && shops[formData.shopNumber]) {
-      toast.error("Shop number already exists");
-      return;
-    }
-    try {
-      if (editingShopNumber) {
-        updateTenant(selectedYear, formData.shopNumber, {
-          ...shops[formData.shopNumber],
-          rentAmount: formData.rentAmount,
-          advanceAmount: formData.advanceAmount,
-          tenant: {
-            ...formData.tenant,
-            agreementDate: new Date(
-              formData.tenant.agreementDate
-            ).toISOString(),
-          },
-        });
-        toast.success("Tenant updated successfully");
-      } else {
-        addTenant(selectedYear, formData.shopNumber, {
-          rentAmount: formData.rentAmount,
-          advanceAmount: formData.advanceAmount,
-          tenant: {
-            ...formData.tenant,
-            agreementDate: new Date(
-              formData.tenant.agreementDate
-            ).toISOString(),
-          },
-          previousYearDues: { totalDues: 0, dueMonths: [], description: "" },
-          currentYearDues: { totalDues: 0, dueMonths: [], description: "" },
-          totalDuesBalance: 0,
-          monthlyData: {},
-        });
-        toast.success("Tenant added successfully");
-      }
-      handleCloseDialog();
-    } catch (error) {
-      toast.error("An error occurred");
-    }
-  };
 
-  const handleDelete = (shopNumber: string) => {
-    if (window.confirm("Are you sure you want to delete this tenant?")) {
-      deleteTenant(selectedYear, shopNumber);
-      toast.success("Tenant deleted successfully");
-    }
-  };
 
   // const getAdvanceDeposit = (shopNumber: string, shop: ShopData): number => {
   //   const transactions = Array.isArray(data.advanceTransactions[shopNumber])
@@ -274,13 +146,7 @@ const TenantManagement: React.FC = () => {
             </Select>
           </FormControl>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          Add Tenant
-        </Button>
+
       </Box>
       <Card>
         <CardContent>
@@ -353,25 +219,7 @@ const TenantManagement: React.FC = () => {
                           shop.tenant.agreementDate
                         ).toLocaleDateString()}
                       </Typography>
-                      <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
-                        <Button
-                          size="small"
-                          startIcon={<EditIcon />}
-                          onClick={() => handleOpenDialog(shopNumber)}
-                          variant="outlined"
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          size="small"
-                          startIcon={<DeleteIcon />}
-                          onClick={() => handleDelete(shopNumber)}
-                          variant="outlined"
-                          color="error"
-                        >
-                          Delete
-                        </Button>
-                      </Box>
+
                     </Card>
                   </Grid>
                 );
@@ -390,7 +238,7 @@ const TenantManagement: React.FC = () => {
                     <TableCell align="right">Advance</TableCell>
                     <TableCell align="right">Advance Remaining</TableCell>
                     <TableCell>Agreement Date</TableCell>
-                    <TableCell>Actions</TableCell>
+                    
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -448,24 +296,7 @@ const TenantManagement: React.FC = () => {
                             shop.tenant.agreementDate
                           ).toLocaleDateString()}
                         </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: "flex", gap: 1 }}>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleOpenDialog(shopNumber)}
-                              color="primary"
-                            >
-                              <EditIcon />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleDelete(shopNumber)}
-                              color="error"
-                            >
-                              <DeleteIcon />
-                            </IconButton>
-                          </Box>
-                        </TableCell>
+
                       </TableRow>
                     );
                   })}
@@ -475,164 +306,7 @@ const TenantManagement: React.FC = () => {
           )}
         </CardContent>
       </Card>
-      {/* Add/Edit Tenant Dialog */}
-      <Dialog
-        open={openDialog}
-        onClose={handleCloseDialog}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          {editingShopNumber ? "Edit Tenant" : "Add New Tenant"}
-        </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Tenant Name *"
-                value={formData.tenant.name}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    tenant: { ...formData.tenant, name: e.target.value },
-                  })
-                }
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Shop Number *"
-                value={formData.shopNumber}
-                onChange={(e) =>
-                  setFormData({ ...formData, shopNumber: e.target.value })
-                }
-                required
-                disabled={!!editingShopNumber}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Rent Amount *"
-                type="number"
-                value={formData.rentAmount}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    rentAmount: Number(e.target.value),
-                  })
-                }
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Advance Amount *"
-                type="number"
-                value={formData.advanceAmount}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    advanceAmount: Number(e.target.value),
-                  })
-                }
-                required
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Agreement Date *"
-                type="date"
-                value={formData.tenant.agreementDate}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    tenant: {
-                      ...formData.tenant,
-                      agreementDate: e.target.value,
-                    },
-                  })
-                }
-                required
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={formData.tenant.status}
-                  label="Status"
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      tenant: {
-                        ...formData.tenant,
-                        status: e.target.value as "Active" | "Inactive",
-                      },
-                    })
-                  }
-                >
-                  <MenuItem value="Active">Active</MenuItem>
-                  <MenuItem value="Inactive">Inactive</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Phone Number"
-                value={formData.tenant.phoneNumber}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    tenant: { ...formData.tenant, phoneNumber: e.target.value },
-                  })
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Email"
-                value={formData.tenant.email}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    tenant: { ...formData.tenant, email: e.target.value },
-                  })
-                }
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Address"
-                value={formData.tenant.address}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    tenant: { ...formData.tenant, address: e.target.value },
-                  })
-                }
-                multiline
-                rows={2}
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained">
-            {editingShopNumber ? "Update" : "Add"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+
     </Box>
   );
 };

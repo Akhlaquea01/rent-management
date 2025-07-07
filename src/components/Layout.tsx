@@ -20,7 +20,6 @@ import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
   People as PeopleIcon,
-  Payment as PaymentIcon,
   AccountBalance as AccountBalanceIcon,
   History as HistoryIcon,
   Assessment as AssessmentIcon,
@@ -37,7 +36,7 @@ interface LayoutProps {
 const menuItems = [
   { text: "Dashboard", icon: <DashboardIcon />, path: "/" },
   { text: "Tenant Management", icon: <PeopleIcon />, path: "/tenants" },
-  { text: "Rent Entry", icon: <PaymentIcon />, path: "/rent-entry" },
+
   {
     text: "Advance Tracker",
     icon: <AccountBalanceIcon />,

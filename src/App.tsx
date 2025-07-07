@@ -8,7 +8,7 @@ import { Toaster } from "react-hot-toast";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import TenantManagement from "./pages/TenantManagement";
-import RentEntry from "./pages/RentEntry";
+
 import AdvanceTracker from "./pages/AdvanceTracker";
 import TenantHistory from "./pages/TenantHistory";
 import Reports from "./pages/Reports";
@@ -81,7 +81,7 @@ function AppContent() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/tenants" element={<TenantManagement />} />
-            <Route path="/rent-entry" element={<RentEntry />} />
+
             <Route path="/advance-tracker" element={<AdvanceTracker />} />
             <Route path="/tenant-history" element={<TenantHistory />} />
             <Route path="/reports" element={<Reports />} />

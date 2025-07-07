@@ -71,20 +71,7 @@ export interface TenantLegacy {
   updatedAt: string;
 }
 
-export interface RentEntry {
-  id: string;
-  tenantId: string;
-  month: string;
-  year: number;
-  rentAmount: number;
-  paidAmount: number;
-  paymentDate: string;
-  paymentMode: string;
-  status: string;
-  advanceDeduction: number;
-  remarks: string;
-  createdAt: string;
-}
+
 
 export interface AdvanceTransactionLegacy {
   id: string;
@@ -109,17 +96,7 @@ export interface DashboardStats {
   }[];
 }
 
-export interface BulkRentEntry {
-  shopNumber: string;
-  month: string;
-  year: number;
-  rentAmount: number;
-  paidAmount: number;
-  paymentDate: string;
-  paymentMode: string;
-  advanceDeduction: number;
-  remarks: string;
-}
+
 
 export interface BulkAdvanceEntry {
   shopNumber: string;

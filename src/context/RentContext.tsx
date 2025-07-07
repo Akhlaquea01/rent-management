@@ -291,6 +291,7 @@ export const RentProvider: React.FC<RentProviderProps> = ({ children }) => {
       addAdvanceTransaction,
       forceRefresh,
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [state]
   );
 
