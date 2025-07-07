@@ -45,7 +45,6 @@ const TenantManagement: React.FC = () => {
     addTenant,
     updateTenant,
     deleteTenant,
-    getTenantByShopNumber,
   } = useRentContext();
   const { data } = state;
   const years = Object.keys(data.years).sort().reverse();
@@ -174,16 +173,16 @@ const TenantManagement: React.FC = () => {
     }
   };
 
-  const getAdvanceDeposit = (shopNumber: string, shop: ShopData): number => {
-    const transactions = Array.isArray(data.advanceTransactions[shopNumber])
-      ? data.advanceTransactions[shopNumber]
-      : [];
-    if (!transactions.length)
-      return typeof shop.advanceAmount === "number" ? shop.advanceAmount : 0;
-    return transactions
-      .filter((t: any) => t.type === "Deposit")
-      .reduce((acc: number, t: any) => acc + t.amount, 0);
-  };
+  // const getAdvanceDeposit = (shopNumber: string, shop: ShopData): number => {
+  //   const transactions = Array.isArray(data.advanceTransactions[shopNumber])
+  //     ? data.advanceTransactions[shopNumber]
+  //     : [];
+  //   if (!transactions.length)
+  //     return typeof shop.advanceAmount === "number" ? shop.advanceAmount : 0;
+  //   return transactions
+  //     .filter((t: any) => t.type === "Deposit")
+  //     .reduce((acc: number, t: any) => acc + t.amount, 0);
+  // };
 
   // Advance: always show original advanceAmount from shop data
   // Advance Remaining: advanceAmount minus sum of all 'Advance Deduction' transactions
@@ -289,7 +288,7 @@ const TenantManagement: React.FC = () => {
             <Grid container spacing={2}>
               {Object.entries(shops).map(([shopNumber, shopData]) => {
                 const shop = shopData as ShopData;
-                const advanceDeposit = getAdvanceDeposit(shopNumber, shop);
+                // const advanceDeposit = getAdvanceDeposit(shopNumber, shop);
                 const advanceRemaining = getAdvanceRemaining(shopNumber, shop);
                 return (
                   <Grid item xs={12} key={shopNumber}>
@@ -397,7 +396,7 @@ const TenantManagement: React.FC = () => {
                 <TableBody>
                   {Object.entries(shops).map(([shopNumber, shopData]) => {
                     const shop = shopData as ShopData;
-                    const advanceDeposit = getAdvanceDeposit(shopNumber, shop);
+                    // const advanceDeposit = getAdvanceDeposit(shopNumber, shop);
                     const advanceRemaining = getAdvanceRemaining(
                       shopNumber,
                       shop

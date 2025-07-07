@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Box,
   Typography,
@@ -23,7 +23,6 @@ import {
 } from "@mui/material";
 import { Print as PrintIcon } from "@mui/icons-material";
 import { useRentContext } from "../context/RentContext";
-import ContextDebugger from "../components/ContextDebugger";
 
 const TenantHistory: React.FC = () => {
   const { state } = useRentContext();
@@ -63,7 +62,7 @@ const TenantHistory: React.FC = () => {
 
   // Helper: months up to today for a given year
   const getMonthsUpToToday = (year: string) => {
-    const now = new Date();
+    // const now = new Date();
     const months = [
       "January",
       "February",
@@ -163,6 +162,7 @@ const TenantHistory: React.FC = () => {
         }
       });
     return { totalRent, totalPaid, totalPending, advanceBalance, yearSections };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedShopNumber, selectedYear, data, availableYears, getYearlyData]);
 
   // Tooltip: pending months grouped by year
