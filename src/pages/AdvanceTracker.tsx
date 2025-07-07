@@ -25,87 +25,88 @@ import {
   DialogActions,
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
-import { useRentStore } from '../store/rentStore';
-import toast from 'react-hot-toast';
+import { useRentContext } from "../context/RentContext";
+import toast from "react-hot-toast";
 
 const AdvanceTracker: React.FC = () => {
-  const { data } = useRentStore();
+  const { state, addAdvanceTransaction } = useRentContext();
+  const { data } = state;
   const years = Object.keys(data.years).sort().reverse();
   const defaultYear = years.includes(new Date().getFullYear().toString())
     ? new Date().getFullYear().toString()
     : years[0];
   const [selectedYear, setSelectedYear] = useState<string>(defaultYear);
   const shops = data.years[selectedYear]?.shops || {};
-  const [selectedShop, setSelectedShop] = useState('');
+  const [selectedShop, setSelectedShop] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
   const [formData, setFormData] = useState({
-    type: 'Deposit' as 'Deposit' | 'Deduction',
+    type: "Deposit" as "Deposit" | "Deduction",
     amount: 0,
-    date: new Date().toISOString().split('T')[0],
-    description: '',
+    date: new Date().toISOString().split("T")[0],
+    description: "",
   });
 
   // Build shops with advance transactions
   const shopsWithAdvance = Object.entries(shops)
-    .filter(([shopNumber, _]: [string, any]) => Array.isArray(data.advanceTransactions[shopNumber]) && data.advanceTransactions[shopNumber].length > 0)
+    .filter(
+      ([shopNumber, _]: [string, any]) =>
+        Array.isArray(data.advanceTransactions[shopNumber]) &&
+        data.advanceTransactions[shopNumber].length > 0
+    )
     .map(([shopNumber, shop]: [string, any]) => ({
       shopNumber,
       name: shop.tenant.name,
     }));
 
   // Get transactions for selected shop
-  const transactions = selectedShop ? (data.advanceTransactions[selectedShop] as any[] || []) : [];
+  const transactions = selectedShop
+    ? (data.advanceTransactions[selectedShop] as any[]) || []
+    : [];
   // Compute current balance
-  const currentBalance = transactions.reduce((acc: number, t: any) => t.type === 'Deposit' ? acc + t.amount : acc - t.amount, 0);
+  const currentBalance = transactions.reduce(
+    (acc: number, t: any) =>
+      t.type === "Deposit" ? acc + t.amount : acc - t.amount,
+    0
+  );
 
   // When shopsWithAdvance or selectedYear changes, select the first tenant by default
   React.useEffect(() => {
     if (shopsWithAdvance.length > 0) {
       setSelectedShop(shopsWithAdvance[0].shopNumber);
     } else {
-      setSelectedShop('');
+      setSelectedShop("");
     }
   }, [selectedYear, shopsWithAdvance]);
 
   const handleSubmit = () => {
     if (!selectedShop || formData.amount <= 0 || !formData.description) {
-      toast.error('Please fill in all required fields');
+      toast.error("Please fill in all required fields");
       return;
     }
     try {
       // Deep clone advanceTransactions
-      useRentStore.setState((state) => {
-        const newAdvanceTransactions = { ...state.data.advanceTransactions };
-        if (!newAdvanceTransactions[selectedShop]) {
-          newAdvanceTransactions[selectedShop] = [];
-        }
-        newAdvanceTransactions[selectedShop] = [
-          ...newAdvanceTransactions[selectedShop],
-          {
-            type: formData.type,
-            amount: formData.amount,
-            date: formData.date,
-            description: formData.description,
-          },
-        ];
-        return { data: { ...state.data, advanceTransactions: newAdvanceTransactions } };
+      addAdvanceTransaction(selectedShop, {
+        type: formData.type,
+        amount: formData.amount,
+        date: formData.date,
+        description: formData.description,
       });
-      toast.success('Advance transaction added successfully');
+      toast.success("Advance transaction added successfully");
       setFormData({
-        type: 'Deposit',
+        type: "Deposit",
         amount: 0,
-        date: new Date().toISOString().split('T')[0],
-        description: '',
+        date: new Date().toISOString().split("T")[0],
+        description: "",
       });
       setOpenDialog(false);
     } catch (error) {
-      toast.error('An error occurred');
+      toast.error("An error occurred");
     }
   };
 
   const getTenantName = (shopNumber: string) => {
     const shop = shops[shopNumber];
-    return shop ? `${shop.tenant.name} - Shop ${shopNumber}` : 'Unknown Tenant';
+    return shop ? `${shop.tenant.name} - Shop ${shopNumber}` : "Unknown Tenant";
   };
 
   return (
@@ -113,7 +114,7 @@ const AdvanceTracker: React.FC = () => {
       <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
         Advance Tracker
       </Typography>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
         <FormControl size="small" sx={{ minWidth: 120 }}>
           <InputLabel>Year</InputLabel>
           <Select
@@ -122,7 +123,9 @@ const AdvanceTracker: React.FC = () => {
             onChange={(e) => setSelectedYear(e.target.value)}
           >
             {years.map((year) => (
-              <MenuItem key={year} value={year}>{year}</MenuItem>
+              <MenuItem key={year} value={year}>
+                {year}
+              </MenuItem>
             ))}
           </Select>
         </FormControl>
@@ -153,7 +156,10 @@ const AdvanceTracker: React.FC = () => {
                   <Typography variant="body2" color="textSecondary">
                     Current Advance Balance
                   </Typography>
-                  <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                  <Typography
+                    variant="h4"
+                    sx={{ fontWeight: "bold", color: "primary.main" }}
+                  >
                     ₹{currentBalance.toLocaleString()}
                   </Typography>
                   <Button
@@ -164,6 +170,22 @@ const AdvanceTracker: React.FC = () => {
                     sx={{ mt: 2 }}
                   >
                     Add Transaction
+                  </Button>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    onClick={() => {
+                      // Test advance transaction to verify context is working
+                      addAdvanceTransaction("101", {
+                        type: "Deposit",
+                        amount: 5000,
+                        date: new Date().toISOString().split("T")[0],
+                        description: "Test deposit",
+                      });
+                    }}
+                    sx={{ mt: 1 }}
+                  >
+                    Test Advance (Shop 101)
                   </Button>
                 </Box>
               )}
@@ -197,16 +219,25 @@ const AdvanceTracker: React.FC = () => {
                             <TableCell>
                               <Chip
                                 label={transaction.type}
-                                color={transaction.type === 'Deposit' ? 'success' : 'warning'}
+                                color={
+                                  transaction.type === "Deposit"
+                                    ? "success"
+                                    : "warning"
+                                }
                                 size="small"
                               />
                             </TableCell>
                             <TableCell>
                               <Typography
-                                color={transaction.type === 'Deposit' ? 'success.main' : 'warning.main'}
-                                sx={{ fontWeight: 'bold' }}
+                                color={
+                                  transaction.type === "Deposit"
+                                    ? "success.main"
+                                    : "warning.main"
+                                }
+                                sx={{ fontWeight: "bold" }}
                               >
-                                {transaction.type === 'Deposit' ? '+' : '-'}₹{transaction.amount.toLocaleString()}
+                                {transaction.type === "Deposit" ? "+" : "-"}₹
+                                {transaction.amount.toLocaleString()}
                               </Typography>
                             </TableCell>
                             <TableCell>{transaction.description}</TableCell>
@@ -232,7 +263,12 @@ const AdvanceTracker: React.FC = () => {
         </Grid>
       </Grid>
       {/* Add Transaction Dialog */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={openDialog}
+        onClose={() => setOpenDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>Add Advance Transaction</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
@@ -247,7 +283,12 @@ const AdvanceTracker: React.FC = () => {
                 <Select
                   value={formData.type}
                   label="Type"
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value as 'Deposit' | 'Deduction' })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      type: e.target.value as "Deposit" | "Deduction",
+                    })
+                  }
                 >
                   <MenuItem value="Deposit">Deposit</MenuItem>
                   <MenuItem value="Deduction">Deduction</MenuItem>
@@ -260,7 +301,9 @@ const AdvanceTracker: React.FC = () => {
                 label="Amount *"
                 type="number"
                 value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
+                onChange={(e) =>
+                  setFormData({ ...formData, amount: Number(e.target.value) })
+                }
                 required
               />
             </Grid>
@@ -270,7 +313,9 @@ const AdvanceTracker: React.FC = () => {
                 label="Date *"
                 type="date"
                 value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, date: e.target.value })
+                }
                 required
                 InputLabelProps={{ shrink: true }}
               />
@@ -280,7 +325,9 @@ const AdvanceTracker: React.FC = () => {
                 fullWidth
                 label="Description *"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 required
               />
             </Grid>
@@ -297,4 +344,4 @@ const AdvanceTracker: React.FC = () => {
   );
 };
 
-export default AdvanceTracker; 
+export default AdvanceTracker;

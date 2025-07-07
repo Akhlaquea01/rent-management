@@ -14,7 +14,8 @@ import {
   ListItemText,
   useTheme,
   useMediaQuery,
-} from '@mui/material';
+  Button,
+} from "@mui/material";
 import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
@@ -23,8 +24,9 @@ import {
   AccountBalance as AccountBalanceIcon,
   History as HistoryIcon,
   Assessment as AssessmentIcon,
-} from '@mui/icons-material';
-import { useNavigate, useLocation } from 'react-router-dom';
+} from "@mui/icons-material";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useRentContext } from "../context/RentContext";
 
 const drawerWidth = 240;
 
@@ -33,20 +35,25 @@ interface LayoutProps {
 }
 
 const menuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-  { text: 'Tenant Management', icon: <PeopleIcon />, path: '/tenants' },
-  { text: 'Rent Entry', icon: <PaymentIcon />, path: '/rent-entry' },
-  { text: 'Advance Tracker', icon: <AccountBalanceIcon />, path: '/advance-tracker' },
-  { text: 'Tenant History', icon: <HistoryIcon />, path: '/tenant-history' },
-  { text: 'Reports', icon: <AssessmentIcon />, path: '/reports' },
+  { text: "Dashboard", icon: <DashboardIcon />, path: "/" },
+  { text: "Tenant Management", icon: <PeopleIcon />, path: "/tenants" },
+  { text: "Rent Entry", icon: <PaymentIcon />, path: "/rent-entry" },
+  {
+    text: "Advance Tracker",
+    icon: <AccountBalanceIcon />,
+    path: "/advance-tracker",
+  },
+  { text: "Tenant History", icon: <HistoryIcon />, path: "/tenant-history" },
+  { text: "Reports", icon: <AssessmentIcon />, path: "/reports" },
 ];
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const navigate = useNavigate();
   const location = useLocation();
+  const { state } = useRentContext();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -62,7 +69,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const drawer = (
     <div>
       <Toolbar>
-        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 'bold' }}>
+        <Typography
+          variant="h6"
+          noWrap
+          component="div"
+          sx={{ fontWeight: "bold" }}
+        >
           Rent Manager
         </Typography>
       </Toolbar>
@@ -74,18 +86,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               selected={location.pathname === item.path}
               onClick={() => handleNavigation(item.path)}
               sx={{
-                '&.Mui-selected': {
-                  backgroundColor: 'primary.light',
-                  color: 'primary.contrastText',
-                  '&:hover': {
-                    backgroundColor: 'primary.main',
+                "&.Mui-selected": {
+                  backgroundColor: "primary.light",
+                  color: "primary.contrastText",
+                  "&:hover": {
+                    backgroundColor: "primary.main",
                   },
                 },
               }}
             >
               <ListItemIcon
                 sx={{
-                  color: location.pathname === item.path ? 'primary.contrastText' : 'inherit',
+                  color:
+                    location.pathname === item.path
+                      ? "primary.contrastText"
+                      : "inherit",
                 }}
               >
                 {item.icon}
@@ -99,7 +114,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   );
 
   return (
-    <Box sx={{ display: 'flex', maxWidth: '100vw', overflowX: 'hidden', width: '100%' }}>
+    <Box
+      sx={{
+        display: "flex",
+        maxWidth: "100vw",
+        overflowX: "hidden",
+        width: "100%",
+      }}
+    >
       <AppBar
         position="fixed"
         sx={{
@@ -113,13 +135,33 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             aria-label="open drawer"
             edge="start"
             onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { md: 'none' } }}
+            sx={{ mr: 2, display: { md: "none" } }}
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div">
-            {menuItems.find(item => item.path === location.pathname)?.text || 'Rent Management System'}
-          </Typography>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 2,
+              width: "100%",
+            }}
+          >
+            <Typography variant="h6" noWrap component="div">
+              {menuItems.find((item) => item.path === location.pathname)
+                ?.text || "Rent Management System"}
+            </Typography>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => {
+                console.log(state);
+              }}
+            >
+              Log Data
+            </Button>
+          </Box>
         </Toolbar>
       </AppBar>
       <Box
@@ -135,8 +177,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             keepMounted: true,
           }}
           sx={{
-            display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            display: { xs: "block", md: "none" },
+            "& .MuiDrawer-paper": {
+              boxSizing: "border-box",
+              width: drawerWidth,
+            },
           }}
         >
           {drawer}
@@ -144,8 +189,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <Drawer
           variant="permanent"
           sx={{
-            display: { xs: 'none', md: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            display: { xs: "none", md: "block" },
+            "& .MuiDrawer-paper": {
+              boxSizing: "border-box",
+              width: drawerWidth,
+            },
           }}
           open
         >
@@ -158,7 +206,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           flexGrow: 1,
           p: 3,
           width: { md: `calc(100% - ${drawerWidth}px)` },
-          mt: '64px',
+          mt: "64px",
           minWidth: 0,
         }}
       >
@@ -168,4 +216,4 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   );
 };
 
-export default Layout; 
+export default Layout;

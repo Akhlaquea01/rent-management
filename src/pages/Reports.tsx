@@ -22,41 +22,66 @@ import {
 } from '@mui/material';
 import { Download as DownloadIcon } from '@mui/icons-material';
 import * as XLSX from 'xlsx';
-import { useRentStore } from '../store/rentStore';
+import { useRentContext } from "../context/RentContext";
 
 const Reports: React.FC = () => {
-  const { data } = useRentStore();
+  const { state } = useRentContext();
+  const { data } = state;
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth(); // 0-based
   const [selectedYear, setSelectedYear] = useState(currentYear);
-  const [selectedMonth, setSelectedMonth] = useState(`${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`);
+  const [selectedMonth, setSelectedMonth] = useState(
+    `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`
+  );
 
   // Get available years from data
-  const availableYears = Object.keys(data.years).map(Number).sort((a, b) => b - a);
+  const availableYears = Object.keys(data.years)
+    .map(Number)
+    .sort((a, b) => b - a);
 
   // Get shops for selected year
   const selectedYearShops = data.years[selectedYear.toString()]?.shops || {};
 
   // Compute stats from new data structure
-  const shopsArray = Object.entries(selectedYearShops).map(([shopNumber, shop]: [string, any]) => ({
-    shopNumber,
-    ...shop,
-  }));
+  const shopsArray = Object.entries(selectedYearShops).map(
+    ([shopNumber, shop]: [string, any]) => ({
+      shopNumber,
+      ...shop,
+    })
+  );
 
   const totalShops = shopsArray.length;
-  const activeShops = shopsArray.filter((shop: any) => shop.tenant.status === 'Active').length;
+  const activeShops = shopsArray.filter(
+    (shop: any) => shop.tenant.status === "Active"
+  ).length;
   const inactiveShops = totalShops - activeShops;
 
-  const totalAdvance = shopsArray.reduce((sum: number, shop: any) => sum + shop.advanceAmount, 0);
+  const totalAdvance = shopsArray.reduce(
+    (sum: number, shop: any) => sum + shop.advanceAmount,
+    0
+  );
 
   const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
 
   const getMonthlyStats = () => {
-    const monthName = new Date(selectedMonth + '-01').toLocaleDateString('en-US', { month: 'long' });
+    const monthName = new Date(selectedMonth + "-01").toLocaleDateString(
+      "en-US",
+      { month: "long" }
+    );
     let totalRent = 0;
     let totalCollected = 0;
     let overdueCount = 0;
@@ -64,11 +89,15 @@ const Reports: React.FC = () => {
 
     shopsArray.forEach((shop: any) => {
       const monthlyData = shop.monthlyData || {};
-      const monthData = monthlyData[monthName] || { rent: shop.rentAmount, paid: 0, status: 'Pending' };
+      const monthData = monthlyData[monthName] || {
+        rent: shop.rentAmount,
+        paid: 0,
+        status: "Pending",
+      };
       totalRent += monthData.rent || shop.rentAmount;
       totalCollected += monthData.paid || 0;
-      if (monthData.status === 'Overdue') overdueCount++;
-      if (monthData.status === 'Partial') partialCount++;
+      if (monthData.status === "Overdue") overdueCount++;
+      if (monthData.status === "Partial") partialCount++;
     });
 
     const totalPending = totalRent - totalCollected;
@@ -92,7 +121,10 @@ const Reports: React.FC = () => {
     shopsArray.forEach((shop: any) => {
       const monthlyData = shop.monthlyData || {};
       months.slice(0, monthsToInclude).forEach((month) => {
-        const monthData = monthlyData[month] || { rent: shop.rentAmount, paid: 0 };
+        const monthData = monthlyData[month] || {
+          rent: shop.rentAmount,
+          paid: 0,
+        };
         totalRent += monthData.rent || shop.rentAmount;
         totalCollected += monthData.paid || 0;
       });
@@ -111,22 +143,29 @@ const Reports: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Paid':
-        return 'success';
-      case 'Pending':
-        return 'warning';
-      case 'Partial':
-        return 'info';
-      case 'Overdue':
-        return 'error';
+      case "Paid":
+        return "success";
+      case "Pending":
+        return "warning";
+      case "Partial":
+        return "info";
+      case "Overdue":
+        return "error";
       default:
-        return 'default';
+        return "default";
     }
   };
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 3,
+        }}
+      >
         <Typography variant="h4">Reports & Analytics</Typography>
         <Box>
           <Button
@@ -135,21 +174,30 @@ const Reports: React.FC = () => {
             sx={{ mr: 1 }}
             onClick={() => {
               // Export Monthly Report
-              const monthName = new Date(selectedMonth + '-01').toLocaleDateString('en-US', { month: 'long' });
+              const monthName = new Date(
+                selectedMonth + "-01"
+              ).toLocaleDateString("en-US", { month: "long" });
               const exportData = shopsArray.map((shop: any) => {
-                const monthData = shop.monthlyData?.[monthName] || { rent: shop.rentAmount, paid: 0, status: 'Pending' };
+                const monthData = shop.monthlyData?.[monthName] || {
+                  rent: shop.rentAmount,
+                  paid: 0,
+                  status: "Pending",
+                };
                 return {
                   Shop: shop.shopNumber,
-                  'Tenant Name': shop.tenant.name,
-                  'Rent Amount': monthData.rent || shop.rentAmount,
-                  'Paid Amount': monthData.paid || 0,
+                  "Tenant Name": shop.tenant.name,
+                  "Rent Amount": monthData.rent || shop.rentAmount,
+                  "Paid Amount": monthData.paid || 0,
                   Status: monthData.status,
                 };
               });
               const ws = XLSX.utils.json_to_sheet(exportData);
               const wb = XLSX.utils.book_new();
-              XLSX.utils.book_append_sheet(wb, ws, 'MonthlyReport');
-              XLSX.writeFile(wb, `MonthlyReport_${selectedYear}_${monthName}.xlsx`);
+              XLSX.utils.book_append_sheet(wb, ws, "MonthlyReport");
+              XLSX.writeFile(
+                wb,
+                `MonthlyReport_${selectedYear}_${monthName}.xlsx`
+              );
             }}
           >
             Export Monthly Report
@@ -166,21 +214,36 @@ const Reports: React.FC = () => {
               const wsRows: any[] = [];
               // Header
               const header = [
-                'Shop', 'Tenant Name', 'Rent Amount', 'Advance Remaining', 'Previous Year Pending Months', 'Current Year Pending Months', ...monthCols
+                "Shop",
+                "Tenant Name",
+                "Rent Amount",
+                "Advance Remaining",
+                "Previous Year Pending Months",
+                "Current Year Pending Months",
+                ...monthCols,
               ];
               wsRows.push(header);
               shopsArray.forEach((shop: any) => {
                 // Advance Remaining
-                const transactions = data.advanceTransactions[shop.shopNumber] || [];
-                const advanceRemaining = transactions.reduce((acc: number, t: any) => t.type === 'Deposit' ? acc + t.amount : acc - t.amount, 0);
+                const transactions =
+                  data.advanceTransactions[shop.shopNumber] || [];
+                const advanceRemaining = transactions.reduce(
+                  (acc: number, t: any) =>
+                    t.type === "Deposit" ? acc + t.amount : acc - t.amount,
+                  0
+                );
                 // Previous Year Pending Months
-                const prevPending = (shop.previousYearDues?.dueMonths || []).join(', ');
+                const prevPending = (
+                  shop.previousYearDues?.dueMonths || []
+                ).join(", ");
                 // Current Year Pending Months
                 const monthlyData = shop.monthlyData || {};
-                const currPendingMonths = monthCols.filter(month => {
-                  const m = monthlyData[month];
-                  return !m || m.status !== 'Paid';
-                }).join(', ');
+                const currPendingMonths = monthCols
+                  .filter((month) => {
+                    const m = monthlyData[month];
+                    return !m || m.status !== "Paid";
+                  })
+                  .join(", ");
                 // Row
                 const row = [
                   shop.shopNumber,
@@ -189,10 +252,10 @@ const Reports: React.FC = () => {
                   advanceRemaining,
                   prevPending,
                   currPendingMonths,
-                  ...monthCols.map(month => {
+                  ...monthCols.map((month) => {
                     const m = monthlyData[month];
-                    return m && m.status === 'Paid' ? m.paid : '';
-                  })
+                    return m && m.status === "Paid" ? m.paid : "";
+                  }),
                 ];
                 wsRows.push(row);
               });
@@ -203,36 +266,42 @@ const Reports: React.FC = () => {
                 const rowIdx = i + 1; // header is row 0
                 const monthlyData = shop.monthlyData || {};
                 // Row highlight for dues
-                if ((shop.totalDuesBalance || 0) > 0 || (shop.previousYearDues?.totalDues || 0) > 0) {
+                if (
+                  (shop.totalDuesBalance || 0) > 0 ||
+                  (shop.previousYearDues?.totalDues || 0) > 0
+                ) {
                   for (let c = 0; c < wsRows[0].length; c++) {
                     const cell = XLSX.utils.encode_cell({ r: rowIdx, c });
-                    if (!ws[cell]) ws[cell] = { t: 's', v: '' };
-                    ws[cell].s = { fill: { fgColor: { rgb: 'FFEBEE' } } }; // light red
+                    if (!ws[cell]) ws[cell] = { t: "s", v: "" };
+                    ws[cell].s = { fill: { fgColor: { rgb: "FFEBEE" } } }; // light red
                   }
                 }
                 // Highlight pending months
                 monthCols.forEach((month, mIdx) => {
                   const m = monthlyData[month];
-                  if (!m || m.status !== 'Paid') {
-                    const cell = XLSX.utils.encode_cell({ r: rowIdx, c: 6 + mIdx });
-                    if (!ws[cell]) ws[cell] = { t: 's', v: '' };
-                    ws[cell].s = { fill: { fgColor: { rgb: 'FFF9C4' } } }; // yellow
+                  if (!m || m.status !== "Paid") {
+                    const cell = XLSX.utils.encode_cell({
+                      r: rowIdx,
+                      c: 6 + mIdx,
+                    });
+                    if (!ws[cell]) ws[cell] = { t: "s", v: "" };
+                    ws[cell].s = { fill: { fgColor: { rgb: "FFF9C4" } } }; // yellow
                   }
                 });
               });
               // Set column widths
-              ws['!cols'] = [
+              ws["!cols"] = [
                 { wch: 10 }, // Shop
                 { wch: 24 }, // Tenant Name
                 { wch: 12 }, // Rent Amount
                 { wch: 16 }, // Advance Remaining
                 { wch: 28 }, // Prev Year Pending
                 { wch: 28 }, // Curr Year Pending
-                ...monthCols.map(() => ({ wch: 10 }))
+                ...monthCols.map(() => ({ wch: 10 })),
               ];
               // Create workbook and export
               const wb = XLSX.utils.book_new();
-              XLSX.utils.book_append_sheet(wb, ws, 'AnnualReport');
+              XLSX.utils.book_append_sheet(wb, ws, "AnnualReport");
               XLSX.writeFile(wb, `AnnualReport_${selectedYear}_tabular.xlsx`);
             }}
           >
@@ -249,7 +318,7 @@ const Reports: React.FC = () => {
               <Typography color="textSecondary" gutterBottom variant="body2">
                 Total Shops
               </Typography>
-              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+              <Typography variant="h4" sx={{ fontWeight: "bold" }}>
                 {totalShops}
               </Typography>
               <Typography variant="body2" color="textSecondary">
@@ -264,11 +333,15 @@ const Reports: React.FC = () => {
               <Typography color="textSecondary" gutterBottom variant="body2">
                 Monthly Collection Rate
               </Typography>
-              <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+              <Typography
+                variant="h4"
+                sx={{ fontWeight: "bold", color: "success.main" }}
+              >
                 {monthlyStats.collectionRate.toFixed(1)}%
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                ₹{monthlyStats.totalCollected.toLocaleString()} / ₹{monthlyStats.totalRent.toLocaleString()}
+                ₹{monthlyStats.totalCollected.toLocaleString()} / ₹
+                {monthlyStats.totalRent.toLocaleString()}
               </Typography>
             </CardContent>
           </Card>
@@ -279,11 +352,15 @@ const Reports: React.FC = () => {
               <Typography color="textSecondary" gutterBottom variant="body2">
                 Yearly Collection Rate
               </Typography>
-              <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+              <Typography
+                variant="h4"
+                sx={{ fontWeight: "bold", color: "primary.main" }}
+              >
                 {yearlyStats.collectionRate.toFixed(1)}%
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                ₹{yearlyStats.totalCollected.toLocaleString()} / ₹{yearlyStats.totalRent.toLocaleString()}
+                ₹{yearlyStats.totalCollected.toLocaleString()} / ₹
+                {yearlyStats.totalRent.toLocaleString()}
               </Typography>
             </CardContent>
           </Card>
@@ -294,7 +371,10 @@ const Reports: React.FC = () => {
               <Typography color="textSecondary" gutterBottom variant="body2">
                 Total Advance Balance
               </Typography>
-              <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'info.main' }}>
+              <Typography
+                variant="h4"
+                sx={{ fontWeight: "bold", color: "info.main" }}
+              >
                 ₹{totalAdvance.toLocaleString()}
               </Typography>
               <Typography variant="body2" color="textSecondary">
@@ -332,7 +412,9 @@ const Reports: React.FC = () => {
               onChange={(e) => setSelectedMonth(e.target.value)}
             >
               {months.map((month, index) => {
-                const monthValue = `${selectedYear}-${String(index + 1).padStart(2, '0')}`;
+                const monthValue = `${selectedYear}-${String(
+                  index + 1
+                ).padStart(2, "0")}`;
                 return (
                   <MenuItem key={monthValue} value={monthValue}>
                     {month} {selectedYear}
@@ -350,9 +432,15 @@ const Reports: React.FC = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Monthly Payment Status - {new Date(selectedMonth + '-01').toLocaleDateString('en-US', { month: 'long' })}
+                Monthly Payment Status -{" "}
+                {new Date(selectedMonth + "-01").toLocaleDateString("en-US", {
+                  month: "long",
+                })}
               </Typography>
-              <TableContainer component={Paper} sx={{ maxHeight: 400, overflow: 'auto' }}>
+              <TableContainer
+                component={Paper}
+                sx={{ maxHeight: 400, overflow: "auto" }}
+              >
                 <Table size="small">
                   <TableHead>
                     <TableRow>
@@ -364,21 +452,34 @@ const Reports: React.FC = () => {
                   </TableHead>
                   <TableBody>
                     {shopsArray.map((shop: any) => {
-                      const monthName = new Date(selectedMonth + '-01').toLocaleDateString('en-US', { month: 'long' });
-                      const monthData = shop.monthlyData?.[monthName] || { rent: shop.rentAmount, paid: 0, status: 'Pending' };
+                      const monthName = new Date(
+                        selectedMonth + "-01"
+                      ).toLocaleDateString("en-US", { month: "long" });
+                      const monthData = shop.monthlyData?.[monthName] || {
+                        rent: shop.rentAmount,
+                        paid: 0,
+                        status: "Pending",
+                      };
                       const status = monthData.status;
                       const paidAmount = monthData.paid;
 
                       return (
-                        <TableRow 
+                        <TableRow
                           key={shop.shopNumber}
                           sx={{
-                            backgroundColor: shop.tenant.status === 'Inactive' ? '#ffebee' : 'inherit',
+                            backgroundColor:
+                              shop.tenant.status === "Inactive"
+                                ? "#ffebee"
+                                : "inherit",
                           }}
                         >
                           <TableCell>{shop.shopNumber}</TableCell>
-                          <TableCell align="right">₹{shop.rentAmount.toLocaleString()}</TableCell>
-                          <TableCell align="right">₹{paidAmount.toLocaleString()}</TableCell>
+                          <TableCell align="right">
+                            ₹{shop.rentAmount.toLocaleString()}
+                          </TableCell>
+                          <TableCell align="right">
+                            ₹{paidAmount.toLocaleString()}
+                          </TableCell>
                           <TableCell>
                             <Chip
                               label={status}
@@ -407,7 +508,10 @@ const Reports: React.FC = () => {
                   <Typography variant="body2" color="textSecondary">
                     Monthly Collection
                   </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: "bold", color: "success.main" }}
+                  >
                     ₹{monthlyStats.totalCollected.toLocaleString()}
                   </Typography>
                 </Grid>
@@ -415,7 +519,10 @@ const Reports: React.FC = () => {
                   <Typography variant="body2" color="textSecondary">
                     Monthly Pending
                   </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'warning.main' }}>
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: "bold", color: "warning.main" }}
+                  >
                     ₹{monthlyStats.totalPending.toLocaleString()}
                   </Typography>
                 </Grid>
@@ -423,7 +530,10 @@ const Reports: React.FC = () => {
                   <Typography variant="body2" color="textSecondary">
                     Overdue Count
                   </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'error.main' }}>
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: "bold", color: "error.main" }}
+                  >
                     {monthlyStats.overdueCount}
                   </Typography>
                 </Grid>
@@ -431,7 +541,10 @@ const Reports: React.FC = () => {
                   <Typography variant="body2" color="textSecondary">
                     Partial Payments
                   </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'info.main' }}>
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: "bold", color: "info.main" }}
+                  >
                     {monthlyStats.partialCount}
                   </Typography>
                 </Grid>
@@ -447,7 +560,10 @@ const Reports: React.FC = () => {
                   <Typography variant="body2" color="textSecondary">
                     Total Collected
                   </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: "bold", color: "success.main" }}
+                  >
                     ₹{yearlyStats.totalCollected.toLocaleString()}
                   </Typography>
                 </Grid>
@@ -455,7 +571,10 @@ const Reports: React.FC = () => {
                   <Typography variant="body2" color="textSecondary">
                     Total Pending
                   </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'warning.main' }}>
+                  <Typography
+                    variant="h6"
+                    sx={{ fontWeight: "bold", color: "warning.main" }}
+                  >
                     ₹{yearlyStats.totalPending.toLocaleString()}
                   </Typography>
                 </Grid>
@@ -466,17 +585,20 @@ const Reports: React.FC = () => {
       </Grid>
 
       {/* Printable Report */}
-      <Box sx={{ display: 'none', '@media print': { display: 'block' } }}>
+      <Box sx={{ display: "none", "@media print": { display: "block" } }}>
         <Paper sx={{ p: 3, m: 2 }}>
           <Typography variant="h4" gutterBottom align="center">
             Rent Management Report
           </Typography>
           <Typography variant="h6" gutterBottom align="center">
-            {new Date(selectedMonth + '-01').toLocaleDateString('en-US', { month: 'long' })} - {selectedYear}
+            {new Date(selectedMonth + "-01").toLocaleDateString("en-US", {
+              month: "long",
+            })}{" "}
+            - {selectedYear}
           </Typography>
-          
+
           <Divider sx={{ my: 2 }} />
-          
+
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid item xs={6}>
               <Typography variant="h6">Total Shops: {totalShops}</Typography>
@@ -485,10 +607,15 @@ const Reports: React.FC = () => {
               <Typography variant="h6">Active Shops: {activeShops}</Typography>
             </Grid>
             <Grid item xs={6}>
-              <Typography variant="h6">Monthly Collection: ₹{monthlyStats.totalCollected.toLocaleString()}</Typography>
+              <Typography variant="h6">
+                Monthly Collection: ₹
+                {monthlyStats.totalCollected.toLocaleString()}
+              </Typography>
             </Grid>
             <Grid item xs={6}>
-              <Typography variant="h6">Collection Rate: {monthlyStats.collectionRate.toFixed(1)}%</Typography>
+              <Typography variant="h6">
+                Collection Rate: {monthlyStats.collectionRate.toFixed(1)}%
+              </Typography>
             </Grid>
           </Grid>
 
@@ -504,16 +631,26 @@ const Reports: React.FC = () => {
               </TableHead>
               <TableBody>
                 {shopsArray.map((shop: any) => {
-                  const monthName = new Date(selectedMonth + '-01').toLocaleDateString('en-US', { month: 'long' });
-                  const monthData = shop.monthlyData?.[monthName] || { rent: shop.rentAmount, paid: 0, status: 'Pending' };
+                  const monthName = new Date(
+                    selectedMonth + "-01"
+                  ).toLocaleDateString("en-US", { month: "long" });
+                  const monthData = shop.monthlyData?.[monthName] || {
+                    rent: shop.rentAmount,
+                    paid: 0,
+                    status: "Pending",
+                  };
                   const status = monthData.status;
                   const paidAmount = monthData.paid;
 
                   return (
                     <TableRow key={shop.shopNumber}>
                       <TableCell>{shop.shopNumber}</TableCell>
-                      <TableCell align="right">₹{shop.rentAmount.toLocaleString()}</TableCell>
-                      <TableCell align="right">₹{paidAmount.toLocaleString()}</TableCell>
+                      <TableCell align="right">
+                        ₹{shop.rentAmount.toLocaleString()}
+                      </TableCell>
+                      <TableCell align="right">
+                        ₹{paidAmount.toLocaleString()}
+                      </TableCell>
                       <TableCell>{status}</TableCell>
                     </TableRow>
                   );
@@ -527,4 +664,4 @@ const Reports: React.FC = () => {
   );
 };
 
-export default Reports; 
+export default Reports;
