@@ -47,9 +47,13 @@ const getDuesInfo = (shopNumber: string, data: RentManagementData) => {
       let yearDue = 0;
       Object.entries(shop.monthlyData).forEach(([month, mdata]) => {
         const md = mdata as MonthlyData;
-        if (md.status === "Pending" || md.status === "Partial") {
+        const totalPaid = (md.paid || 0) + (md.advanceUsed || 0);
+        const monthlyRent = md.rent || 0;
+        const monthlyDue = monthlyRent - totalPaid;
+        
+        if (monthlyDue > 0) {
           months.push(month);
-          yearDue += (md.rent || 0) - (md.paid || 0);
+          yearDue += monthlyDue;
         }
       });
       if (months.length) {
