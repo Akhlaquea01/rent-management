@@ -45,17 +45,53 @@ const getDuesInfo = (shopNumber: string, data: RentManagementData) => {
     if (shop && shop.monthlyData) {
       const months: string[] = [];
       let yearDue = 0;
-      Object.entries(shop.monthlyData).forEach(([month, mdata]) => {
-        const md = mdata as MonthlyData;
-        const totalPaid = (md.paid || 0) + (md.advanceUsed || 0);
-        const monthlyRent = md.rent || 0;
-        const monthlyDue = monthlyRent - totalPaid;
-        
-        if (monthlyDue > 0) {
-          months.push(month);
-          yearDue += monthlyDue;
+      
+      // Sort months chronologically
+      const monthOrder = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      
+      // First pass: collect all monthly data and calculate total payments vs total rent
+      const monthlyData: { [month: string]: MonthlyData } = {};
+      let totalRent = 0;
+      let totalPaid = 0;
+      
+      monthOrder.forEach((month) => {
+        const mdata = shop.monthlyData[month];
+        if (mdata) {
+          const md = mdata as MonthlyData;
+          monthlyData[month] = md;
+          totalRent += md.rent || 0;
+          totalPaid += (md.paid || 0) + (md.advanceUsed || 0);
         }
       });
+      
+      // If total paid >= total rent, no dues
+      if (totalPaid >= totalRent) {
+        // No dues for this year
+      } else {
+        // Calculate dues by distributing underpayment across unpaid/partial months
+        const totalDue = totalRent - totalPaid;
+        let remainingDue = totalDue;
+        
+        monthOrder.forEach((month) => {
+          const md = monthlyData[month];
+          if (md) {
+            const monthlyRent = md.rent || 0;
+            const monthlyPaid = (md.paid || 0) + (md.advanceUsed || 0);
+            const monthlyDue = monthlyRent - monthlyPaid;
+            
+            if (monthlyDue > 0 && remainingDue > 0) {
+              const actualDue = Math.min(monthlyDue, remainingDue);
+              months.push(month);
+              yearDue += actualDue;
+              remainingDue -= actualDue;
+            }
+          }
+        });
+      }
+      
       if (months.length) {
         yearBreakdown[year] = { months, amount: yearDue };
         totalPendingMonths += months.length;
