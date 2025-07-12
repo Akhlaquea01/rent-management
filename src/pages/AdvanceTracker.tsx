@@ -26,26 +26,30 @@ const AdvanceTracker: React.FC = () => {
   const { state } = useRentContext();
   const { data } = state;
 
-  // Gather all shops from all years, deduplicate by shopNumber
-  const allShopsMap = Object.values(data.years).reduce((acc, yearData) => {
-    Object.entries(yearData.shops).forEach(([shopNumber, shop]) => {
-      acc[shopNumber] = shop;
-    });
-    return acc;
-  }, {} as Record<string, any>);
-  // Only include shops with at least one advance transaction
-  const allShops = Object.entries(allShopsMap)
-    .filter(([shopNumber]) =>
-      Array.isArray(data.advanceTransactions[shopNumber]) &&
-      data.advanceTransactions[shopNumber].length > 0
-    )
-    .map(([shopNumber, shop]) => ({
-      shopNumber,
-      name: shop.tenant.name,
-      phoneNumber: shop.tenant.phoneNumber,
-      email: shop.tenant.email,
-      status: shop.tenant.status,
-    }));
+  // Extract unique shops and their tenant info from advance transactions
+  const shopTenantMap = new Map<string, { name: string; phoneNumber: string; email: string; status: string }>();
+  
+  Object.entries(data.advanceTransactions).forEach(([shopNumber, transactions]) => {
+    if (Array.isArray(transactions) && transactions.length > 0) {
+      // Get tenant info from the first transaction (assuming all transactions for a shop have the same tenant)
+      const firstTransaction = transactions[0];
+      shopTenantMap.set(shopNumber, {
+        name: firstTransaction.name || 'Unknown Tenant',
+        phoneNumber: firstTransaction.phoneNumber || 'N/A',
+        email: firstTransaction.email || 'N/A',
+        status: firstTransaction.status || 'Active'
+      });
+    }
+  });
+
+  const allShops = Array.from(shopTenantMap.entries()).map(([shopNumber, tenantInfo]) => ({
+    shopNumber,
+    name: tenantInfo.name,
+    phoneNumber: tenantInfo.phoneNumber,
+    email: tenantInfo.email,
+    status: tenantInfo.status,
+  }));
+
   // Set initial selectedShop only on mount
   const [selectedShop, setSelectedShop] = useState(() => allShops[0]?.shopNumber || "");
 
@@ -53,10 +57,17 @@ const AdvanceTracker: React.FC = () => {
   const transactions = selectedShop
     ? data.advanceTransactions[selectedShop] || []
     : [];
+
   // Compute current balance
   const currentBalance = transactions.reduce(
-    (acc: number, t: any) =>
-      t.type === "Deposit" ? acc + t.amount : acc - t.amount,
+    (acc: number, t: any) => {
+      if (t.type === "Deposit") {
+        return acc + t.amount;
+      } else if (t.type === "Advance Deduction" || t.type === "Deduction") {
+        return acc - t.amount;
+      }
+      return acc;
+    },
     0
   );
 

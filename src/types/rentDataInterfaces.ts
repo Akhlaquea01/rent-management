@@ -40,10 +40,14 @@ export interface YearData {
 }
 
 export interface AdvanceTransaction {
+  name?: string;
   type: 'Deposit' | 'Deduction' | 'Advance Deduction';
   amount: number;
   date: string;
   description: string;
+  phoneNumber?: string;
+  email?: string;
+  status?: string;
 }
 
 export interface RootData {
