@@ -34,71 +34,87 @@ const encodeWhatsAppText = (text: string): string => {
 };
 
 // Utility function to get dues information
-const getDuesInfo = (shopNumber: string, data: RentManagementData) => {
+const getDuesInfo = (shopNumber: string, data: RentManagementData, selectedYear?: string) => {
   let totalPendingMonths = 0;
   let totalDueAmount = 0;
   const yearBreakdown: Record<string, { months: string[]; amount: number }> = {};
   
-  Object.entries(data.years).forEach(([year, yearData]) => {
-    const yd = yearData as YearData;
-    const shop = yd.shops[shopNumber];
-    if (shop && shop.monthlyData) {
-      const months: string[] = [];
-      let yearDue = 0;
-      
-      // Sort months chronologically
-      const monthOrder = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
-      ];
-      
-      // First pass: collect all monthly data and calculate total payments vs total rent
-      const monthlyData: { [month: string]: MonthlyData } = {};
-      let totalRent = 0;
-      let totalPaid = 0;
-      
-      monthOrder.forEach((month) => {
-        const mdata = shop.monthlyData[month];
-        if (mdata) {
-          const md = mdata as MonthlyData;
-          monthlyData[month] = md;
-          totalRent += md.rent || 0;
-          totalPaid += (md.paid || 0) + (md.advanceUsed || 0);
-        }
-      });
-      
-      // If total paid >= total rent, no dues
-      if (totalPaid >= totalRent) {
-        // No dues for this year
-      } else {
-        // Calculate dues by distributing underpayment across unpaid/partial months
-        const totalDue = totalRent - totalPaid;
-        let remainingDue = totalDue;
-        
-        monthOrder.forEach((month) => {
-          const md = monthlyData[month];
-          if (md) {
-            const monthlyRent = md.rent || 0;
-            const monthlyPaid = (md.paid || 0) + (md.advanceUsed || 0);
-            const monthlyDue = monthlyRent - monthlyPaid;
-            
-            if (monthlyDue > 0 && remainingDue > 0) {
-              const actualDue = Math.min(monthlyDue, remainingDue);
-              months.push(month);
-              yearDue += actualDue;
-              remainingDue -= actualDue;
-            }
-          }
-        });
-      }
-      
-      if (months.length) {
-        yearBreakdown[year] = { months, amount: yearDue };
-        totalPendingMonths += months.length;
-        totalDueAmount += yearDue;
-      }
+  // Only process the selected year
+  if (!selectedYear) return { totalPendingMonths, totalDueAmount, yearBreakdown };
+  
+  const yearData = data.years[selectedYear];
+  if (!yearData) return { totalPendingMonths, totalDueAmount, yearBreakdown };
+  
+  const yd = yearData as YearData;
+  const shop = yd.shops[shopNumber];
+  if (!shop || !shop.monthlyData) return { totalPendingMonths, totalDueAmount, yearBreakdown };
+  
+  const months: string[] = [];
+  let yearDue = 0;
+  
+  // Add previous year dues if any
+  const previousYearDues = shop.previousYearDues?.totalDues || 0;
+  if (previousYearDues > 0) {
+    yearDue += previousYearDues;
+    totalDueAmount += previousYearDues;
+    // Add previous year months if available
+    if (shop.previousYearDues?.dueMonths && shop.previousYearDues.dueMonths.length > 0) {
+      months.push(...shop.previousYearDues.dueMonths.map(month => `Previous Year: ${month}`));
+      totalPendingMonths += shop.previousYearDues.dueMonths.length;
+    }
+  }
+  
+  // Sort months chronologically
+  const monthOrder = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  
+  // First pass: collect all monthly data and calculate total payments vs total rent
+  const monthlyData: { [month: string]: MonthlyData } = {};
+  let totalRent = 0;
+  let totalPaid = 0;
+  
+  monthOrder.forEach((month) => {
+    const mdata = shop.monthlyData[month];
+    if (mdata) {
+      const md = mdata as MonthlyData;
+      monthlyData[month] = md;
+      totalRent += md.rent || 0;
+      totalPaid += (md.paid || 0) + (md.advanceUsed || 0);
     }
   });
+  
+  // If total paid >= total rent, no current year dues
+  if (totalPaid >= totalRent) {
+    // No current year dues
+  } else {
+    // Calculate current year dues by distributing underpayment across unpaid/partial months
+    const totalDue = totalRent - totalPaid;
+    let remainingDue = totalDue;
+    
+    monthOrder.forEach((month) => {
+      const md = monthlyData[month];
+      if (md) {
+        const monthlyRent = md.rent || 0;
+        const monthlyPaid = (md.paid || 0) + (md.advanceUsed || 0);
+        const monthlyDue = monthlyRent - monthlyPaid;
+        
+        if (monthlyDue > 0 && remainingDue > 0) {
+          const actualDue = Math.min(monthlyDue, remainingDue);
+          months.push(month);
+          yearDue += actualDue;
+          totalDueAmount += actualDue;
+          totalPendingMonths += 1;
+          remainingDue -= actualDue;
+        }
+      }
+    });
+  }
+  
+  if (months.length > 0) {
+    yearBreakdown[selectedYear] = { months, amount: yearDue };
+  }
   
   return { totalPendingMonths, totalDueAmount, yearBreakdown };
 };
@@ -109,7 +125,12 @@ const formatPendingMonths = (yearBreakdown: Record<string, { months: string[]; a
   const all: string[] = [];
   Object.entries(yearBreakdown).forEach(([year, info]) => {
     info.months.forEach(month => {
-      all.push(`${month}(${year})`);
+      // Handle previous year months that are already formatted
+      if (month.startsWith('Previous Year:')) {
+        all.push(month);
+      } else {
+        all.push(`${month}(${year})`);
+      }
     });
   });
   return all.join(', ');
@@ -169,7 +190,7 @@ const TenantManagement: React.FC = () => {
 
   // Dues tooltip content
   const getDuesTooltip = (shopNumber: string, shop: ShopData) => {
-    const { totalPendingMonths, totalDueAmount, yearBreakdown } = getDuesInfo(shopNumber, data);
+    const { totalPendingMonths, totalDueAmount, yearBreakdown } = getDuesInfo(shopNumber, data, selectedYear);
     
     return (
       <Box>
@@ -197,7 +218,7 @@ const TenantManagement: React.FC = () => {
 
   // Handle WhatsApp notification
   const handleWhatsAppNotification = (shopNumber: string, shop: ShopData) => {
-    const { totalDueAmount, yearBreakdown } = getDuesInfo(shopNumber, data);
+    const { totalDueAmount, yearBreakdown } = getDuesInfo(shopNumber, data, selectedYear);
     const message = generateWhatsAppMessage(shop.tenant.name, totalDueAmount, yearBreakdown);
     const whatsappUrl = getWhatsAppUrl(message);
     window.open(whatsappUrl, '_blank');
@@ -206,7 +227,7 @@ const TenantManagement: React.FC = () => {
   // Common card content for mobile view
   const renderMobileCard = (shopNumber: string, shop: ShopData) => {
     const advanceRemaining = getAdvanceRemaining(shopNumber, shop);
-    const { totalDueAmount } = getDuesInfo(shopNumber, data);
+    const { totalDueAmount } = getDuesInfo(shopNumber, data, selectedYear);
     const hasDues = totalDueAmount > 0;
 
     return (
@@ -282,7 +303,7 @@ const TenantManagement: React.FC = () => {
   // Common table row for desktop view
   const renderTableRow = (shopNumber: string, shop: ShopData) => {
     const advanceRemaining = getAdvanceRemaining(shopNumber, shop);
-    const { totalDueAmount } = getDuesInfo(shopNumber, data);
+    const { totalDueAmount } = getDuesInfo(shopNumber, data, selectedYear);
     const hasDues = totalDueAmount > 0;
 
     return (
