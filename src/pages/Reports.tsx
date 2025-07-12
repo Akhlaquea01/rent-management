@@ -106,15 +106,24 @@ const Reports: React.FC = () => {
 
     shopsArray.forEach((shop: any) => {
       const monthlyData = shop.monthlyData || {};
-      const monthData = monthlyData[monthName] || {
+      const monthData = monthlyData[monthName];
+      
+      // Determine the rent amount for this specific month
+      // If monthData exists and has a rent amount, use it
+      // Otherwise, fall back to the shop's default rent amount
+      const rentAmount = monthData?.rent !== undefined ? monthData.rent : shop.rentAmount;
+      
+      // Use the month data if it exists, otherwise create default data
+      const finalMonthData = monthData || {
         rent: shop.rentAmount,
         paid: 0,
         status: "Pending",
       };
-      totalRent += monthData.rent || shop.rentAmount;
-      totalCollected += monthData.paid || 0;
-      if (monthData.status === "Overdue") overdueCount++;
-      if (monthData.status === "Partial") partialCount++;
+      
+      totalRent += rentAmount;
+      totalCollected += finalMonthData.paid || 0;
+      if (finalMonthData.status === "Overdue") overdueCount++;
+      if (finalMonthData.status === "Partial") partialCount++;
     });
 
     const totalPending = totalRent - totalCollected;
@@ -138,12 +147,21 @@ const Reports: React.FC = () => {
     shopsArray.forEach((shop: any) => {
       const monthlyData = shop.monthlyData || {};
       months.slice(0, monthsToInclude).forEach((month) => {
-        const monthData = monthlyData[month] || {
+        const monthData = monthlyData[month];
+        
+        // Determine the rent amount for this specific month
+        // If monthData exists and has a rent amount, use it
+        // Otherwise, fall back to the shop's default rent amount
+        const rentAmount = monthData?.rent !== undefined ? monthData.rent : shop.rentAmount;
+        
+        // Use the month data if it exists, otherwise create default data
+        const finalMonthData = monthData || {
           rent: shop.rentAmount,
           paid: 0,
         };
-        totalRent += monthData.rent || shop.rentAmount;
-        totalCollected += monthData.paid || 0;
+        
+        totalRent += rentAmount;
+        totalCollected += finalMonthData.paid || 0;
       });
     });
     const totalPending = totalRent - totalCollected;
@@ -195,17 +213,26 @@ const Reports: React.FC = () => {
                 selectedMonth + "-01"
               ).toLocaleDateString("en-US", { month: "long" });
               const exportData = shopsArray.map((shop: any) => {
-                const monthData = shop.monthlyData?.[monthName] || {
+                const monthData = shop.monthlyData?.[monthName];
+                
+                // Determine the rent amount for this specific month
+                // If monthData exists and has a rent amount, use it
+                // Otherwise, fall back to the shop's default rent amount
+                const rentAmount = monthData?.rent !== undefined ? monthData.rent : shop.rentAmount;
+                
+                // Use the month data if it exists, otherwise create default data
+                const finalMonthData = monthData || {
                   rent: shop.rentAmount,
                   paid: 0,
                   status: "Pending",
                 };
+                
                 return {
                   Shop: shop.shopNumber,
                   "Tenant Name": shop.tenant.name,
-                  "Rent Amount": monthData.rent || shop.rentAmount,
-                  "Paid Amount": monthData.paid || 0,
-                  Status: monthData.status,
+                  "Rent Amount": rentAmount,
+                  "Paid Amount": finalMonthData.paid || 0,
+                  Status: finalMonthData.status,
                 };
               });
               const ws = XLSX.utils.json_to_sheet(exportData);

@@ -104,21 +104,32 @@ const TenantHistory: React.FC = () => {
     let totalRent = 0;
     let totalPaid = 0;
     const monthlyDataArray = months.map((month) => {
-      const monthData = shop.monthlyData?.[month] || {
+      // Get the specific month's data
+      const monthData = shop.monthlyData?.[month];
+      
+      // Determine the rent amount for this specific month
+      // If monthData exists and has a rent amount, use it
+      // Otherwise, fall back to the shop's default rent amount
+      const rentAmount = monthData?.rent !== undefined ? monthData.rent : shop.rentAmount;
+      
+      // Use the month data if it exists, otherwise create default data
+      const finalMonthData = monthData || {
         rent: shop.rentAmount,
         paid: 0,
         status: "Pending",
         advanceUsed: 0,
       };
-      totalRent += monthData.rent || shop.rentAmount;
-      totalPaid += monthData.paid || 0;
+      
+      totalRent += rentAmount;
+      totalPaid += finalMonthData.paid || 0;
+      
       return {
         month,
-        rentAmount: monthData.rent || shop.rentAmount,
-        paidAmount: monthData.paid || 0,
-        advanceDeduction: monthData.advanceUsed || 0,
-        status: monthData.status || "Pending",
-        paymentDate: (monthData as any).date || "-",
+        rentAmount: rentAmount,
+        paidAmount: finalMonthData.paid || 0,
+        advanceDeduction: finalMonthData.advanceUsed || 0,
+        status: finalMonthData.status || "Pending",
+        paymentDate: (finalMonthData as any).date || "-",
       };
     });
     // Calculate advance balance from transactions

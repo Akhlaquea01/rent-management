@@ -157,10 +157,22 @@ const Dashboard: React.FC = () => {
     0
   );
 
-  const totalAdvance = shopsArray.reduce(
-    (sum: number, shop: any) => sum + shop.advanceAmount,
-    0
-  );
+  const totalAdvance = shopsArray.reduce((sum: number, shop: any) => {
+    // Calculate current advance balance from transactions
+    const transactions = data.advanceTransactions[shop.shopNumber] || [];
+    const currentBalance = transactions.reduce(
+      (acc: number, t: any) => {
+        if (t.type === "Deposit") {
+          return acc + t.amount;
+        } else if (t.type === "Advance Deduction" || t.type === "Deduction") {
+          return acc - t.amount;
+        }
+        return acc;
+      },
+      0
+    );
+    return sum + currentBalance;
+  }, 0);
 
   const monthlyCollection = Object.entries(shops).map(
     ([shopNumber, shop]: [string, any]) => {
