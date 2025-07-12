@@ -23,6 +23,7 @@ import {
 import { Download as DownloadIcon } from '@mui/icons-material';
 import * as XLSX from 'xlsx';
 import { useRentContext } from "../context/RentContext";
+import { calculateTotalDues } from "../utils/duesCalculator";
 
 const Reports: React.FC = () => {
   const { state, fetchYearData, isYearLoading } = useRentContext();
@@ -283,8 +284,7 @@ const Reports: React.FC = () => {
                 const monthlyData = shop.monthlyData || {};
                 // Row highlight for dues
                 if (
-                  (shop.totalDuesBalance || 0) > 0 ||
-                  (shop.previousYearDues?.totalDues || 0) > 0
+                  calculateTotalDues(shop) > 0
                 ) {
                   for (let c = 0; c < wsRows[0].length; c++) {
                     const cell = XLSX.utils.encode_cell({ r: rowIdx, c });

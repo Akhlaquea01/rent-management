@@ -29,6 +29,7 @@ import {
 import { useRentContext } from "../context/RentContext";
 import * as XLSX from "xlsx";
 import ContextDebugger from "../components/ContextDebugger";
+import { calculateTotalDues } from "../utils/duesCalculator";
 
 const StatCard: React.FC<{
   title: string;
@@ -132,8 +133,7 @@ const Dashboard: React.FC = () => {
     ([shopNumber, shop]: [string, any]) => ({
       shopNumber,
       ...shop,
-      totalDuesWithPrevious:
-        (shop.totalDuesBalance || 0) + (shop.previousYearDues?.totalDues || 0),
+      totalDuesWithPrevious: calculateTotalDues(shop),
     })
   );
 
@@ -153,7 +153,7 @@ const Dashboard: React.FC = () => {
   }, 0);
 
   const totalDues = shopsArray.reduce(
-    (sum: number, shop: any) => sum + shop.totalDuesBalance,
+    (sum: number, shop: any) => sum + calculateTotalDues(shop),
     0
   );
 

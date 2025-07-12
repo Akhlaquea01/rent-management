@@ -28,97 +28,14 @@ import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 
 import { useRentContext } from "../context/RentContext";
 import { ShopData, RentManagementData, YearData, MonthlyData } from "../types";
+import { getDuesInfo, calculateTotalDues } from "../utils/duesCalculator";
 
 // Utility function to encode text for WhatsApp URL
 const encodeWhatsAppText = (text: string): string => {
   return encodeURIComponent(text); // Only encode, do not replace newlines
 };
 
-// Utility function to get dues information
-const getDuesInfo = (shopNumber: string, data: RentManagementData, selectedYear?: string) => {
-  let totalPendingMonths = 0;
-  let totalDueAmount = 0;
-  const yearBreakdown: Record<string, { months: string[]; amount: number }> = {};
-  
-  // Only process the selected year
-  if (!selectedYear) return { totalPendingMonths, totalDueAmount, yearBreakdown };
-  
-  const yearData = data.years[selectedYear];
-  if (!yearData) return { totalPendingMonths, totalDueAmount, yearBreakdown };
-  
-  const yd = yearData as YearData;
-  const shop = yd.shops[shopNumber];
-  if (!shop || !shop.monthlyData) return { totalPendingMonths, totalDueAmount, yearBreakdown };
-  
-  const months: string[] = [];
-  let yearDue = 0;
-  
-  // Add previous year dues if any
-  const previousYearDues = shop.previousYearDues?.totalDues || 0;
-  if (previousYearDues > 0) {
-    yearDue += previousYearDues;
-    totalDueAmount += previousYearDues;
-    // Add previous year months if available
-    if (shop.previousYearDues?.dueMonths && shop.previousYearDues.dueMonths.length > 0) {
-      months.push(...shop.previousYearDues.dueMonths.map(month => `Previous Year: ${month}`));
-      totalPendingMonths += shop.previousYearDues.dueMonths.length;
-    }
-  }
-  
-  // Sort months chronologically
-  const monthOrder = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-  
-  // First pass: collect all monthly data and calculate total payments vs total rent
-  const monthlyData: { [month: string]: MonthlyData } = {};
-  let totalRent = 0;
-  let totalPaid = 0;
-  
-  monthOrder.forEach((month) => {
-    const mdata = shop.monthlyData[month];
-    if (mdata) {
-      const md = mdata as MonthlyData;
-      monthlyData[month] = md;
-      totalRent += md.rent || 0;
-      totalPaid += (md.paid || 0) + (md.advanceUsed || 0);
-    }
-  });
-  
-  // If total paid >= total rent, no current year dues
-  if (totalPaid >= totalRent) {
-    // No current year dues
-  } else {
-    // Calculate current year dues by distributing underpayment across unpaid/partial months
-    const totalDue = totalRent - totalPaid;
-    let remainingDue = totalDue;
-    
-    monthOrder.forEach((month) => {
-      const md = monthlyData[month];
-      if (md) {
-        const monthlyRent = md.rent || 0;
-        const monthlyPaid = (md.paid || 0) + (md.advanceUsed || 0);
-        const monthlyDue = monthlyRent - monthlyPaid;
-        
-        if (monthlyDue > 0 && remainingDue > 0) {
-          const actualDue = Math.min(monthlyDue, remainingDue);
-          months.push(month);
-          yearDue += actualDue;
-          totalDueAmount += actualDue;
-          totalPendingMonths += 1;
-          remainingDue -= actualDue;
-        }
-      }
-    });
-  }
-  
-  if (months.length > 0) {
-    yearBreakdown[selectedYear] = { months, amount: yearDue };
-  }
-  
-  return { totalPendingMonths, totalDueAmount, yearBreakdown };
-};
+
 
 // Utility function to format pending months for WhatsApp message
 const formatPendingMonths = (yearBreakdown: Record<string, { months: string[]; amount: number }>): string => {

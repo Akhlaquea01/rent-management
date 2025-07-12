@@ -26,8 +26,6 @@ export interface ShopData {
   rentAmount: number;
   advanceAmount: number;
   previousYearDues: DuesInfo;
-  currentYearDues: DuesInfo;
-  totalDuesBalance: number;
   monthlyData: {
     [key: string]: MonthlyData;
   };
