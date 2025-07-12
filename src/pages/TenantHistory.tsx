@@ -25,18 +25,32 @@ import { Print as PrintIcon } from "@mui/icons-material";
 import { useRentContext } from "../context/RentContext";
 
 const TenantHistory: React.FC = () => {
-  const { state } = useRentContext();
+  const { state, fetchYearData, isYearLoading } = useRentContext();
   const { data } = state;
   const [selectedShopNumber, setSelectedShopNumber] = useState("");
-  const [selectedYear, setSelectedYear] = useState<string>(
-    new Date().getFullYear().toString()
-  );
+  const [selectedYear, setSelectedYear] = useState<string>("2020");
 
-  // Get available years from data
-  const availableYears = Object.keys(data.years)
+  // Available years to fetch (2019 to 2020 - will expand to 2025 later)
+  const availableYears = React.useMemo(() => {
+    const years = [];
+    for (let year = 2019; year <= 2020; year++) {
+      years.push(year.toString());
+    }
+    return years.sort((a, b) => b.localeCompare(a));
+  }, []);
+
+  // Get loaded years from data
+  const loadedYears = Object.keys(data.years)
     .map(String)
     .sort((a, b) => b.localeCompare(a));
   const allYearOptions = ["All Years", ...availableYears];
+
+  // Fetch year data when selected year changes (if not "All Years")
+  React.useEffect(() => {
+    if (selectedYear && selectedYear !== "All Years" && !data.years[selectedYear] && !isYearLoading(selectedYear)) {
+      fetchYearData(selectedYear);
+    }
+  }, [selectedYear, data.years, fetchYearData, isYearLoading]);
 
   // Get all shops from all years
   const allShops: Array<{ shopNumber: string; tenant: any; year: string }> = [];

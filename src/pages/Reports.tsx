@@ -25,20 +25,36 @@ import * as XLSX from 'xlsx';
 import { useRentContext } from "../context/RentContext";
 
 const Reports: React.FC = () => {
-  const { state } = useRentContext();
+  const { state, fetchYearData, isYearLoading } = useRentContext();
   const { data } = state;
   const now = new Date();
-  const currentYear = now.getFullYear();
+  const currentYear = 2020; // Use 2020 as current year (latest available)
   const currentMonth = now.getMonth(); // 0-based
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [selectedMonth, setSelectedMonth] = useState(
     `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`
   );
 
-  // Get available years from data
-  const availableYears = Object.keys(data.years)
+  // Available years to fetch (2019 to 2020 - will expand to 2025 later)
+  const availableYears = React.useMemo(() => {
+    const years = [];
+    for (let year = 2019; year <= 2020; year++) {
+      years.push(year);
+    }
+    return years.sort((a, b) => b - a);
+  }, []);
+
+  // Get loaded years from data
+  const loadedYears = Object.keys(data.years)
     .map(Number)
     .sort((a, b) => b - a);
+
+  // Fetch year data when selected year changes
+  React.useEffect(() => {
+    if (selectedYear && !data.years[selectedYear.toString()] && !isYearLoading(selectedYear.toString())) {
+      fetchYearData(selectedYear.toString());
+    }
+  }, [selectedYear, data.years, fetchYearData, isYearLoading]);
 
   // Get shops for selected year
   const selectedYearShops = data.years[selectedYear.toString()]?.shops || {};
@@ -397,7 +413,7 @@ const Reports: React.FC = () => {
             >
               {availableYears.map((year) => (
                 <MenuItem key={year} value={year}>
-                  {year}
+                  {year} {loadedYears.includes(year) ? '(Loaded)' : ''}
                 </MenuItem>
               ))}
             </Select>

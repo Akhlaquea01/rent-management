@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -22,6 +22,7 @@ import {
   Tooltip,
   Button,
   IconButton,
+  CircularProgress,
 } from '@mui/material';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 
@@ -160,21 +161,37 @@ const getWhatsAppUrl = (message: string): string => {
 };
 
 const TenantManagement: React.FC = () => {
-  const { state } = useRentContext();
-  const { data } = state;
+  const { state, fetchYearData, isYearLoading } = useRentContext();
+  const { data, error } = state;
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const isTablet = useMediaQuery(theme.breakpoints.down("lg"));
 
+  // Available years to fetch (2019 to 2020 - will expand to 2025 later)
+  const availableYears = useMemo(() => {
+    const years = [];
+    for (let year = 2019; year <= 2020; year++) {
+      years.push(year.toString());
+    }
+    return years.sort().reverse();
+  }, []);
+
   // Memoized data processing
-  const years = useMemo(() => Object.keys(data.years).sort().reverse(), [data.years]);
+  const loadedYears = useMemo(() => Object.keys(data.years).sort().reverse(), [data.years]);
   const defaultYear = useMemo(() => {
-    const currentYear = new Date().getFullYear().toString();
-    return years.includes(currentYear) ? currentYear : years[0];
-  }, [years]);
+    const currentYear = "2020"; // Use 2020 as current year (latest available)
+    return loadedYears.includes(currentYear) ? currentYear : loadedYears[0] || currentYear;
+  }, [loadedYears]);
   
   const [selectedYear, setSelectedYear] = useState<string>(defaultYear);
   const shops = data.years[selectedYear]?.shops || {};
+
+  // Fetch year data when selected year changes
+  useEffect(() => {
+    if (selectedYear && !data.years[selectedYear] && !isYearLoading(selectedYear)) {
+      fetchYearData(selectedYear);
+    }
+  }, [selectedYear, data.years, fetchYearData, isYearLoading]);
 
   // Advance remaining calculation
   const getAdvanceRemaining = (shopNumber: string, shop: ShopData): number => {
@@ -378,8 +395,10 @@ const TenantManagement: React.FC = () => {
               label="Year"
               onChange={(e) => setSelectedYear(e.target.value)}
             >
-              {years.map((year) => (
-                <MenuItem key={year} value={year}>{year}</MenuItem>
+              {availableYears.map((year) => (
+                <MenuItem key={year} value={year}>
+                  {year} {loadedYears.includes(year) ? '(Loaded)' : ''}
+                </MenuItem>
               ))}
             </Select>
           </FormControl>
@@ -388,7 +407,34 @@ const TenantManagement: React.FC = () => {
 
       <Card>
         <CardContent sx={{ p: isMobile ? 1 : 2 }}>
-          {isMobile ? (
+          {isYearLoading(selectedYear) ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
+              <CircularProgress />
+              <Typography variant="body1" sx={{ ml: 2 }}>
+                Loading {selectedYear} data...
+              </Typography>
+            </Box>
+          ) : error && error.includes(selectedYear) ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
+              <Typography variant="body1" color="error" sx={{ textAlign: 'center' }}>
+                {error}
+                <br />
+                <Button 
+                  variant="outlined" 
+                  onClick={() => fetchYearData(selectedYear)}
+                  sx={{ mt: 2 }}
+                >
+                  Retry
+                </Button>
+              </Typography>
+            </Box>
+          ) : Object.keys(shops).length === 0 ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
+              <Typography variant="body1" color="textSecondary">
+                No tenant data available for {selectedYear}
+              </Typography>
+            </Box>
+          ) : isMobile ? (
             <Grid container spacing={2}>
               {Object.entries(shops).map(([shopNumber, shopData]) => (
                 <Grid item xs={12} key={shopNumber}>

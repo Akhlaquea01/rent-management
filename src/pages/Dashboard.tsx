@@ -95,19 +95,35 @@ const StatCard: React.FC<{
 };
 
 const Dashboard: React.FC = () => {
-  const { state } = useRentContext();
+  const { state, fetchYearData, isYearLoading } = useRentContext();
   const { data, loading, error } = state;
-  const years =
-    data && data.years ? Object.keys(data.years).sort().reverse() : [];
-  const defaultYear = years.includes(new Date().getFullYear().toString())
-    ? new Date().getFullYear().toString()
-    : years[0];
+  
+  // Available years to fetch (2019 to 2020 - will expand to 2025 later)
+  const availableYears = React.useMemo(() => {
+    const years = [];
+    for (let year = 2019; year <= 2020; year++) {
+      years.push(year.toString());
+    }
+    return years.sort().reverse();
+  }, []);
+
+  const loadedYears = data && data.years ? Object.keys(data.years).sort().reverse() : [];
+  const defaultYear = loadedYears.includes("2020")
+    ? "2020"
+    : loadedYears[0] || "2020";
   const [selectedYear, setSelectedYear] = useState<string>(defaultYear);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div style={{ color: "red" }}>{error}</div>;
+  // Fetch year data when selected year changes
+  React.useEffect(() => {
+    if (selectedYear && !data.years[selectedYear] && !isYearLoading(selectedYear)) {
+      fetchYearData(selectedYear);
+    }
+  }, [selectedYear, data.years, fetchYearData, isYearLoading]);
+
+  if (loading && loadedYears.length === 0) return <div>Loading...</div>;
+  if (error && error.includes(selectedYear)) return <div style={{ color: "red" }}>{error}</div>;
   if (!data || !data.years) return <div>No data available.</div>;
   const shops = data.years[selectedYear]?.shops || {};
 
@@ -198,9 +214,9 @@ const Dashboard: React.FC = () => {
             label="Year"
             onChange={(e) => setSelectedYear(e.target.value)}
           >
-            {years.map((year) => (
+            {availableYears.map((year) => (
               <MenuItem key={year} value={year}>
-                {year}
+                {year} {loadedYears.includes(year) ? '(Loaded)' : ''}
               </MenuItem>
             ))}
           </Select>

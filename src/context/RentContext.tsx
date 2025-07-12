@@ -19,6 +19,7 @@ interface RentState {
   data: RentManagementData;
   loading: boolean;
   error: string | null;
+  loadingYears: Set<string>; // Track which years are being loaded
 }
 
 // Action types
@@ -26,6 +27,8 @@ type RentAction =
   | { type: "SET_LOADING"; payload: boolean }
   | { type: "SET_ERROR"; payload: string | null }
   | { type: "SET_DATA"; payload: RentManagementData }
+  | { type: "SET_YEAR_LOADING"; payload: { year: string; loading: boolean } }
+  | { type: "SET_YEAR_DATA"; payload: { year: string; yearData: any } }
   | {
       type: "ADD_TENANT";
       payload: { year: string; shopNumber: string; shopData: ShopData };
@@ -60,6 +63,24 @@ const rentReducer = (state: RentState, action: RentAction): RentState => {
 
     case "SET_DATA":
       return { ...state, data: action.payload, loading: false, error: null };
+
+    case "SET_YEAR_LOADING": {
+      const { year, loading } = action.payload;
+      const newLoadingYears = new Set<string>(state.loadingYears);
+      if (loading) {
+        newLoadingYears.add(year);
+      } else {
+        newLoadingYears.delete(year);
+      }
+      return { ...state, loadingYears: newLoadingYears };
+    }
+
+    case "SET_YEAR_DATA": {
+      const { year, yearData } = action.payload;
+      const newData = { ...state.data };
+      newData.years = { ...newData.years, [year]: yearData };
+      return { ...state, data: newData };
+    }
 
     case "ADD_TENANT": {
       const { year, shopNumber, shopData } = action.payload;
@@ -154,6 +175,8 @@ const rentReducer = (state: RentState, action: RentAction): RentState => {
 interface RentContextType {
   state: RentState;
   fetchData: () => Promise<void>;
+  fetchYearData: (year: string) => Promise<void>;
+  isYearLoading: (year: string) => boolean;
   addTenant: (year: string, shopNumber: string, shopData: ShopData) => void;
   updateTenant: (year: string, shopNumber: string, shopData: ShopData) => void;
   deleteTenant: (year: string, shopNumber: string) => void;
@@ -187,31 +210,82 @@ export const RentProvider: React.FC<RentProviderProps> = ({ children }) => {
     data: initialData,
     loading: true,
     error: null,
+    loadingYears: new Set<string>(),
   });
 
-  // Fetch data from API
-  const fetchData = async () => {
-    dispatch({ type: "SET_LOADING", payload: true });
-    dispatch({ type: "SET_ERROR", payload: null });
-
+  // Fetch advance transactions from data.json
+  const fetchAdvanceTransactions = async () => {
     try {
       const res = await fetch(
         "https://akhlaquea01.github.io/records_siwaipatti/data.json"
       );
       const json = await res.json();
 
-      // Transform response to { years: { ... }, advanceTransactions: ... }
-      const { advanceTransactions, ...years } = json;
+      // data.json now only contains advanceTransactions
       const transformedData = {
-        years,
-        advanceTransactions: advanceTransactions || {},
+        years: {},
+        advanceTransactions: json.advanceTransactions || {},
       };
 
       dispatch({ type: "SET_DATA", payload: transformedData });
     } catch (err) {
+      console.error("Error loading advance transactions:", err);
+      dispatch({ type: "SET_ERROR", payload: "Failed to load advance transactions" });
+    }
+  };
+
+  // Fetch data from API (legacy function - kept for backward compatibility)
+  const fetchData = async () => {
+    dispatch({ type: "SET_LOADING", payload: true });
+    dispatch({ type: "SET_ERROR", payload: null });
+
+    try {
+      await fetchAdvanceTransactions();
+      dispatch({ type: "SET_LOADING", payload: false });
+    } catch (err) {
       dispatch({ type: "SET_ERROR", payload: "Failed to load data" });
       dispatch({ type: "SET_LOADING", payload: false });
     }
+  };
+
+  // Fetch year-specific data
+  const fetchYearData = async (year: string) => {
+    // Don't fetch if already loading or already loaded
+    if (state.loadingYears.has(year) || state.data.years[year]) {
+      return;
+    }
+
+    dispatch({ type: "SET_YEAR_LOADING", payload: { year, loading: true } });
+
+    try {
+      const res = await fetch(
+        `https://akhlaquea01.github.io/records_siwaipatti/${year}.json`
+      );
+      
+      if (!res.ok) {
+        throw new Error(`Failed to load data for year ${year}`);
+      }
+      
+      const json = await res.json();
+      
+      // Extract the year data from the response
+      const yearData = json[year];
+      if (!yearData) {
+        throw new Error(`No data found for year ${year}`);
+      }
+
+      dispatch({ type: "SET_YEAR_DATA", payload: { year, yearData } });
+    } catch (err) {
+      console.error(`Error loading year ${year}:`, err);
+      dispatch({ type: "SET_ERROR", payload: `Failed to load data for year ${year}` });
+    } finally {
+      dispatch({ type: "SET_YEAR_LOADING", payload: { year, loading: false } });
+    }
+  };
+
+  // Check if a specific year is loading
+  const isYearLoading = (year: string): boolean => {
+    return state.loadingYears.has(year);
   };
 
   // Action creators
@@ -270,12 +344,20 @@ export const RentProvider: React.FC<RentProviderProps> = ({ children }) => {
   };
 
   const forceRefresh = () => {
-    fetchData();
+    // Clear all loaded years and reload current year if any
+    const currentYears = Object.keys(state.data.years);
+    if (currentYears.length > 0) {
+      // Reload the most recent year
+      const latestYear = currentYears.sort().reverse()[0];
+      fetchYearData(latestYear);
+    }
   };
 
-  // Load data on mount
+  // Load initial data on mount (load advance transactions and current year by default)
   useEffect(() => {
-    fetchData();
+    const currentYear = "2020"; // Use 2020 as current year (latest available)
+    fetchAdvanceTransactions();
+    fetchYearData(currentYear);
   }, []);
 
   // Memoize the context value to prevent unnecessary re-renders
@@ -283,6 +365,8 @@ export const RentProvider: React.FC<RentProviderProps> = ({ children }) => {
     () => ({
       state,
       fetchData,
+      fetchYearData,
+      isYearLoading,
       addTenant,
       updateTenant,
       deleteTenant,
