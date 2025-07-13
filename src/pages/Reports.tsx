@@ -101,7 +101,6 @@ const Reports: React.FC = () => {
     );
     let totalRent = 0;
     let totalCollected = 0;
-    let overdueCount = 0;
     let partialCount = 0;
 
     shopsArray.forEach((shop: any) => {
@@ -122,7 +121,6 @@ const Reports: React.FC = () => {
       
       totalRent += rentAmount;
       totalCollected += finalMonthData.paid || 0;
-      if (finalMonthData.status === "Overdue") overdueCount++;
       if (finalMonthData.status === "Partial") partialCount++;
     });
 
@@ -132,7 +130,6 @@ const Reports: React.FC = () => {
       totalRent,
       totalCollected,
       totalPending,
-      overdueCount,
       partialCount,
       collectionRate: totalRent > 0 ? (totalCollected / totalRent) * 100 : 0,
     };
@@ -184,8 +181,6 @@ const Reports: React.FC = () => {
         return "warning";
       case "Partial":
         return "info";
-      case "Overdue":
-        return "error";
       default:
         return "default";
     }
@@ -571,13 +566,13 @@ const Reports: React.FC = () => {
                 </Grid>
                 <Grid item xs={6}>
                   <Typography variant="body2" color="textSecondary">
-                    Overdue Count
+                    Total Expected Collection
                   </Typography>
                   <Typography
                     variant="h6"
-                    sx={{ fontWeight: "bold", color: "error.main" }}
+                    sx={{ fontWeight: "bold", color: "primary.main" }}
                   >
-                    {monthlyStats.overdueCount}
+                    ₹{monthlyStats.totalRent.toLocaleString()}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>
