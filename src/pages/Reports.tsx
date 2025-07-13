@@ -483,6 +483,7 @@ const Reports: React.FC = () => {
                   <TableHead>
                     <TableRow>
                       <TableCell>Shop</TableCell>
+                      <TableCell>Tenant Name</TableCell>
                       <TableCell align="right">Rent</TableCell>
                       <TableCell align="right">Paid</TableCell>
                       <TableCell>Status</TableCell>
@@ -512,6 +513,7 @@ const Reports: React.FC = () => {
                           }}
                         >
                           <TableCell>{shop.shopNumber}</TableCell>
+                          <TableCell>{shop.tenant.name}</TableCell>
                           <TableCell align="right">
                             ₹{shop.rentAmount.toLocaleString()}
                           </TableCell>

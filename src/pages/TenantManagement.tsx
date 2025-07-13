@@ -39,36 +39,32 @@ const encodeWhatsAppText = (text: string): string => {
 
 // Utility function to format pending months for WhatsApp message
 const formatPendingMonths = (yearBreakdown: Record<string, { months: string[]; amount: number }>): string => {
-  // Flatten to [Month(Year), ...]
-  const all: string[] = [];
-  Object.entries(yearBreakdown).forEach(([year, info]) => {
-    info.months.forEach(month => {
-      // Handle previous year months that are already formatted
-      if (month.startsWith('Previous Year:')) {
-        all.push(month);
+  // Group by year for WhatsApp message
+  return Object.entries(yearBreakdown)
+    .map(([year, info]) => {
+      // If previous year, show as 'Previous Year:'
+      if (info.months.length === 0) return '';
+      if (info.months[0].startsWith('Previous Year:')) {
+        // Remove 'Previous Year: ' prefix for display
+        const prevMonths = info.months.map(m => m.replace('Previous Year: ', ''));
+        return `Previous Year: ${prevMonths.join(', ')}${info.amount > 0 ? ` (₹${info.amount.toLocaleString()})` : ''}`;
       } else {
-        all.push(`${month}(${year})`);
+        return `${year}: ${info.months.join(', ')}${info.amount > 0 ? ` (₹${info.amount.toLocaleString()})` : ''}`;
       }
-    });
-  });
-  return all.join(', ');
+    })
+    .filter(Boolean)
+    .join('\n');
 };
 
 // Utility function to generate WhatsApp message
 const generateWhatsAppMessage = (tenantName: string, totalDueAmount: number, yearBreakdown: Record<string, { months: string[]; amount: number }>): string => {
   const pendingMonthsText = formatPendingMonths(yearBreakdown);
   
-  return `Hello,
+  let message = `Hello,\n\nThe following tenant has pending dues:\n\n• Name: ${tenantName}\n• Total Due: ₹${totalDueAmount.toLocaleString()}\n• Pending Months:\n${pendingMonthsText}`;
 
-The following tenant has pending dues:
+  message += `\n\nPlease take necessary action.\n\nThank you!`;
 
-• Name: ${tenantName}
-• Total Due: ₹${totalDueAmount.toLocaleString()}
-• Pending Months: ${pendingMonthsText}
-
-Please take necessary action.
-
-Thank you!`;
+  return message;
 };
 
 // Utility function to get WhatsApp URL
@@ -125,7 +121,6 @@ const TenantManagement: React.FC = () => {
   // Dues tooltip content
   const getDuesTooltip = (shopNumber: string, shop: ShopData) => {
     const { totalPendingMonths, totalDueAmount, yearBreakdown } = getDuesInfo(shopNumber, data, selectedYear);
-    
     return (
       <Box>
         <Typography variant="subtitle2">{shop.tenant.name}</Typography>
@@ -136,15 +131,19 @@ const TenantManagement: React.FC = () => {
           Total Due: <b>₹{totalDueAmount.toLocaleString()}</b>
         </Typography>
         {Object.entries(yearBreakdown).map(([year, info]) => (
-          <Box key={year} sx={{ mt: 1 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {year}:
-            </Typography>
-            <Typography variant="body2" sx={{ ml: 1 }}>
-              {info.months.join(", ")}
-              {info.amount > 0 && ` (₹${info.amount.toLocaleString()})`}
-            </Typography>
-          </Box>
+          info.months.length > 0 && (
+            <Box key={year} sx={{ mt: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {info.months[0].startsWith('Previous Year:') ? 'Previous Year:' : `${year}:`}
+              </Typography>
+              <Typography variant="body2" sx={{ ml: 1 }}>
+                {info.months[0].startsWith('Previous Year:')
+                  ? info.months.map(m => m.replace('Previous Year: ', '')).join(', ')
+                  : info.months.join(', ')}
+                {info.amount > 0 && ` (₹${info.amount.toLocaleString()})`}
+              </Typography>
+            </Box>
+          )
         ))}
       </Box>
     );
