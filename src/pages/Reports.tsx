@@ -29,17 +29,17 @@ const Reports: React.FC = () => {
   const { state, fetchYearData, isYearLoading } = useRentContext();
   const { data } = state;
   const now = new Date();
-  const currentYear = 2020; // Use 2020 as current year (latest available)
+  const currentYear = 2021; // Use 2021 as current year (latest available)
   const currentMonth = now.getMonth(); // 0-based
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [selectedMonth, setSelectedMonth] = useState(
     `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`
   );
 
-  // Available years to fetch (2019 to 2020 - will expand to 2025 later)
+  // Available years to fetch (2019 to 2021 - will expand to 2025 later)
   const availableYears = React.useMemo(() => {
     const years = [];
-    for (let year = 2019; year <= 2020; year++) {
+    for (let year = 2019; year <= 2021; year++) {
       years.push(year);
     }
     return years.sort((a, b) => b - a);

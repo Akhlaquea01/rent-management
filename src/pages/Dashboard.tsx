@@ -99,19 +99,19 @@ const Dashboard: React.FC = () => {
   const { state, fetchYearData, isYearLoading } = useRentContext();
   const { data, loading, error } = state;
   
-  // Available years to fetch (2019 to 2020 - will expand to 2025 later)
+  // Available years to fetch (2019 to 2021 - will expand to 2025 later)
   const availableYears = React.useMemo(() => {
     const years = [];
-    for (let year = 2019; year <= 2020; year++) {
+    for (let year = 2019; year <= 2021; year++) {
       years.push(year.toString());
     }
     return years.sort().reverse();
   }, []);
 
   const loadedYears = data && data.years ? Object.keys(data.years).sort().reverse() : [];
-  const defaultYear = loadedYears.includes("2020")
-    ? "2020"
-    : loadedYears[0] || "2020";
+  const defaultYear = loadedYears.includes("2021")
+    ? "2021"
+    : loadedYears[0] || "2021";
   const [selectedYear, setSelectedYear] = useState<string>(defaultYear);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
