@@ -154,7 +154,14 @@ const RentTableRow: React.FC<{ monthData: MonthlyData; showChip?: boolean }> = (
   };
 
   return (
-    <TableRow key={monthData.month}>
+    <TableRow
+      key={monthData.month}
+      sx={
+        monthData.paidAmount + monthData.advanceDeduction > monthData.rentAmount
+          ? { backgroundColor: '#fff9c4' } // light yellow
+          : undefined
+      }
+    >
       <TableCell>{monthData.month}</TableCell>
       <TableCell align="right">
         ₹{monthData.rentAmount.toLocaleString()}
