@@ -24,6 +24,318 @@ import {
 import { Print as PrintIcon } from "@mui/icons-material";
 import { useRentContext } from "../context/RentContext";
 
+// Types for better type safety
+interface MonthlyData {
+  month: string;
+  rentAmount: number;
+  paidAmount: number;
+  advanceDeduction: number;
+  status: string;
+  paymentDate: string;
+}
+
+interface YearlyData {
+  totalRent: number;
+  totalPaid: number;
+  totalPending: number;
+  advanceBalance: number;
+  monthlyData: MonthlyData[];
+  status: string;
+}
+
+interface YearSection {
+  year: string;
+  data: YearlyData;
+}
+
+interface AllYearsData {
+  totalRent: number;
+  totalPaid: number;
+  totalPending: number;
+  advanceBalance: number;
+  yearSections: YearSection[];
+}
+
+// Reusable function to generate table title
+const getTableTitle = (year: string) => `Monthly Rent History - ${year}`;
+
+// Comprehensive component to handle all table rendering scenarios
+const RentHistoryTables: React.FC<{
+  selectedYear: string;
+  selectedShopNumber: string;
+  allYearsData: AllYearsData | null;
+  getYearlyData: (shopNumber: string, year: string) => YearlyData | null;
+  isPrintView?: boolean;
+}> = ({ selectedYear, selectedShopNumber, allYearsData, getYearlyData, isPrintView = false }) => {
+  const tableProps = {
+    showChip: !isPrintView,
+    size: isPrintView ? "small" as const : "medium" as const,
+    component: isPrintView ? Box : Paper,
+  };
+
+  if (selectedYear === "All Years" && allYearsData) {
+    return (
+      <>
+        {allYearsData.yearSections.map(({ year, data }) => (
+          <Box key={year} sx={{ mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              {getTableTitle(year)}
+            </Typography>
+            <RentTable 
+              monthlyData={data.monthlyData} 
+              {...tableProps}
+            />
+          </Box>
+        ))}
+      </>
+    );
+  }
+
+  const yearlyData = getYearlyData(selectedShopNumber, selectedYear);
+  
+  return (
+    <>
+      <Typography variant="h6" gutterBottom>
+        {getTableTitle(selectedYear)}
+      </Typography>
+      {yearlyData ? (
+        <RentTable 
+          monthlyData={yearlyData.monthlyData} 
+          {...tableProps}
+        />
+      ) : (
+        <Typography color="textSecondary" align="center">
+          Select a shop and year to view history
+        </Typography>
+      )}
+    </>
+  );
+};
+
+// Reusable table header component
+const RentTableHeader: React.FC = () => (
+  <TableHead>
+    <TableRow>
+      <TableCell>Month</TableCell>
+      <TableCell align="right">Rent Amount</TableCell>
+      <TableCell align="right">Paid Amount</TableCell>
+      <TableCell align="right">Advance Used</TableCell>
+      <TableCell>Status</TableCell>
+      <TableCell>Payment Date</TableCell>
+    </TableRow>
+  </TableHead>
+);
+
+// Reusable table row component
+const RentTableRow: React.FC<{ monthData: MonthlyData; showChip?: boolean }> = ({ 
+  monthData, 
+  showChip = true 
+}) => {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Paid":
+        return "success";
+      case "Pending":
+        return "warning";
+      case "Partial":
+        return "info";
+      case "Overdue":
+        return "error";
+      default:
+        return "default";
+    }
+  };
+
+  const formatPaymentDate = (date: string) => {
+    if (date && !isNaN(new Date(date).getTime())) {
+      return new Date(date).toLocaleDateString();
+    }
+    return "-";
+  };
+
+  return (
+    <TableRow key={monthData.month}>
+      <TableCell>{monthData.month}</TableCell>
+      <TableCell align="right">
+        ₹{monthData.rentAmount.toLocaleString()}
+      </TableCell>
+      <TableCell align="right">
+        ₹{monthData.paidAmount.toLocaleString()}
+      </TableCell>
+      <TableCell align="right">
+        ₹{monthData.advanceDeduction.toLocaleString()}
+      </TableCell>
+      <TableCell>
+        {showChip ? (
+          <Chip
+            label={monthData.status}
+            color={getStatusColor(monthData.status) as any}
+            size="small"
+          />
+        ) : (
+          monthData.status
+        )}
+      </TableCell>
+      <TableCell>{formatPaymentDate(monthData.paymentDate)}</TableCell>
+    </TableRow>
+  );
+};
+
+// Reusable rent table component
+const RentTable: React.FC<{ 
+  monthlyData: MonthlyData[]; 
+  showChip?: boolean;
+  size?: "small" | "medium";
+  component?: React.ElementType;
+}> = ({ 
+  monthlyData, 
+  showChip = true, 
+  size = "medium",
+  component = Paper 
+}) => (
+  <TableContainer component={component}>
+    <Table size={size}>
+      <RentTableHeader />
+      <TableBody>
+        {monthlyData.map((monthData) => (
+          <RentTableRow 
+            key={monthData.month} 
+            monthData={monthData} 
+            showChip={showChip} 
+          />
+        ))}
+      </TableBody>
+    </Table>
+  </TableContainer>
+);
+
+// Reusable summary component
+const SummarySection: React.FC<{ 
+  data: YearlyData | AllYearsData | null;
+  selectedYear: string;
+  selectedShopNumber: string;
+  getYearlyData: (shopNumber: string, year: string) => YearlyData | null;
+  allYearsData: AllYearsData | null;
+}> = ({ data, selectedYear, selectedShopNumber, getYearlyData, allYearsData }) => {
+  const getValue = (key: keyof YearlyData) => {
+    if (selectedYear === "All Years") {
+      return allYearsData?.[key];
+    }
+    return getYearlyData(selectedShopNumber, selectedYear)?.[key];
+  };
+
+  const summaryItems = [
+    { label: "Total Rent", value: getValue("totalRent"), color: "text.primary" },
+    { label: "Total Paid", value: getValue("totalPaid"), color: "success.main" },
+    { label: "Pending", value: getValue("totalPending"), color: "warning.main" },
+    { label: "Advance Balance", value: getValue("advanceBalance"), color: "primary.main" },
+  ];
+
+  return (
+    <Box sx={{ mt: 3 }}>
+      <Typography variant="h6" gutterBottom>
+        Summary
+      </Typography>
+      <Grid container spacing={1}>
+        {summaryItems.map((item) => (
+          <Grid item xs={6} key={item.label}>
+            <Typography variant="body2" color="textSecondary">
+              {item.label}
+            </Typography>
+            <Typography 
+              variant="h6" 
+              sx={{ fontWeight: "bold", color: item.color }}
+            >
+              ₹{item.value?.toLocaleString()}
+            </Typography>
+          </Grid>
+        ))}
+      </Grid>
+    </Box>
+  );
+};
+
+// Reusable print summary component
+const PrintSummary: React.FC<{
+  selectedShopNumber: string;
+  selectedYear: string;
+  activeShops: Array<{ shopNumber: string; tenant: any; year: string }>;
+  allYearsData: AllYearsData | null;
+  getYearlyData: (shopNumber: string, year: string) => YearlyData | null;
+}> = ({ selectedShopNumber, selectedYear, activeShops, allYearsData, getYearlyData }) => {
+  const getValue = (key: keyof YearlyData) => {
+    if (selectedYear === "All Years") {
+      return allYearsData?.[key];
+    }
+    return getYearlyData(selectedShopNumber, selectedYear)?.[key];
+  };
+
+  const summaryItems = [
+    { label: "Total Rent", value: getValue("totalRent") },
+    { label: "Total Paid", value: getValue("totalPaid") },
+    { label: "Pending", value: getValue("totalPending") },
+    { label: "Advance Balance", value: getValue("advanceBalance") },
+  ];
+
+  return (
+    <Box
+      className="print-summary"
+      sx={{
+        display: "none",
+        "@media print": {
+          display: "block",
+          background: "white",
+          color: "black",
+          p: 4,
+        },
+      }}
+    >
+      <Paper elevation={0} sx={{ boxShadow: "none", p: 4, m: 0 }}>
+        <Typography
+          variant="h4"
+          gutterBottom
+          align="center"
+          sx={{ fontWeight: "bold" }}
+        >
+          Rent Summary Report
+        </Typography>
+        {selectedShopNumber && (
+          <Typography variant="h6" gutterBottom align="center">
+            {
+              activeShops.find((s) => s.shopNumber === selectedShopNumber)
+                ?.tenant.name
+            }{" "}
+            - Shop {selectedShopNumber}
+          </Typography>
+        )}
+        <Typography variant="body1" gutterBottom align="center">
+          {selectedYear === "All Years"
+            ? "All Years"
+            : `Year: ${selectedYear}`}
+        </Typography>
+        <Divider sx={{ my: 2 }} />
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          {summaryItems.map((item) => (
+            <Grid item xs={6} key={item.label}>
+              <Typography variant="h6">
+                {item.label}: ₹{item.value?.toLocaleString()}
+              </Typography>
+            </Grid>
+          ))}
+        </Grid>
+        
+                <RentHistoryTables
+          selectedYear={selectedYear}
+          selectedShopNumber={selectedShopNumber}
+          allYearsData={allYearsData}
+          getYearlyData={getYearlyData}
+          isPrintView={true}
+        />
+      </Paper>
+    </Box>
+  );
+};
+
 const TenantHistory: React.FC = () => {
   const { state, fetchYearData, isYearLoading } = useRentContext();
   const { data } = state;
@@ -97,7 +409,7 @@ const TenantHistory: React.FC = () => {
   };
 
   // Helper: get rent data for a shop and year, only up to today
-  const getYearlyData = (shopNumber: string, year: string) => {
+  const getYearlyData = (shopNumber: string, year: string): YearlyData | null => {
     const shop = data.years[year]?.shops[shopNumber];
     if (!shop) return null;
     const months = getMonthsUpToToday(year);
@@ -149,30 +461,14 @@ const TenantHistory: React.FC = () => {
     };
   };
 
-  // Helper: get color for status
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Paid":
-        return "success";
-      case "Pending":
-        return "warning";
-      case "Partial":
-        return "info";
-      case "Overdue":
-        return "error";
-      default:
-        return "default";
-    }
-  };
-
   // For All Years: aggregate data
-  const allYearsData = React.useMemo(() => {
+  const allYearsData = React.useMemo((): AllYearsData | null => {
     if (!selectedShopNumber || selectedYear !== "All Years") return null;
     let totalRent = 0,
       totalPaid = 0,
       totalPending = 0,
       advanceBalance = 0;
-    const yearSections: Array<{ year: string; data: any }> = [];
+    const yearSections: Array<{ year: string; data: YearlyData }> = [];
     availableYears
       .slice()
       .reverse()
@@ -199,8 +495,8 @@ const TenantHistory: React.FC = () => {
       const yd = getYearlyData(selectedShopNumber, year);
       if (yd) {
         const months = yd.monthlyData
-          .filter((m: any) => m.status !== "Paid")
-          .map((m: any) => m.month);
+          .filter((m: MonthlyData) => m.status !== "Paid")
+          .map((m: MonthlyData) => m.month);
         if (months.length) {
           pendingByYear[year] = months;
           totalPending += yd.totalPending;
@@ -218,6 +514,11 @@ const TenantHistory: React.FC = () => {
     return tooltip;
   };
 
+  // Get current data for display
+  const currentData = selectedYear === "All Years" 
+    ? allYearsData 
+    : getYearlyData(selectedShopNumber, selectedYear);
+
   // Render
   return (
     <Box>
@@ -234,9 +535,7 @@ const TenantHistory: React.FC = () => {
             Shop History
           </Typography>
         </Tooltip>
-        {(selectedYear === "All Years"
-          ? allYearsData
-          : getYearlyData(selectedShopNumber, selectedYear)) && (
+        {currentData && (
           <Button
             variant="outlined"
             startIcon={<PrintIcon />}
@@ -286,77 +585,14 @@ const TenantHistory: React.FC = () => {
                 </Select>
               </FormControl>
 
-              {(selectedYear === "All Years"
-                ? allYearsData
-                : getYearlyData(selectedShopNumber, selectedYear)) && (
-                <Box sx={{ mt: 3 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Summary
-                  </Typography>
-                  <Grid container spacing={1}>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" color="textSecondary">
-                        Total Rent
-                      </Typography>
-                      <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-                        ₹
-                        {(selectedYear === "All Years"
-                          ? allYearsData?.totalRent
-                          : getYearlyData(selectedShopNumber, selectedYear)
-                              ?.totalRent
-                        )?.toLocaleString()}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" color="textSecondary">
-                        Total Paid
-                      </Typography>
-                      <Typography
-                        variant="h6"
-                        sx={{ fontWeight: "bold", color: "success.main" }}
-                      >
-                        ₹
-                        {(selectedYear === "All Years"
-                          ? allYearsData?.totalPaid
-                          : getYearlyData(selectedShopNumber, selectedYear)
-                              ?.totalPaid
-                        )?.toLocaleString()}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" color="textSecondary">
-                        Pending
-                      </Typography>
-                      <Typography
-                        variant="h6"
-                        sx={{ fontWeight: "bold", color: "warning.main" }}
-                      >
-                        ₹
-                        {(selectedYear === "All Years"
-                          ? allYearsData?.totalPending
-                          : getYearlyData(selectedShopNumber, selectedYear)
-                              ?.totalPending
-                        )?.toLocaleString()}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" color="textSecondary">
-                        Advance Balance
-                      </Typography>
-                      <Typography
-                        variant="h6"
-                        sx={{ fontWeight: "bold", color: "primary.main" }}
-                      >
-                        ₹
-                        {(selectedYear === "All Years"
-                          ? allYearsData?.advanceBalance
-                          : getYearlyData(selectedShopNumber, selectedYear)
-                              ?.advanceBalance
-                        )?.toLocaleString()}
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                </Box>
+              {currentData && (
+                <SummarySection
+                  data={currentData}
+                  selectedYear={selectedYear}
+                  selectedShopNumber={selectedShopNumber}
+                  getYearlyData={getYearlyData}
+                  allYearsData={allYearsData}
+                />
               )}
             </CardContent>
           </Card>
@@ -365,317 +601,26 @@ const TenantHistory: React.FC = () => {
         <Grid item xs={12} md={8}>
           <Card>
             <CardContent>
-              {selectedYear === "All Years" && allYearsData ? (
-                <>
-                  {allYearsData.yearSections.map(({ year, data }) => (
-                    <Box key={year} sx={{ mb: 3 }}>
-                      <Typography variant="h6" gutterBottom>
-                        Monthly Rent History1 - {year}
-                      </Typography>
-                      <TableContainer component={Paper}>
-                        <Table>
-                          <TableHead>
-                            <TableRow>
-                              <TableCell>Month</TableCell>
-                              <TableCell align="right">Rent Amount</TableCell>
-                              <TableCell align="right">Paid Amount</TableCell>
-                              <TableCell align="right">Advance Used</TableCell>
-                              <TableCell>Status</TableCell>
-                              <TableCell>Payment Date</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {data.monthlyData.map(
-                              (monthData: any, index: number) => (
-                                <TableRow key={monthData.month}>
-                                  <TableCell>{monthData.month}</TableCell>
-                                  <TableCell align="right">
-                                    ₹{monthData.rentAmount.toLocaleString()}
-                                  </TableCell>
-                                  <TableCell align="right">
-                                    ₹{monthData.paidAmount.toLocaleString()}
-                                  </TableCell>
-                                  <TableCell align="right">
-                                    ₹
-                                    {monthData.advanceDeduction.toLocaleString()}
-                                  </TableCell>
-                                  <TableCell>
-                                    <Chip
-                                      label={monthData.status}
-                                      color={
-                                        getStatusColor(monthData.status) as any
-                                      }
-                                      size="small"
-                                    />
-                                  </TableCell>
-                                  <TableCell>
-                                    {monthData.paymentDate &&
-                                    !isNaN(
-                                      new Date(monthData.paymentDate).getTime()
-                                    )
-                                      ? new Date(
-                                          monthData.paymentDate
-                                        ).toLocaleDateString()
-                                      : "-"}
-                                  </TableCell>
-                                </TableRow>
-                              )
-                            )}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    </Box>
-                  ))}
-                </>
-              ) : (
-                <>
-                  <Typography variant="h6" gutterBottom>
-                    Monthly Rent History2 - {selectedYear}
-                  </Typography>
-                  {getYearlyData(selectedShopNumber, selectedYear) ? (
-                    <TableContainer component={Paper}>
-                      <Table>
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>Month</TableCell>
-                            <TableCell align="right">Rent Amount</TableCell>
-                            <TableCell align="right">Paid Amount</TableCell>
-                            <TableCell align="right">Advance Used</TableCell>
-                            <TableCell>Status</TableCell>
-                            <TableCell>Payment Date</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {getYearlyData(
-                            selectedShopNumber,
-                            selectedYear
-                          )?.monthlyData.map(
-                            (monthData: any, index: number) => (
-                              <TableRow key={monthData.month}>
-                                <TableCell>{monthData.month}</TableCell>
-                                <TableCell align="right">
-                                  ₹{monthData.rentAmount.toLocaleString()}
-                                </TableCell>
-                                <TableCell align="right">
-                                  ₹{monthData.paidAmount.toLocaleString()}
-                                </TableCell>
-                                <TableCell align="right">
-                                  ₹{monthData.advanceDeduction.toLocaleString()}
-                                </TableCell>
-                                <TableCell>
-                                  <Chip
-                                    label={monthData.status}
-                                    color={
-                                      getStatusColor(monthData.status) as any
-                                    }
-                                    size="small"
-                                  />
-                                </TableCell>
-                                <TableCell>
-                                  {monthData.paymentDate &&
-                                  !isNaN(
-                                    new Date(monthData.paymentDate).getTime()
-                                  )
-                                    ? new Date(
-                                        monthData.paymentDate
-                                      ).toLocaleDateString()
-                                    : "-"}
-                                </TableCell>
-                              </TableRow>
-                            )
-                          )}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  ) : (
-                    <Typography color="textSecondary" align="center">
-                      Select a shop and year to view history
-                    </Typography>
-                  )}
-                </>
-              )}
+              <RentHistoryTables
+                selectedYear={selectedYear}
+                selectedShopNumber={selectedShopNumber}
+                allYearsData={allYearsData}
+                getYearlyData={getYearlyData}
+              />
             </CardContent>
           </Card>
         </Grid>
       </Grid>
 
       {/* Printable Summary */}
-      <Box
-        className="print-summary"
-        sx={{
-          display: "none",
-          "@media print": {
-            display: "block",
-            background: "white",
-            color: "black",
-            p: 4,
-          },
-        }}
-      >
-        <Paper elevation={0} sx={{ boxShadow: "none", p: 4, m: 0 }}>
-          <Typography
-            variant="h4"
-            gutterBottom
-            align="center"
-            sx={{ fontWeight: "bold" }}
-          >
-            Rent Summary Report
-          </Typography>
-          {selectedShopNumber && (
-            <Typography variant="h6" gutterBottom align="center">
-              {
-                activeShops.find((s) => s.shopNumber === selectedShopNumber)
-                  ?.tenant.name
-              }{" "}
-              - Shop {selectedShopNumber}
-            </Typography>
-          )}
-          <Typography variant="body1" gutterBottom align="center">
-            {selectedYear === "All Years"
-              ? "All Years"
-              : `Year: ${selectedYear}`}
-          </Typography>
-          <Divider sx={{ my: 2 }} />
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={6}>
-              <Typography variant="h6">
-                Total Rent: ₹
-                {(selectedYear === "All Years"
-                  ? allYearsData?.totalRent
-                  : getYearlyData(selectedShopNumber, selectedYear)?.totalRent
-                )?.toLocaleString()}
-              </Typography>
-            </Grid>
-            <Grid item xs={6}>
-              <Typography variant="h6">
-                Total Paid: ₹
-                {(selectedYear === "All Years"
-                  ? allYearsData?.totalPaid
-                  : getYearlyData(selectedShopNumber, selectedYear)?.totalPaid
-                )?.toLocaleString()}
-              </Typography>
-            </Grid>
-            <Grid item xs={6}>
-              <Typography variant="h6">
-                Pending: ₹
-                {(selectedYear === "All Years"
-                  ? allYearsData?.totalPending
-                  : getYearlyData(selectedShopNumber, selectedYear)
-                      ?.totalPending
-                )?.toLocaleString()}
-              </Typography>
-            </Grid>
-            <Grid item xs={6}>
-              <Typography variant="h6">
-                Advance Balance: ₹
-                {(selectedYear === "All Years"
-                  ? allYearsData?.advanceBalance
-                  : getYearlyData(selectedShopNumber, selectedYear)
-                      ?.advanceBalance
-                )?.toLocaleString()}
-              </Typography>
-            </Grid>
-          </Grid>
-          {selectedYear === "All Years" && allYearsData ? (
-            allYearsData.yearSections.map(({ year, data }) => (
-              <Box key={year} sx={{ mb: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Monthly Rent History3 - {year}
-                </Typography>
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Month</TableCell>
-                        <TableCell align="right">Rent Amount</TableCell>
-                        <TableCell align="right">Paid Amount</TableCell>
-                        <TableCell align="right">Advance Used</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Payment Date</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {data.monthlyData.map((monthData: any) => (
-                        <TableRow key={monthData.month}>
-                          <TableCell>{monthData.month}</TableCell>
-                          <TableCell align="right">
-                            ₹{monthData.rentAmount.toLocaleString()}
-                          </TableCell>
-                          <TableCell align="right">
-                            ₹{monthData.paidAmount.toLocaleString()}
-                          </TableCell>
-                          <TableCell align="right">
-                            ₹{monthData.advanceDeduction.toLocaleString()}
-                          </TableCell>
-                          <TableCell>{monthData.status}</TableCell>
-                          <TableCell>
-                            {monthData.paymentDate &&
-                            !isNaN(new Date(monthData.paymentDate).getTime())
-                              ? new Date(
-                                  monthData.paymentDate
-                                ).toLocaleDateString()
-                              : "-"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Box>
-            ))
-          ) : (
-            <>
-              <Typography variant="h6" gutterBottom>
-                Monthly Rent History4 - {selectedYear}
-              </Typography>
-              {getYearlyData(selectedShopNumber, selectedYear) && (
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Month</TableCell>
-                        <TableCell align="right">Rent Amount</TableCell>
-                        <TableCell align="right">Paid Amount</TableCell>
-                        <TableCell align="right">Advance Used</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Payment Date</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {getYearlyData(
-                        selectedShopNumber,
-                        selectedYear
-                      )?.monthlyData.map((monthData: any) => (
-                        <TableRow key={monthData.month}>
-                          <TableCell>{monthData.month}</TableCell>
-                          <TableCell align="right">
-                            ₹{monthData.rentAmount.toLocaleString()}
-                          </TableCell>
-                          <TableCell align="right">
-                            ₹{monthData.paidAmount.toLocaleString()}
-                          </TableCell>
-                          <TableCell align="right">
-                            ₹{monthData.advanceDeduction.toLocaleString()}
-                          </TableCell>
-                          <TableCell>{monthData.status}</TableCell>
-                          <TableCell>
-                            {monthData.paymentDate &&
-                            !isNaN(new Date(monthData.paymentDate).getTime())
-                              ? new Date(
-                                  monthData.paymentDate
-                                ).toLocaleDateString()
-                              : "-"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              )}
-            </>
-          )}
-        </Paper>
-      </Box>
+      <PrintSummary
+        selectedShopNumber={selectedShopNumber}
+        selectedYear={selectedYear}
+        activeShops={activeShops}
+        allYearsData={allYearsData}
+        getYearlyData={getYearlyData}
+      />
+
       {/* Hide all non-essential UI in print mode */}
       <style>{`
         @media print {
