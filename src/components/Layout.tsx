@@ -151,32 +151,54 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              gap: 2,
+              gap: 1,
               width: "100%",
             }}
           >
-            <Typography variant="h6" noWrap component="div">
+            <Typography 
+              variant="h6" 
+              noWrap 
+              component="div"
+              sx={{
+                fontSize: { xs: "0.9rem", sm: "1.25rem" },
+                maxWidth: { xs: "120px", sm: "200px", md: "none" },
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                flex: 1,
+              }}
+            >
               {menuItems.find((item) => item.path === location.pathname)
                 ?.text || "Rent Management System"}
             </Typography>
-            <Box sx={{ display: "flex", gap: 1 }}>
+            <Box sx={{ display: "flex", gap: 0.5, flexShrink: 0 }}>
               <Button
                 variant="contained"
                 color="primary"
                 onClick={() => {
                   console.log(state);
                 }}
+                sx={{ display: { xs: "none", sm: "flex" } }}
               >
                 Log Data
               </Button>
               <Button
                 variant="outlined"
                 color="inherit"
-                startIcon={<LogoutIcon />}
                 onClick={handleLogout}
-                sx={{ color: "white", borderColor: "white" }}
+                sx={{ 
+                  color: "white", 
+                  borderColor: "white",
+                  minWidth: { xs: "auto", sm: "auto" },
+                  px: { xs: 1, sm: 2 },
+                }}
               >
-                Logout
+                <Box sx={{ display: { xs: "none", sm: "flex" }, alignItems: "center", gap: 0.5 }}>
+                  <LogoutIcon />
+                  Logout
+                </Box>
+                <Box sx={{ display: { xs: "flex", sm: "none" }, alignItems: "center" }}>
+                  <LogoutIcon />
+                </Box>
               </Button>
             </Box>
           </Box>
