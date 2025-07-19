@@ -57,15 +57,20 @@ const formatPendingMonths = (yearBreakdown: Record<string, { months: string[]; a
 };
 
 // Utility function to generate WhatsApp message
-const generateWhatsAppMessage = (tenantName: string, totalDueAmount: number, yearBreakdown: Record<string, { months: string[]; amount: number }>): string => {
+const generateWhatsAppMessage = (
+  tenantName: string,
+  totalDueAmount: number,
+  yearBreakdown: Record<string, { months: string[]; amount: number }>
+): string => {
   const pendingMonthsText = formatPendingMonths(yearBreakdown);
-  
-  let message = `Hello,\n\nThe following tenant has pending dues:\n\n• Name: ${tenantName}\n• Total Due: ₹${totalDueAmount.toLocaleString()}\n• Pending Months:\n${pendingMonthsText}`;
 
-  message += `\n\nPlease take necessary action.\n\nThank you!`;
+  let message = `नमस्ते ${tenantName},\n• आपकी कुल बकाया राशि: ₹${totalDueAmount.toLocaleString()}\n• बकाया महीने:\n${pendingMonthsText}`;
+
+  message += `\n\nकृपया जल्द से जल्द बकाया राशि का भुगतान करें।\n\nधन्यवाद!`;
 
   return message;
 };
+
 
 // Utility function to get WhatsApp URL
 const getWhatsAppUrl = (message: string): string => {
