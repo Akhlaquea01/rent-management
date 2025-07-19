@@ -347,12 +347,12 @@ const TenantHistory: React.FC = () => {
   const { state, fetchYearData, isYearLoading } = useRentContext();
   const { data } = state;
   const [selectedShopNumber, setSelectedShopNumber] = useState("");
-  const [selectedYear, setSelectedYear] = useState<string>("2021");
+  const [selectedYear, setSelectedYear] = useState<string>("2022");
 
-  // Available years to fetch (2019 to 2021 - will expand to 2025 later)
+  // Available years to fetch (2019 to 2022 - will expand to 2025 later)
   const availableYears = React.useMemo(() => {
     const years = [];
-    for (let year = 2019; year <= 2021; year++) {
+    for (let year = 2019; year <= 2022; year++) {
       years.push(year.toString());
     }
     return years.sort((a, b) => b.localeCompare(a));

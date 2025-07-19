@@ -355,7 +355,7 @@ export const RentProvider: React.FC<RentProviderProps> = ({ children }) => {
 
   // Load initial data on mount (load advance transactions and current year by default)
   useEffect(() => {
-    const currentYear = "2021"; // Use 2021 as current year (latest available)
+    const currentYear = "2022"; // Use 2022 as current year (latest available)
     fetchAdvanceTransactions();
     fetchYearData(currentYear);
   }, []);
