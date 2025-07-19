@@ -23,9 +23,11 @@ import {
   AccountBalance as AccountBalanceIcon,
   History as HistoryIcon,
   Assessment as AssessmentIcon,
+  Logout as LogoutIcon,
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useRentContext } from "../context/RentContext";
+import { useAuth } from "../context/AuthContext";
 
 const drawerWidth = 240;
 
@@ -53,6 +55,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { state } = useRentContext();
+  const { logout } = useAuth();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -63,6 +66,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     if (isMobile) {
       setMobileOpen(false);
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
   };
 
   const drawer = (
@@ -151,15 +159,26 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               {menuItems.find((item) => item.path === location.pathname)
                 ?.text || "Rent Management System"}
             </Typography>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => {
-                console.log(state);
-              }}
-            >
-              Log Data
-            </Button>
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => {
+                  console.log(state);
+                }}
+              >
+                Log Data
+              </Button>
+              <Button
+                variant="outlined"
+                color="inherit"
+                startIcon={<LogoutIcon />}
+                onClick={handleLogout}
+                sx={{ color: "white", borderColor: "white" }}
+              >
+                Logout
+              </Button>
+            </Box>
           </Box>
         </Toolbar>
       </AppBar>

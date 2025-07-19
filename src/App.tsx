@@ -8,11 +8,14 @@ import { Toaster } from "react-hot-toast";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import TenantManagement from "./pages/TenantManagement";
-
 import AdvanceTracker from "./pages/AdvanceTracker";
 import TenantHistory from "./pages/TenantHistory";
 import Reports from "./pages/Reports";
+import Login from "./pages/Login";
+
+// Contexts
 import { RentProvider, useRentContext } from "./context/RentContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 
 const theme = createTheme({
   palette: {
@@ -65,7 +68,13 @@ const theme = createTheme({
 
 function AppContent() {
   const { state } = useRentContext();
+  const { isAuthenticated, login } = useAuth();
   const { loading, error } = state;
+
+  // Show login page if not authenticated
+  if (!isAuthenticated) {
+    return <Login onLogin={login} />;
+  }
 
   if (loading)
     return <div style={{ padding: 40, fontSize: 20 }}>Loading data...</div>;
@@ -81,7 +90,6 @@ function AppContent() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/tenants" element={<TenantManagement />} />
-
             <Route path="/advance-tracker" element={<AdvanceTracker />} />
             <Route path="/tenant-history" element={<TenantHistory />} />
             <Route path="/reports" element={<Reports />} />
@@ -96,9 +104,11 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <RentProvider>
-        <AppContent />
-      </RentProvider>
+      <AuthProvider>
+        <RentProvider>
+          <AppContent />
+        </RentProvider>
+      </AuthProvider>
       <Toaster
         position="top-right"
         toastOptions={{
