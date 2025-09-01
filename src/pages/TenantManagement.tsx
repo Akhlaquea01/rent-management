@@ -85,10 +85,10 @@ const TenantManagement: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const isTablet = useMediaQuery(theme.breakpoints.down("lg"));
 
-  // Available years to fetch (2019 to 2022 - will expand to 2025 later)
+  // Available years to fetch (2019 to current year)
   const availableYears = useMemo(() => {
     const years = [];
-    for (let year = 2019; year <= 2022; year++) {
+    for (let year = 2019; year <= new Date().getFullYear(); year++) {
       years.push(year.toString());
     }
     return years.sort().reverse();
@@ -97,7 +97,7 @@ const TenantManagement: React.FC = () => {
   // Memoized data processing
   const loadedYears = useMemo(() => Object.keys(data.years).sort().reverse(), [data.years]);
   const defaultYear = useMemo(() => {
-    const currentYear = "2022"; // Use 2022 as current year (latest available)
+    const currentYear = new Date().getFullYear().toString(); // Use actual current year
     return loadedYears.includes(currentYear) ? currentYear : loadedYears[0] || currentYear;
   }, [loadedYears]);
   
