@@ -42,13 +42,33 @@ const AdvanceTracker: React.FC = () => {
     }
   });
 
-  const allShops = Array.from(shopTenantMap.entries()).map(([shopNumber, tenantInfo]) => ({
-    shopNumber,
-    name: tenantInfo.name,
-    phoneNumber: tenantInfo.phoneNumber,
-    email: tenantInfo.email,
-    status: tenantInfo.status,
-  }));
+  // Parse shop number for sorting
+  const parseShopNumber = (shopNum: string) => {
+    const match = shopNum.match(/^(\d+)(?:-(\w+))?$/);
+    return {
+      number: match ? parseInt(match[1], 10) : 0,
+      suffix: match?.[2] || ''
+    };
+  };
+
+  const allShops = Array.from(shopTenantMap.entries())
+    .map(([shopNumber, tenantInfo]) => ({
+      shopNumber,
+      name: tenantInfo.name,
+      phoneNumber: tenantInfo.phoneNumber,
+      email: tenantInfo.email,
+      status: tenantInfo.status,
+    }))
+    .sort((a, b) => {
+      const shopA = parseShopNumber(a.shopNumber);
+      const shopB = parseShopNumber(b.shopNumber);
+
+      if (shopA.number !== shopB.number) {
+        return shopA.number - shopB.number;
+      }
+
+      return shopA.suffix.localeCompare(shopB.suffix);
+    });
 
   // Set initial selectedShop only on mount
   const [selectedShop, setSelectedShop] = useState(() => allShops[0]?.shopNumber || "");

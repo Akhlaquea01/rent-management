@@ -385,13 +385,32 @@ const TenantHistory: React.FC = () => {
     );
   });
 
-  // Get unique active shops
+  // Parse shop number for sorting
+  const parseShopNumber = (shopNum: string) => {
+    const match = shopNum.match(/^(\d+)(?:-(\w+))?$/);
+    return {
+      number: match ? parseInt(match[1], 10) : 0,
+      suffix: match?.[2] || ''
+    };
+  };
+
+  // Get unique active shops and sort by shop number
   const activeShops = allShops
     .filter((shop) => shop.tenant.status === "Active")
     .filter(
       (shop, index, self) =>
         index === self.findIndex((s) => s.shopNumber === shop.shopNumber)
-    );
+    )
+    .sort((a, b) => {
+      const shopA = parseShopNumber(a.shopNumber);
+      const shopB = parseShopNumber(b.shopNumber);
+
+      if (shopA.number !== shopB.number) {
+        return shopA.number - shopB.number;
+      }
+
+      return shopA.suffix.localeCompare(shopB.suffix);
+    });
 
   // Helper: months up to today for a given year
   const getMonthsUpToToday = (year: string) => {

@@ -60,13 +60,31 @@ const Reports: React.FC = () => {
   // Get shops for selected year
   const selectedYearShops = data.years[selectedYear.toString()]?.shops || {};
 
-  // Compute stats from new data structure
-  const shopsArray = Object.entries(selectedYearShops).map(
-    ([shopNumber, shop]: [string, any]) => ({
+  // Parse shop number for sorting
+  const parseShopNumber = (shopNum: string) => {
+    const match = shopNum.match(/^(\d+)(?:-(\w+))?$/);
+    return {
+      number: match ? parseInt(match[1], 10) : 0,
+      suffix: match?.[2] || ''
+    };
+  };
+
+  // Compute stats from new data structure and sort by shop number
+  const shopsArray = Object.entries(selectedYearShops)
+    .map(([shopNumber, shop]: [string, any]) => ({
       shopNumber,
       ...shop,
-    })
-  );
+    }))
+    .sort((a, b) => {
+      const shopA = parseShopNumber(a.shopNumber);
+      const shopB = parseShopNumber(b.shopNumber);
+
+      if (shopA.number !== shopB.number) {
+        return shopA.number - shopB.number;
+      }
+
+      return shopA.suffix.localeCompare(shopB.suffix);
+    });
 
   const totalShops = shopsArray.length;
   const activeShops = shopsArray.filter(

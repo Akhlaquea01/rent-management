@@ -104,6 +104,27 @@ const TenantManagement: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState<string>(defaultYear);
   const shops = data.years[selectedYear]?.shops || {};
 
+  // Parse shop number for sorting
+  const parseShopNumber = (shopNum: string) => {
+    const match = shopNum.match(/^(\d+)(?:-(\w+))?$/);
+    return {
+      number: match ? parseInt(match[1], 10) : 0,
+      suffix: match?.[2] || ''
+    };
+  };
+
+  // Sort shops by shop number
+  const sortedShops = Object.entries(shops).sort(([shopNumberA], [shopNumberB]) => {
+    const shopA = parseShopNumber(shopNumberA);
+    const shopB = parseShopNumber(shopNumberB);
+
+    if (shopA.number !== shopB.number) {
+      return shopA.number - shopB.number;
+    }
+
+    return shopA.suffix.localeCompare(shopB.suffix);
+  });
+
   // Fetch year data when selected year changes
   useEffect(() => {
     if (selectedYear && !data.years[selectedYear] && !isYearLoading(selectedYear)) {
@@ -357,7 +378,7 @@ const TenantManagement: React.FC = () => {
             </Box>
           ) : isMobile ? (
             <Grid container spacing={2}>
-              {Object.entries(shops).map(([shopNumber, shopData]) => (
+              {sortedShops.map(([shopNumber, shopData]) => (
                 <Grid item xs={12} key={shopNumber}>
                   {renderMobileCard(shopNumber, shopData as ShopData)}
                 </Grid>
@@ -381,7 +402,7 @@ const TenantManagement: React.FC = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {Object.entries(shops).map(([shopNumber, shopData]) => 
+                  {sortedShops.map(([shopNumber, shopData]) => 
                     renderTableRow(shopNumber, shopData as ShopData)
                   )}
                 </TableBody>
