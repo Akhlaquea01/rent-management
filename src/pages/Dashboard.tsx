@@ -28,8 +28,8 @@ import {
 } from '@mui/icons-material';
 import { useRentContext } from "../context/RentContext";
 import * as XLSX from "xlsx";
-import ContextDebugger from "../components/ContextDebugger";
-import { calculateTotalDues } from "../utils/duesCalculator";
+
+
 
 const StatCard: React.FC<{
   title: string;
@@ -133,7 +133,7 @@ const Dashboard: React.FC = () => {
     ([shopNumber, shop]: [string, any]) => ({
       shopNumber,
       ...shop,
-      totalDuesWithPrevious: calculateTotalDues(shop),
+      totalDuesWithPrevious: shop.previousYearDues?.totalDues || 0,
     })
   );
 
@@ -145,51 +145,20 @@ const Dashboard: React.FC = () => {
 
   const totalRentCollected = shopsArray.reduce((sum: number, shop: any) => {
     const monthlyData = shop.monthlyData || {};
-    const monthlySum: number = (Object.values(monthlyData) as any[]).reduce(
+    return sum + (Object.values(monthlyData) as any[]).reduce(
       (monthSum: number, month: any) => monthSum + (Number(month.paid) || 0),
       0
     );
-    return sum + monthlySum;
   }, 0);
 
   const totalDues = shopsArray.reduce(
-    (sum: number, shop: any) => sum + calculateTotalDues(shop),
+    (sum: number, shop: any) => sum + (shop.previousYearDues?.totalDues || 0),
     0
   );
 
   const totalAdvance = shopsArray.reduce((sum: number, shop: any) => {
-    // Calculate current advance balance from transactions
-    const transactions = data.advanceTransactions[shop.shopNumber] || [];
-    const currentBalance = transactions.reduce(
-      (acc: number, t: any) => {
-        if (t.type === "Deposit") {
-          return acc + t.amount;
-        } else if (t.type === "Advance Deduction" || t.type === "Deduction") {
-          return acc - t.amount;
-        }
-        return acc;
-      },
-      0
-    );
-    return sum + currentBalance;
+    return sum + (shop.advanceAmount || 0);
   }, 0);
-
-  const monthlyCollection = Object.entries(shops).map(
-    ([shopNumber, shop]: [string, any]) => {
-      const monthlyData = shop.monthlyData || {};
-      const currentMonth = new Date().toLocaleDateString("en-US", {
-        month: "long",
-        year: "numeric",
-      });
-      const currentMonthData = monthlyData[currentMonth.split(" ")[0]] || {
-        paid: 0,
-      };
-      return {
-        month: currentMonth,
-        amount: currentMonthData.paid,
-      };
-    }
-  );
 
   const stats = {
     totalShops,
@@ -198,7 +167,6 @@ const Dashboard: React.FC = () => {
     totalRentCollected,
     totalDues,
     totalAdvance,
-    monthlyCollection,
   };
 
   const recentShops = shopsArray.sort(
@@ -386,22 +354,9 @@ const Dashboard: React.FC = () => {
                     onClick={() => {
                       // Prepare data for export
                       const exportData = overdueShops.map((shop: any) => {
-                        // Find due months (from monthlyData where status is Pending or Partial)
-                        const currentYearDueMonths = Object.entries(
-                          shop.monthlyData || {}
-                        )
-                          .filter(
-                            ([month, data]: [string, any]) =>
-                              data.status === "Pending" ||
-                              data.status === "Partial"
-                          )
-                          .map(([month]) => `${month} ${selectedYear}`);
                         const previousYearDueMonths =
                           shop.previousYearDues?.dueMonths || [];
-                        const dueMonths = [
-                          ...previousYearDueMonths,
-                          ...currentYearDueMonths,
-                        ].join(", ");
+                        const dueMonths = previousYearDueMonths.join(", ");
                         return {
                           Name: shop.tenant.name,
                           Shop: shop.shopNumber,
