@@ -98,7 +98,7 @@ const StatCard: React.FC<{
 const Dashboard: React.FC = () => {
   const { state, fetchYearData, isYearLoading } = useRentContext();
   const { data, loading, error } = state;
-  
+
   // Available years to fetch (2019 to current year)
   const availableYears = React.useMemo(() => {
     const years = [];
@@ -169,11 +169,28 @@ const Dashboard: React.FC = () => {
     totalAdvance,
   };
 
-  const recentShops = shopsArray.sort(
-    (a: any, b: any) =>
-      new Date(b.tenant.agreementDate).getTime() -
-      new Date(a.tenant.agreementDate).getTime()
-  );
+  // Left Table Card
+  const parseShopNumber = (shopNum: string) => {
+    const match = shopNum.match(/^(\d+)(?:-(\w+))?$/);
+    return {
+      number: match ? parseInt(match[1], 10) : 0,
+      suffix: match?.[2] || ''
+    };
+  };
+
+  const recentShops = shopsArray
+    .filter((shop: any) => shop.tenant.status === "Active")
+    .sort((a: any, b: any) => {
+      const shopA = parseShopNumber(a.shopNumber);
+      const shopB = parseShopNumber(b.shopNumber);
+
+      if (shopA.number !== shopB.number) {
+        return shopA.number - shopB.number;
+      }
+
+      return shopA.suffix.localeCompare(shopB.suffix);
+    });
+
 
   const overdueShops = shopsArray
     .filter((shop: any) => shop.totalDuesWithPrevious > 0)
