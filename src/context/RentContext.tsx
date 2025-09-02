@@ -195,6 +195,9 @@ interface RentContextType {
     transaction: AdvanceTransaction
   ) => void;
   forceRefresh: () => void;
+  loadAllYearsData: () => Promise<void>;
+  areAllYearsLoaded: () => boolean;
+  getAvailableYears: () => string[];
 }
 
 // Create context
@@ -353,12 +356,60 @@ export const RentProvider: React.FC<RentProviderProps> = ({ children }) => {
     }
   };
 
+  // Function to manually load all years data
+  const loadAllYearsData = async () => {
+    for (let year = 2019; year <= new Date().getFullYear(); year++) {
+      const yearStr = year.toString();
+      if (!state.data.years[yearStr] && !state.loadingYears.has(yearStr)) {
+        fetchYearData(yearStr);
+      }
+    }
+  };
+
+  // Function to check if all years are loaded
+  const areAllYearsLoaded = (): boolean => {
+    const currentYear = new Date().getFullYear();
+    for (let year = 2019; year <= currentYear; year++) {
+      const yearStr = year.toString();
+      if (!state.data.years[yearStr] && !state.loadingYears.has(yearStr)) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // Function to get available years (2019 to current year)
+  const getAvailableYears = (): string[] => {
+    const years = [];
+    for (let year = 2019; year <= new Date().getFullYear(); year++) {
+      years.push(year.toString());
+    }
+    return years.sort().reverse();
+  };
+
   // Load initial data on mount (load advance transactions and current year by default)
   useEffect(() => {
     const currentYear = new Date().getFullYear().toString(); // Use actual current year
     fetchAdvanceTransactions();
     fetchYearData(currentYear);
   }, []);
+
+  // Load all years data in background for application-wide access
+  useEffect(() => {
+    const loadAllYearsData = async () => {
+      for (let year = 2019; year <= new Date().getFullYear(); year++) {
+        const yearStr = year.toString();
+        if (!state.data.years[yearStr] && !state.loadingYears.has(yearStr)) {
+          fetchYearData(yearStr);
+        }
+      }
+    };
+
+    // Only start loading all years after the initial data is loaded
+    if (!state.loading && Object.keys(state.data.years).length > 0) {
+      loadAllYearsData();
+    }
+  }, [state.loading, state.data.years, state.loadingYears]);
 
   // Memoize the context value to prevent unnecessary re-renders
   const contextValue: RentContextType = useMemo(
@@ -374,6 +425,9 @@ export const RentProvider: React.FC<RentProviderProps> = ({ children }) => {
       updateMonthlyData,
       addAdvanceTransaction,
       forceRefresh,
+      loadAllYearsData,
+      areAllYearsLoaded,
+      getAvailableYears,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [state]

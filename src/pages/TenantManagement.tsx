@@ -21,10 +21,12 @@ import {
   Paper,
   Tooltip,
   Button,
+  Popover,
   IconButton,
   CircularProgress,
 } from '@mui/material';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
+import CloseIcon from '@mui/icons-material/Close';
 
 import { useRentContext } from "../context/RentContext";
 import { ShopData, RentManagementData, YearData, MonthlyData } from "../types";
@@ -39,18 +41,11 @@ const encodeWhatsAppText = (text: string): string => {
 
 // Utility function to format pending months for WhatsApp message
 const formatPendingMonths = (yearBreakdown: Record<string, { months: string[]; amount: number }>): string => {
-  // Group by year for WhatsApp message
   return Object.entries(yearBreakdown)
     .map(([year, info]) => {
-      // If previous year, show as 'Previous Year:'
       if (info.months.length === 0) return '';
-      if (info.months[0].startsWith('Previous Year:')) {
-        // Remove 'Previous Year: ' prefix for display
-        const prevMonths = info.months.map(m => m.replace('Previous Year: ', ''));
-        return `Previous Year: ${prevMonths.join(', ')}${info.amount > 0 ? ` (₹${info.amount.toLocaleString()})` : ''}`;
-      } else {
-        return `${year}: ${info.months.join(', ')}${info.amount > 0 ? ` (₹${info.amount.toLocaleString()})` : ''}`;
-      }
+      // The amount per year is not available with the new data structure, so it's omitted.
+      return `${year}: ${info.months.join(', ')}`;
     })
     .filter(Boolean)
     .join('\n');
@@ -125,13 +120,6 @@ const TenantManagement: React.FC = () => {
     return shopA.suffix.localeCompare(shopB.suffix);
   });
 
-  // Fetch year data when selected year changes
-  useEffect(() => {
-    if (selectedYear && !data.years[selectedYear] && !isYearLoading(selectedYear)) {
-      fetchYearData(selectedYear);
-    }
-  }, [selectedYear, data.years, fetchYearData, isYearLoading]);
-
   // Advance remaining calculation
   const getAdvanceRemaining = (shopNumber: string, shop: ShopData): number => {
     const transactions = Array.isArray(data.advanceTransactions[shopNumber])
@@ -144,9 +132,41 @@ const TenantManagement: React.FC = () => {
     return shop.advanceAmount - totalAdvanceDeducted;
   };
 
+  // Pre-calculate all derived data for shops to avoid re-computation
+  const shopsWithDetails = useMemo(() => {
+    return sortedShops.map(([shopNumber, shop]) => {
+      const duesInfo = getDuesInfo(shopNumber, data, selectedYear);
+      const advanceRemaining = getAdvanceRemaining(shopNumber, shop);
+      return { shopNumber, shop, duesInfo, advanceRemaining };
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortedShops, data, selectedYear]);
+
+  type ShopWithDetails = (typeof shopsWithDetails)[0];
+
+  const [popoverAnchorEl, setPopoverAnchorEl] = useState<HTMLElement | null>(null);
+  const [popoverShopDetails, setPopoverShopDetails] = useState<ShopWithDetails | null>(null);
+
+  // Fetch year data when selected year changes
+  useEffect(() => {
+    if (selectedYear && !data.years[selectedYear] && !isYearLoading(selectedYear)) {
+      fetchYearData(selectedYear);
+    }
+  }, [selectedYear, data.years, fetchYearData, isYearLoading]);
+
+  const handlePopoverOpen = (event: React.MouseEvent<HTMLElement>, shopDetails: ShopWithDetails) => {
+    setPopoverAnchorEl(event.currentTarget);
+    setPopoverShopDetails(shopDetails);
+  };
+
+  const handlePopoverClose = () => {
+    setPopoverAnchorEl(null);
+    setPopoverShopDetails(null);
+  };
+
   // Dues tooltip content
-  const getDuesTooltip = (shopNumber: string, shop: ShopData) => {
-    const { totalPendingMonths, totalDueAmount, yearBreakdown } = getDuesInfo(shopNumber, data, selectedYear);
+  const getDuesTooltip = (shop: ShopData, duesInfo: ShopWithDetails['duesInfo']) => {
+    const { totalPendingMonths, totalDueAmount, yearBreakdown } = duesInfo;
     return (
       <Box>
         <Typography variant="subtitle2">{shop.tenant.name}</Typography>
@@ -159,14 +179,9 @@ const TenantManagement: React.FC = () => {
         {Object.entries(yearBreakdown).map(([year, info]) => (
           info.months.length > 0 && (
             <Box key={year} sx={{ mt: 1 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {info.months[0].startsWith('Previous Year:') ? 'Previous Year:' : `${year}:`}
-              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{year}:</Typography>
               <Typography variant="body2" sx={{ ml: 1 }}>
-                {info.months[0].startsWith('Previous Year:')
-                  ? info.months.map(m => m.replace('Previous Year: ', '')).join(', ')
-                  : info.months.join(', ')}
-                {info.amount > 0 && ` (₹${info.amount.toLocaleString()})`}
+                {info.months.join(', ')}
               </Typography>
             </Box>
           )
@@ -176,23 +191,29 @@ const TenantManagement: React.FC = () => {
   };
 
   // Handle WhatsApp notification
-  const handleWhatsAppNotification = (shopNumber: string, shop: ShopData) => {
-    const { totalDueAmount, yearBreakdown } = getDuesInfo(shopNumber, data, selectedYear);
+  const handleWhatsAppNotification = (shop: ShopData, duesInfo: ShopWithDetails['duesInfo']) => {
+    const { totalDueAmount, yearBreakdown } = duesInfo;
     const message = generateWhatsAppMessage(shop.tenant.name, totalDueAmount, yearBreakdown);
     const whatsappUrl = getWhatsAppUrl(message);
     window.open(whatsappUrl, '_blank');
   };
 
   // Common card content for mobile view
-  const renderMobileCard = (shopNumber: string, shop: ShopData) => {
-    const advanceRemaining = getAdvanceRemaining(shopNumber, shop);
-    const { totalDueAmount } = getDuesInfo(shopNumber, data, selectedYear);
+  const renderMobileCard = (shopDetails: ShopWithDetails) => {
+    const { shopNumber, shop, duesInfo, advanceRemaining } = shopDetails;
+    const { totalDueAmount } = duesInfo;
     const hasDues = totalDueAmount > 0;
 
     return (
       <Card variant="outlined" sx={{ p: 2 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
-          <Typography variant="h6">{shop.tenant.name}</Typography>
+          <Typography
+            variant="h6"
+            onClick={(e) => handlePopoverOpen(e, shopDetails)}
+            sx={{ cursor: 'pointer', textDecoration: 'underline', color: '#1976d2' }}
+          >
+            {shop.tenant.name}
+          </Typography>
           <Chip
             label={shop.tenant.status}
             color={shop.tenant.status === "Active" ? "success" : "default"}
@@ -248,7 +269,7 @@ const TenantManagement: React.FC = () => {
             color="success"
             startIcon={<WhatsAppIcon />}
             size="small"
-            onClick={() => handleWhatsAppNotification(shopNumber, shop)}
+            onClick={() => handleWhatsAppNotification(shop, duesInfo)}
             sx={{ mt: 1 }}
             fullWidth
           >
@@ -260,16 +281,16 @@ const TenantManagement: React.FC = () => {
   };
 
   // Common table row for desktop view
-  const renderTableRow = (shopNumber: string, shop: ShopData) => {
-    const advanceRemaining = getAdvanceRemaining(shopNumber, shop);
-    const { totalDueAmount } = getDuesInfo(shopNumber, data, selectedYear);
+  const renderTableRow = (shopDetails: ShopWithDetails) => {
+    const { shopNumber, shop, duesInfo, advanceRemaining } = shopDetails;
+    const { totalDueAmount } = duesInfo;
     const hasDues = totalDueAmount > 0;
 
     return (
       <TableRow key={shopNumber}>
         <TableCell>
           <Tooltip
-            title={getDuesTooltip(shopNumber, shop)}
+            title={getDuesTooltip(shop, duesInfo)}
             arrow
             placement="right"
             enterDelay={300}
@@ -314,7 +335,7 @@ const TenantManagement: React.FC = () => {
               <IconButton
                 color="success"
                 size="small"
-                onClick={() => handleWhatsAppNotification(shopNumber, shop)}
+                onClick={() => handleWhatsAppNotification(shop, duesInfo)}
               >
                 <WhatsAppIcon />
               </IconButton>
@@ -378,9 +399,9 @@ const TenantManagement: React.FC = () => {
             </Box>
           ) : isMobile ? (
             <Grid container spacing={2}>
-              {sortedShops.map(([shopNumber, shopData]) => (
-                <Grid item xs={12} key={shopNumber}>
-                  {renderMobileCard(shopNumber, shopData as ShopData)}
+              {shopsWithDetails.map((details) => (
+                <Grid item xs={12} key={details.shopNumber}>
+                  {renderMobileCard(details)}
                 </Grid>
               ))}
             </Grid>
@@ -402,8 +423,8 @@ const TenantManagement: React.FC = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {sortedShops.map(([shopNumber, shopData]) => 
-                    renderTableRow(shopNumber, shopData as ShopData)
+                  {shopsWithDetails.map((details) => 
+                    renderTableRow(details)
                   )}
                 </TableBody>
               </Table>
@@ -411,6 +432,34 @@ const TenantManagement: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      <Popover
+        id={popoverAnchorEl ? 'dues-popover' : undefined}
+        open={Boolean(popoverAnchorEl)}
+        anchorEl={popoverAnchorEl}
+        onClose={handlePopoverClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'center',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'center',
+        }}
+      >
+        {popoverShopDetails && (
+          <Box sx={{ p: 2, position: 'relative', minWidth: 250, maxWidth: 320 }}>
+            <IconButton
+              aria-label="close"
+              onClick={handlePopoverClose}
+              sx={{ position: 'absolute', right: 4, top: 4, color: (theme) => theme.palette.grey[500] }}
+            >
+              <CloseIcon />
+            </IconButton>
+            {getDuesTooltip(popoverShopDetails.shop, popoverShopDetails.duesInfo)}
+          </Box>
+        )}
+      </Popover>
     </Box>
   );
 };

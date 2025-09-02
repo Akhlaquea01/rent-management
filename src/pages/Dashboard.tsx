@@ -123,6 +123,8 @@ const Dashboard: React.FC = () => {
     }
   }, [selectedYear, data.years, fetchYearData, isYearLoading]);
 
+
+
   if (loading && loadedYears.length === 0) return <div>Loading...</div>;
   if (error && error.includes(selectedYear)) return <div style={{ color: "red" }}>{error}</div>;
   if (!data || !data.years) return <div>No data available.</div>;

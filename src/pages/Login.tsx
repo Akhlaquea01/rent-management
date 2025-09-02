@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import {
   Box,
-  Card,
   CardContent,
   TextField,
   Button,
@@ -22,7 +21,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (password === currentYear) {
       // Store authentication in localStorage
       localStorage.setItem("rentManagementAuth", "true");
@@ -68,19 +67,19 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             Please login to continue
           </Typography>
         </Box>
-        
+
         <CardContent sx={{ p: 4 }}>
           <form onSubmit={handleSubmit}>
             <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
               Enter Password
             </Typography>
-            
+
             {error && (
               <Alert severity="error" sx={{ mb: 2 }}>
                 {error}
               </Alert>
             )}
-            
+
             <TextField
               fullWidth
               type="password"
@@ -91,7 +90,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               sx={{ mb: 3 }}
               autoFocus
             />
-            
+
             <Button
               type="submit"
               fullWidth
@@ -110,14 +109,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               Login
             </Button>
           </form>
-          
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ mt: 3, textAlign: "center" }}
-          >
-            Password is the current year ({currentYear})
-          </Typography>
+
         </CardContent>
       </Paper>
     </Box>
