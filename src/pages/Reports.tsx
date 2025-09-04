@@ -124,22 +124,13 @@ const Reports: React.FC = () => {
     shopsArray.forEach((shop: any) => {
       const monthlyData = shop.monthlyData || {};
       const monthData = monthlyData[monthName];
-      
-      // Determine the rent amount for this specific month
-      // If monthData exists and has a rent amount, use it
-      // Otherwise, fall back to the shop's default rent amount
       const rentAmount = monthData?.rent !== undefined ? monthData.rent : shop.rentAmount;
-      
-      // Use the month data if it exists, otherwise create default data
-      const finalMonthData = monthData || {
-        rent: shop.rentAmount,
-        paid: 0,
-        status: "Pending",
-      };
-      
+      const finalMonthData = monthData || { rent: rentAmount, paid: 0, status: "Pending" };
       totalRent += rentAmount;
       totalCollected += finalMonthData.paid || 0;
-      if (finalMonthData.status === "Partial") partialCount++;
+      if (finalMonthData.status === "Partially Paid") {
+        partialCount++;
+      }
     });
 
     const totalPending = totalRent - totalCollected;
@@ -159,27 +150,25 @@ const Reports: React.FC = () => {
     const now = new Date();
     const isCurrentYear = selectedYear === now.getFullYear();
     const monthsToInclude = isCurrentYear ? now.getMonth() + 1 : 12;
+
     shopsArray.forEach((shop: any) => {
       const monthlyData = shop.monthlyData || {};
       months.slice(0, monthsToInclude).forEach((month) => {
         const monthData = monthlyData[month];
-        
-        // Determine the rent amount for this specific month
-        // If monthData exists and has a rent amount, use it
-        // Otherwise, fall back to the shop's default rent amount
         const rentAmount = monthData?.rent !== undefined ? monthData.rent : shop.rentAmount;
-        
-        // Use the month data if it exists, otherwise create default data
         const finalMonthData = monthData || {
           rent: shop.rentAmount,
           paid: 0,
         };
-        
         totalRent += rentAmount;
         totalCollected += finalMonthData.paid || 0;
       });
     });
-    const totalPending = totalRent - totalCollected;
+
+    const totalPending = shopsArray.reduce((sum, shop) => {
+      return sum + calculateTotalDues(shop);
+    }, 0);
+
     return {
       totalRent,
       totalCollected,
@@ -524,10 +513,15 @@ const Reports: React.FC = () => {
                         <TableRow
                           key={shop.shopNumber}
                           sx={{
-                            backgroundColor:
-                              shop.tenant.status === "Inactive"
-                                ? "#ffebee"
-                                : "inherit",
+                            backgroundColor: (() => {
+                              if (status === "Due") {
+                                return "#ffebee"; // Reddish for Due status
+                              }
+                              if (status === "Partially Paid") {
+                                return "#f5f5f5"; // Grey for Inactive tenant
+                              }
+                              return "inherit";
+                            })(),
                           }}
                         >
                           <TableCell>{shop.shopNumber}</TableCell>
