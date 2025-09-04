@@ -135,9 +135,9 @@ const RentTableRow: React.FC<{ monthData: MonthlyData; showChip?: boolean }> = (
     switch (status) {
       case "Paid":
         return "success";
-      case "Pending":
+      case "Dues":
         return "warning";
-      case "Partial":
+      case "Partially Paid":
         return "info";
       case "Overdue":
         return "error";
@@ -441,6 +441,9 @@ const TenantHistory: React.FC = () => {
     const months = getMonthsUpToToday(year);
     let totalRent = 0;
     let totalPaid = 0;
+    let currentYearRollingBalance = 0;
+    const previousDues = shop.previousYearDues?.totalDues || 0;
+
     const monthlyDataArray = months.map((month) => {
       // Get the specific month's data
       const monthData = shop.monthlyData?.[month];
@@ -453,20 +456,38 @@ const TenantHistory: React.FC = () => {
       // Use the month data if it exists, otherwise create default data
       const finalMonthData = monthData || {
         rent: shop.rentAmount,
-        paid: 0,
-        status: "Pending",
+        paid: 0, // Default paid amount
+        status: "Pending", // Default status
         advanceUsed: 0,
       };
-      
+
+      // Update rolling balance
+      const totalPaidForMonth = (finalMonthData.paid || 0) + (finalMonthData.advanceUsed || 0);
+      currentYearRollingBalance += totalPaidForMonth - rentAmount;
+
       totalRent += rentAmount;
       totalPaid += finalMonthData.paid || 0;
+
+      // Determine status: Prioritize status from data, then calculate if not present.
+      let status: string;
+      if (monthData?.status) {
+        status = monthData.status;
+      } else {
+        if (totalPaidForMonth >= rentAmount && rentAmount > 0) {
+          status = "Paid";
+        } else if (totalPaidForMonth > 0) {
+          status = "Partially Paid";
+        } else {
+          status = "Pending";
+        }
+      }
       
       return {
         month,
         rentAmount: rentAmount,
         paidAmount: finalMonthData.paid || 0,
-        advanceDeduction: finalMonthData.advanceUsed || 0,
-        status: finalMonthData.status || "Pending",
+        advanceDeduction: finalMonthData.advanceUsed || 0, 
+        status: status,
         paymentDate: (finalMonthData as any).date || "-",
       };
     });
@@ -480,8 +501,11 @@ const TenantHistory: React.FC = () => {
     return {
       totalRent,
       totalPaid,
-      totalPending: totalRent - totalPaid,
-      advanceBalance,
+      // Total pending is previous dues + any new pending amount from the current year.
+      // An overpayment in the current year will reduce the total pending amount.
+      totalPending: Math.max(0, previousDues - currentYearRollingBalance),
+      // Advance is any overpayment from the current year that exceeds the previous dues.
+      advanceBalance: Math.max(0, currentYearRollingBalance - previousDues) + advanceBalance,
       monthlyData: monthlyDataArray,
       status: shop.tenant.status,
     };
@@ -517,16 +541,21 @@ const TenantHistory: React.FC = () => {
     if (!selectedShopNumber) return "";
     const pendingByYear: Record<string, string[]> = {};
     let totalPending = 0;
+    
+    // The "All Years" data already has the correct final pending amount.
+    if (selectedYear === "All Years" && allYearsData) {
+      totalPending = allYearsData.totalPending;
+    } else if (selectedYear !== "All Years") {
+      totalPending = getYearlyData(selectedShopNumber, selectedYear)?.totalPending || 0;
+    }
+
     availableYears.forEach((year) => {
       const yd = getYearlyData(selectedShopNumber, year);
       if (yd) {
         const months = yd.monthlyData
           .filter((m: MonthlyData) => m.status !== "Paid")
           .map((m: MonthlyData) => m.month);
-        if (months.length) {
-          pendingByYear[year] = months;
-          totalPending += yd.totalPending;
-        }
+        if (months.length) pendingByYear[year] = months;
       }
     });
     let tooltip = `Total pending months: ${Object.values(pendingByYear).reduce(
