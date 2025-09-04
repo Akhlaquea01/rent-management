@@ -28,6 +28,7 @@ import {
 } from '@mui/icons-material';
 import { useRentContext } from "../context/RentContext";
 import * as XLSX from "xlsx";
+import CollectionGraphs from "../components/CollectionGraphs";
 
 
 
@@ -135,7 +136,7 @@ const Dashboard: React.FC = () => {
     ([shopNumber, shop]: [string, any]) => ({
       shopNumber,
       ...shop,
-      totalDuesWithPrevious: shop.previousYearDues?.totalDues || 0,
+      totalDues: shop.previousYearDues?.totalDues || 0,
     })
   );
 
@@ -171,33 +172,12 @@ const Dashboard: React.FC = () => {
     totalAdvance,
   };
 
-  // Left Table Card
-  const parseShopNumber = (shopNum: string) => {
-    const match = shopNum.match(/^(\d+)(?:-(\w+))?$/);
-    return {
-      number: match ? parseInt(match[1], 10) : 0,
-      suffix: match?.[2] || ''
-    };
-  };
-
-  const recentShops = shopsArray
-    .filter((shop: any) => shop.tenant.status === "Active")
-    .sort((a: any, b: any) => {
-      const shopA = parseShopNumber(a.shopNumber);
-      const shopB = parseShopNumber(b.shopNumber);
-
-      if (shopA.number !== shopB.number) {
-        return shopA.number - shopB.number;
-      }
-
-      return shopA.suffix.localeCompare(shopB.suffix);
-    });
 
 
   const overdueShops = shopsArray
-    .filter((shop: any) => shop.totalDuesWithPrevious > 0)
+    .filter((shop: any) => shop.totalDues > 0)
     .sort(
-      (a: any, b: any) => b.totalDuesWithPrevious - a.totalDuesWithPrevious
+      (a: any, b: any) => b.totalDues - a.totalDues
     );
 
   return (
@@ -262,98 +242,13 @@ const Dashboard: React.FC = () => {
         </Grid>
       </Grid>
 
-      {/* Recent Activity and Overdue Tenants */}
+      {/* Collection Analytics and Overdue Tenants */}
       <Grid container spacing={isMobile ? 2 : 3}>
-        <Grid item xs={12} md={6} sx={{ width: "100%" }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Recent Shops
-              </Typography>
-              {isMobile ? (
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                  {recentShops.map((shop: any) => (
-                    <Card
-                      key={shop.shopNumber}
-                      variant="outlined"
-                      sx={{ p: 1 }}
-                    >
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Box>
-                          <Typography variant="subtitle2">
-                            {shop.tenant.name}
-                          </Typography>
-                          <Typography variant="body2" color="textSecondary">
-                            Shop {shop.shopNumber}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ textAlign: "right" }}>
-                          <Chip
-                            label={shop.tenant.status}
-                            size="small"
-                            color={
-                              shop.tenant.status === "Active"
-                                ? "success"
-                                : "default"
-                            }
-                          />
-                          <Typography variant="body2" sx={{ mt: 0.5 }}>
-                            ₹{shop.rentAmount.toLocaleString()}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </Card>
-                  ))}
-                </Box>
-              ) : (
-                <TableContainer
-                  sx={{ height: 300, overflow: "auto", width: "100%" }}
-                >
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Name</TableCell>
-                        <TableCell>Shop</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Rent</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {recentShops.map((shop: any) => (
-                        <TableRow key={shop.shopNumber}>
-                          <TableCell>{shop.tenant.name}</TableCell>
-                          <TableCell>{shop.shopNumber}</TableCell>
-                          <TableCell>
-                            <Chip
-                              label={shop.tenant.status}
-                              size="small"
-                              color={
-                                shop.tenant.status === "Active"
-                                  ? "success"
-                                  : "default"
-                              }
-                            />
-                          </TableCell>
-                          <TableCell>
-                            ₹{shop.rentAmount.toLocaleString()}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              )}
-            </CardContent>
-          </Card>
+        <Grid item xs={12} sx={{ width: "100%" }}>
+          <CollectionGraphs shopsArray={shopsArray} selectedYear={selectedYear} />
         </Grid>
 
-        <Grid item xs={12} md={6} sx={{ width: "100%" }}>
+        <Grid item xs={12} sx={{ width: "100%" }}>
           <Card>
             <CardContent>
               <Typography
@@ -365,7 +260,7 @@ const Dashboard: React.FC = () => {
                   justifyContent: "space-between",
                 }}
               >
-                <span>Shops with Dues</span>
+                <span>Shops with Dues ({overdueShops.length})</span>
                 <Box>
                   <FileDownloadIcon
                     sx={{ cursor: "pointer", ml: 1 }}
@@ -379,10 +274,8 @@ const Dashboard: React.FC = () => {
                         return {
                           Name: shop.tenant.name,
                           Shop: shop.shopNumber,
-                          "Due Amount": shop.totalDuesWithPrevious,
+                          "Due Amount": shop.totalDues,
                           "Due Months": dueMonths,
-                          "Previous Year Dues":
-                            shop.previousYearDues?.totalDues || 0,
                           Phone: shop.tenant.phoneNumber,
                         };
                       });
@@ -431,7 +324,7 @@ const Dashboard: React.FC = () => {
                             color="error.main"
                             sx={{ fontWeight: "bold" }}
                           >
-                            ₹{shop.totalDuesWithPrevious.toLocaleString()}
+                            ₹{shop.totalDues.toLocaleString()}
                           </Typography>
                           <Typography variant="caption" color="textSecondary">
                             Due Amount
@@ -463,7 +356,7 @@ const Dashboard: React.FC = () => {
                               color="error.main"
                               sx={{ fontWeight: "bold" }}
                             >
-                              ₹{shop.totalDuesWithPrevious.toLocaleString()}
+                              ₹{shop.totalDues.toLocaleString()}
                             </Typography>
                           </TableCell>
                         </TableRow>
