@@ -18,6 +18,7 @@ export interface MonthlyData {
   paid: number;
   status: 'Paid' | 'Pending' | 'Partial';
   date: string;
+  comments?: string;
   advanceUsed: number;
 }
 
@@ -106,4 +107,27 @@ export interface BulkAdvanceEntry {
   amount: number;
   date: string;
   description: string;
+}
+
+// New API data interfaces
+export interface ApiTenant {
+  email: string;
+  status: 'Active' | 'Inactive';
+  address: string;
+  comment: string | null;
+  id_number: string;
+  total_due: number | null;
+  due_months: string | null;
+  tenant_name: string;
+  advance_paid: number | null;
+  fathers_name: string;
+  monthly_rent: number;
+  mobile_number: string;
+  agreement_status: string;
+  advance_remaining: number | null;
+}
+
+export interface ApiTenantData {
+  tenant: ApiTenant;
+  shop_no: string;
 } 

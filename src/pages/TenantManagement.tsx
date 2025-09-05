@@ -1,11 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Grid,
   Card,
   CardContent,
@@ -24,48 +20,63 @@ import {
   Popover,
   IconButton,
   CircularProgress,
+  Alert,
+  TextField,
+  InputAdornment,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import CloseIcon from '@mui/icons-material/Close';
+import SearchIcon from '@mui/icons-material/Search';
+import SendIcon from '@mui/icons-material/Send';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
-import { useRentContext } from "../context/RentContext";
-import { ShopData, RentManagementData, YearData, MonthlyData } from "../types";
-import { getDuesInfo, calculateTotalDues } from "../utils/duesCalculator";
+import { ApiTenantData } from "../types";
 
 // Utility function to encode text for WhatsApp URL
 const encodeWhatsAppText = (text: string): string => {
-  return encodeURIComponent(text); // Only encode, do not replace newlines
+  return encodeURIComponent(text);
 };
 
-
-
-// Utility function to format pending months for WhatsApp message
-const formatPendingMonths = (yearBreakdown: Record<string, { months: string[]; amount: number }>): string => {
-  return Object.entries(yearBreakdown)
-    .map(([year, info]) => {
-      if (info.months.length === 0) return '';
-      // The amount per year is not available with the new data structure, so it's omitted.
-      return `${year}: ${info.months.join(', ')}`;
-    })
-    .filter(Boolean)
-    .join('\n');
-};
-
-// Utility function to generate WhatsApp message
-const generateWhatsAppMessage = (
+// Utility function to generate dues reminder message
+const generateDuesMessage = (
   tenantName: string,
   totalDueAmount: number,
-  yearBreakdown: Record<string, { months: string[]; amount: number }>
+  dueMonths: string | null
 ): string => {
-  const pendingMonthsText = formatPendingMonths(yearBreakdown);
+  let message = `नमस्ते ${tenantName},\n• आपकी कुल बकाया राशि: ₹${totalDueAmount.toLocaleString()}`;
 
-  let message = `नमस्ते ${tenantName},\n• आपकी कुल बकाया राशि: ₹${totalDueAmount.toLocaleString()}\n• बकाया महीने:\n${pendingMonthsText}`;
+  if (dueMonths) {
+    message += `\n• बकाया महीने:\n${dueMonths}`;
+  }
 
   message += `\n\nकृपया जल्द से जल्द बकाया राशि का भुगतान करें।\n\nधन्यवाद!`;
 
   return message;
 };
 
+// Utility function to generate NOC (thanks for payment) message
+const generateNOCMessage = (tenantName: string): string => {
+  const currentDate = new Date();
+  const currentMonth = currentDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  
+  return `नमस्ते ${tenantName},
+
+आपके सभी भुगतानों के लिए धन्यवाद।
+
+यह पत्र आपको सूचित करने के लिए है कि आपके सभी किराया भुगतान ${currentMonth} तक पूर्ण रूप से प्राप्त हो गए हैं।
+
+आपका NOC (No Objection Certificate) तैयार है।
+
+धन्यवाद!`;
+};
 
 // Utility function to get WhatsApp URL
 const getWhatsAppUrl = (message: string): string => {
@@ -74,30 +85,45 @@ const getWhatsAppUrl = (message: string): string => {
 };
 
 const TenantManagement: React.FC = () => {
-  const { state, fetchYearData, isYearLoading } = useRentContext();
-  const { data, error } = state;
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const isTablet = useMediaQuery(theme.breakpoints.down("lg"));
 
-  // Available years to fetch (2019 to current year)
-  const availableYears = useMemo(() => {
-    const years = [];
-    for (let year = 2019; year <= new Date().getFullYear(); year++) {
-      years.push(year.toString());
-    }
-    return years.sort().reverse();
-  }, []);
+  const [tenantData, setTenantData] = useState<ApiTenantData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('All');
+  const [popoverAnchorEl, setPopoverAnchorEl] = useState<HTMLElement | null>(null);
+  const [popoverTenant, setPopoverTenant] = useState<ApiTenantData | null>(null);
+  const [mobileDialogOpen, setMobileDialogOpen] = useState(false);
+  const [selectedTenantForMobile, setSelectedTenantForMobile] = useState<ApiTenantData | null>(null);
+  const [bulkMessageType, setBulkMessageType] = useState<'dues' | 'noc'>('dues');
 
-  // Memoized data processing
-  const loadedYears = useMemo(() => Object.keys(data.years).sort().reverse(), [data.years]);
-  const defaultYear = useMemo(() => {
-    const currentYear = new Date().getFullYear().toString(); // Use actual current year
-    return loadedYears.includes(currentYear) ? currentYear : loadedYears[0] || currentYear;
-  }, [loadedYears]);
-  
-  const [selectedYear, setSelectedYear] = useState<string>(defaultYear);
-  const shops = data.years[selectedYear]?.shops || {};
+  // Fetch data from API
+  useEffect(() => {
+    const fetchTenantData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch('https://akhlaquea01.github.io/records_siwaipatti/tenant.json');
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data: ApiTenantData[] = await response.json();
+        setTenantData(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch tenant data');
+        console.error('Error fetching tenant data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTenantData();
+  }, []);
 
   // Parse shop number for sorting
   const parseShopNumber = (shopNum: string) => {
@@ -108,10 +134,40 @@ const TenantManagement: React.FC = () => {
     };
   };
 
-  // Sort shops by shop number
-  const sortedShops = Object.entries(shops).sort(([shopNumberA], [shopNumberB]) => {
-    const shopA = parseShopNumber(shopNumberA);
-    const shopB = parseShopNumber(shopNumberB);
+  // Calculate statistics for all tenants (for counts)
+  const allTenantStats = useMemo(() => {
+    const activeCount = tenantData.filter(t => t.tenant.status === 'Active').length;
+    const inactiveCount = tenantData.filter(t => t.tenant.status === 'Inactive').length;
+    
+    return {
+      activeCount,
+      inactiveCount,
+      totalCount: tenantData.length
+    };
+  }, [tenantData]);
+
+  // Filter and sort data
+  const filteredAndSortedData = useMemo(() => {
+    let filtered = tenantData;
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(item =>
+        item.tenant.tenant_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.shop_no.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.tenant.mobile_number.includes(searchTerm)
+      );
+    }
+
+    // Apply status filter
+    if (statusFilter !== 'All') {
+      filtered = filtered.filter(item => item.tenant.status === statusFilter);
+    }
+
+    // Sort by shop number
+    return filtered.sort((a, b) => {
+      const shopA = parseShopNumber(a.shop_no);
+      const shopB = parseShopNumber(b.shop_no);
 
     if (shopA.number !== shopB.number) {
       return shopA.number - shopB.number;
@@ -119,127 +175,238 @@ const TenantManagement: React.FC = () => {
 
     return shopA.suffix.localeCompare(shopB.suffix);
   });
+  }, [tenantData, searchTerm, statusFilter]);
 
-  // Advance remaining calculation
-  const getAdvanceRemaining = (shopNumber: string, shop: ShopData): number => {
-    const transactions = Array.isArray(data.advanceTransactions[shopNumber])
-      ? data.advanceTransactions[shopNumber]
-      : [];
-    if (!shop || typeof shop.advanceAmount !== "number") return 0;
-    const totalAdvanceDeducted = transactions
-      .filter((t: any) => t.type === "Advance Deduction")
-      .reduce((acc: number, t: any) => acc + t.amount, 0);
-    return shop.advanceAmount - totalAdvanceDeducted;
-  };
+  // Calculate statistics for filtered data
+  const filteredStats = useMemo(() => {
+    const totalAdvance = filteredAndSortedData.reduce((sum, item) => sum + (item.tenant.advance_paid || 0), 0);
+    const totalDues = filteredAndSortedData.reduce((sum, item) => sum + (item.tenant.total_due || 0), 0);
+    const advanceRemaining = filteredAndSortedData.reduce((sum, item) => sum + (item.tenant.advance_remaining || 0), 0);
+    
+    return {
+      totalAdvance,
+      totalDues,
+      advanceRemaining,
+      filteredCount: filteredAndSortedData.length
+    };
+  }, [filteredAndSortedData]);
 
-  // Pre-calculate all derived data for shops to avoid re-computation
-  const shopsWithDetails = useMemo(() => {
-    return sortedShops.map(([shopNumber, shop]) => {
-      const duesInfo = getDuesInfo(shopNumber, data, selectedYear);
-      const advanceRemaining = getAdvanceRemaining(shopNumber, shop);
-      return { shopNumber, shop, duesInfo, advanceRemaining };
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortedShops, data, selectedYear]);
-
-  type ShopWithDetails = (typeof shopsWithDetails)[0];
-
-  const [popoverAnchorEl, setPopoverAnchorEl] = useState<HTMLElement | null>(null);
-  const [popoverShopDetails, setPopoverShopDetails] = useState<ShopWithDetails | null>(null);
-
-  // Fetch year data when selected year changes
-  useEffect(() => {
-    if (selectedYear && !data.years[selectedYear] && !isYearLoading(selectedYear)) {
-      fetchYearData(selectedYear);
-    }
-  }, [selectedYear, data.years, fetchYearData, isYearLoading]);
-
-  const handlePopoverOpen = (event: React.MouseEvent<HTMLElement>, shopDetails: ShopWithDetails) => {
+  const handlePopoverOpen = (event: React.MouseEvent<HTMLElement>, tenant: ApiTenantData) => {
     setPopoverAnchorEl(event.currentTarget);
-    setPopoverShopDetails(shopDetails);
+    setPopoverTenant(tenant);
   };
 
   const handlePopoverClose = () => {
     setPopoverAnchorEl(null);
-    setPopoverShopDetails(null);
+    setPopoverTenant(null);
   };
 
-  // Dues tooltip content
-  const getDuesTooltip = (shop: ShopData, duesInfo: ShopWithDetails['duesInfo']) => {
-    const { totalPendingMonths, totalDueAmount, yearBreakdown } = duesInfo;
+  const handleMobileDialogOpen = (tenant: ApiTenantData) => {
+    setSelectedTenantForMobile(tenant);
+    setMobileDialogOpen(true);
+  };
+
+  const handleMobileDialogClose = () => {
+    setMobileDialogOpen(false);
+    setSelectedTenantForMobile(null);
+  };
+
+  // Enhanced tooltip content with address and father's name
+  const getDuesTooltip = (tenant: ApiTenantData) => {
+    const { tenant: tenantInfo } = tenant;
     return (
       <Box>
-        <Typography variant="subtitle2">{shop.tenant.name}</Typography>
-        <Typography variant="body2">
-          Pending Months: <b>{totalPendingMonths}</b>
+        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
+          {tenantInfo.tenant_name}
         </Typography>
-        <Typography variant="body2">
-          Total Due: <b>₹{totalDueAmount.toLocaleString()}</b>
+
+        <Typography variant="body2" sx={{ mb: 0.5 }}>
+          Shop: <b>{tenant.shop_no}</b>
         </Typography>
-        {Object.entries(yearBreakdown).map(([year, info]) => (
-          info.months.length > 0 && (
-            <Box key={year} sx={{ mt: 1 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{year}:</Typography>
-              <Typography variant="body2" sx={{ ml: 1 }}>
-                {info.months.join(', ')}
+
+        <Typography variant="body2" sx={{ mb: 0.5 }}>
+          Monthly Rent: <b>₹{tenantInfo.monthly_rent.toLocaleString()}</b>
+        </Typography>
+
+        {tenantInfo.fathers_name && (
+          <Typography variant="body2" sx={{ mb: 0.5 }}>
+            Father's Name: <b>{tenantInfo.fathers_name}</b>
+          </Typography>
+        )}
+
+        {tenantInfo.address && tenantInfo.address !== "NA" && (
+          <Typography variant="body2" sx={{ mb: 0.5 }}>
+            Address: <b>{tenantInfo.address}</b>
+          </Typography>
+        )}
+
+        {tenantInfo.id_number && tenantInfo.id_number !== "0" && (
+          <Typography variant="body2" sx={{ mb: 0.5 }}>
+            ID Number: <b>{tenantInfo.id_number}</b>
+          </Typography>
+        )}
+
+        {tenantInfo.email && tenantInfo.email !== "NA" && (
+          <Typography variant="body2" sx={{ mb: 0.5 }}>
+            Email: <b>{tenantInfo.email}</b>
+          </Typography>
+        )}
+
+        {tenantInfo.total_due && tenantInfo.total_due > 0 && (
+          <>
+            <Typography variant="body2" sx={{ mb: 0.5, color: '#b71c1c' }}>
+              Total Due: <b>₹{tenantInfo.total_due.toLocaleString()}</b>
+            </Typography>
+            {tenantInfo.due_months && (
+              <Box sx={{ mt: 1, mb: 1 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>Due Months:</Typography>
+                <Typography variant="body2" sx={{ ml: 1, fontSize: '0.75rem' }}>
+                  {tenantInfo.due_months}
               </Typography>
             </Box>
-          )
-        ))}
+            )}
+          </>
+        )}
+
+        {tenantInfo.advance_paid && (
+          <Typography variant="body2" sx={{ mb: 0.5 }}>
+            Advance Paid: <b>₹{tenantInfo.advance_paid.toLocaleString()}</b>
+          </Typography>
+        )}
+
+        {tenantInfo.advance_remaining && (
+          <Typography variant="body2" sx={{ mb: 0.5 }}>
+            Advance Remaining: <b>₹{tenantInfo.advance_remaining.toLocaleString()}</b>
+          </Typography>
+        )}
+
+        <Typography variant="body2" sx={{ mb: 0.5 }}>
+          Agreement Status: <b>{tenantInfo.agreement_status}</b>
+        </Typography>
+
+        {tenantInfo.comment && (
+          <Typography variant="body2" sx={{ mt: 1, fontStyle: 'italic' }}>
+            Comment: {tenantInfo.comment}
+          </Typography>
+        )}
       </Box>
     );
   };
 
-  // Handle WhatsApp notification
-  const handleWhatsAppNotification = (shop: ShopData, duesInfo: ShopWithDetails['duesInfo']) => {
-    const { totalDueAmount, yearBreakdown } = duesInfo;
-    const message = generateWhatsAppMessage(shop.tenant.name, totalDueAmount, yearBreakdown);
+  // Check if tenant can receive WhatsApp messages
+  const canSendWhatsApp = (tenant: ApiTenantData): boolean => {
+    const { tenant: tenantInfo } = tenant;
+    return tenantInfo.status === 'Active' && 
+           tenantInfo.mobile_number && 
+           tenantInfo.mobile_number !== '0' && 
+           tenantInfo.mobile_number.trim() !== '';
+  };
+
+  // Handle single WhatsApp notification
+  const handleWhatsAppNotification = (tenant: ApiTenantData, messageType: 'dues' | 'noc' = 'dues') => {
+    const { tenant: tenantInfo } = tenant;
+    
+    // Check if tenant can receive messages
+    if (!canSendWhatsApp(tenant)) {
+      const reason = tenantInfo.status !== 'Active' ? 'tenant is inactive' : 'mobile number is missing or invalid';
+      alert(`Cannot send message: ${reason}`);
+      return;
+    }
+    
+    let message: string;
+    if (messageType === 'dues' && tenantInfo.total_due && tenantInfo.total_due > 0) {
+      message = generateDuesMessage(
+        tenantInfo.tenant_name,
+        tenantInfo.total_due,
+        tenantInfo.due_months
+      );
+    } else if (messageType === 'noc') {
+      message = generateNOCMessage(tenantInfo.tenant_name);
+    } else {
+      return; // Don't send message if no dues and trying to send dues message
+    }
+    
     const whatsappUrl = getWhatsAppUrl(message);
     window.open(whatsappUrl, '_blank');
   };
 
+  // Handle bulk WhatsApp notifications
+  const handleBulkWhatsAppNotification = () => {
+    const tenantsToMessage = filteredAndSortedData.filter(tenant => {
+      // First check if tenant can receive messages
+      if (!canSendWhatsApp(tenant)) {
+        return false;
+      }
+      
+      // Then check message type criteria
+      if (bulkMessageType === 'dues') {
+        return tenant.tenant.total_due && tenant.tenant.total_due > 0;
+      } else {
+        return !tenant.tenant.total_due || tenant.tenant.total_due === 0;
+      }
+    });
+
+    if (tenantsToMessage.length === 0) {
+      alert(`No eligible tenants found for ${bulkMessageType === 'dues' ? 'dues' : 'NOC'} messages. Make sure tenants are active and have valid mobile numbers.`);
+      return;
+    }
+
+    // Send messages one by one with a small delay
+    tenantsToMessage.forEach((tenant, index) => {
+      setTimeout(() => {
+        handleWhatsAppNotification(tenant, bulkMessageType);
+      }, index * 2000); // 2 second delay between messages
+    });
+
+    alert(`Opening WhatsApp for ${tenantsToMessage.length} eligible tenants. Messages will be sent with 2-second intervals.`);
+  };
+
   // Common card content for mobile view
-  const renderMobileCard = (shopDetails: ShopWithDetails) => {
-    const { shopNumber, shop, duesInfo, advanceRemaining } = shopDetails;
-    const { totalDueAmount } = duesInfo;
-    const hasDues = totalDueAmount > 0;
+  const renderMobileCard = (tenant: ApiTenantData) => {
+    const { tenant: tenantInfo } = tenant;
+    const hasDues = tenantInfo.total_due && tenantInfo.total_due > 0;
+    const canSend = canSendWhatsApp(tenant);
 
     return (
       <Card variant="outlined" sx={{ p: 2 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
           <Typography
             variant="h6"
-            onClick={(e) => handlePopoverOpen(e, shopDetails)}
+            onClick={(e) => handlePopoverOpen(e, tenant)}
             sx={{ cursor: 'pointer', textDecoration: 'underline', color: '#1976d2' }}
           >
-            {shop.tenant.name}
+            {tenantInfo.tenant_name}
           </Typography>
           <Chip
-            label={shop.tenant.status}
-            color={shop.tenant.status === "Active" ? "success" : "default"}
+            label={tenantInfo.status}
+            color={tenantInfo.status === "Active" ? "success" : "default"}
             size="small"
           />
         </Box>
         
         <Typography variant="body2" color="textSecondary" gutterBottom>
-          Shop: {shopNumber}
+          Shop: {tenant.shop_no}
         </Typography>
         
         <Typography variant="body2" gutterBottom>
-          Rent: ₹{shop.rentAmount.toLocaleString()}
+          Monthly Rent: ₹{tenantInfo.monthly_rent.toLocaleString()}
         </Typography>
         
         <Typography variant="body2" color="textSecondary" gutterBottom>
-          Mobile: {shop.tenant.phoneNumber}
+          Mobile: {tenantInfo.mobile_number}
         </Typography>
         
+        {tenantInfo.advance_paid && (
         <Typography variant="body2" color="textSecondary" gutterBottom>
-          Advance: ₹{shop.advanceAmount.toLocaleString()}
+            Advance Paid: ₹{tenantInfo.advance_paid.toLocaleString()}
         </Typography>
+        )}
         
+        {tenantInfo.advance_remaining && (
         <Typography variant="body2" color="textSecondary" gutterBottom>
-          Advance Remaining: ₹{advanceRemaining.toLocaleString()}
+            Advance Remaining: ₹{tenantInfo.advance_remaining.toLocaleString()}
         </Typography>
+        )}
         
         <Typography 
           variant="body2" 
@@ -256,62 +423,70 @@ const TenantManagement: React.FC = () => {
           }}
           gutterBottom
         >
-          Pending Dues: ₹{totalDueAmount.toLocaleString()}
+          Total Due: ₹{(tenantInfo.total_due || 0).toLocaleString()}
         </Typography>
         
         <Typography variant="body2" color="textSecondary" gutterBottom>
-          Agreement: {new Date(shop.tenant.agreementDate).toLocaleDateString()}
+          Agreement Status: {tenantInfo.agreement_status}
         </Typography>
 
-        {hasDues && (
+        <Box sx={{ display: 'flex', gap: 1, mt: 1, flexDirection: 'column' }}>
           <Button
-            variant="contained"
-            color="success"
-            startIcon={<WhatsAppIcon />}
+            variant="outlined"
             size="small"
-            onClick={() => handleWhatsAppNotification(shop, duesInfo)}
-            sx={{ mt: 1 }}
+            onClick={() => handleMobileDialogOpen(tenant)}
             fullWidth
           >
-            Send WhatsApp
+            View Details
           </Button>
-        )}
+          <Button
+            variant="contained"
+            color={hasDues ? "error" : "success"}
+            startIcon={hasDues ? <WhatsAppIcon /> : <WhatsAppIcon />}
+            size="small"
+            onClick={() => handleWhatsAppNotification(tenant, hasDues ? 'dues' : 'noc')}
+            disabled={!canSend}
+            fullWidth
+          >
+            {!canSend ? "Cannot Send" : (hasDues ? "Send Dues Reminder" : "Send NOC")}
+          </Button>
+        </Box>
       </Card>
     );
   };
 
   // Common table row for desktop view
-  const renderTableRow = (shopDetails: ShopWithDetails) => {
-    const { shopNumber, shop, duesInfo, advanceRemaining } = shopDetails;
-    const { totalDueAmount } = duesInfo;
-    const hasDues = totalDueAmount > 0;
+  const renderTableRow = (tenant: ApiTenantData) => {
+    const { tenant: tenantInfo } = tenant;
+    const hasDues = tenantInfo.total_due && tenantInfo.total_due > 0;
+    const canSend = canSendWhatsApp(tenant);
 
     return (
-      <TableRow key={shopNumber}>
+      <TableRow key={tenant.shop_no}>
         <TableCell>
           <Tooltip
-            title={getDuesTooltip(shop, duesInfo)}
+            title={getDuesTooltip(tenant)}
             arrow
             placement="right"
             enterDelay={300}
           >
             <span style={{ cursor: "pointer", textDecoration: "underline", color: "#1976d2" }}>
-              {shop.tenant.name}
+              {tenantInfo.tenant_name}
             </span>
           </Tooltip>
         </TableCell>
-        <TableCell>{shopNumber}</TableCell>
-        <TableCell align="right">₹{shop.rentAmount.toLocaleString()}</TableCell>
+        <TableCell>{tenant.shop_no}</TableCell>
+        <TableCell align="right">₹{tenantInfo.monthly_rent.toLocaleString()}</TableCell>
         <TableCell>
           <Chip
-            label={shop.tenant.status}
-            color={shop.tenant.status === "Active" ? "success" : "default"}
+            label={tenantInfo.status}
+            color={tenantInfo.status === "Active" ? "success" : "default"}
             size="small"
           />
         </TableCell>
-        <TableCell>{shop.tenant.phoneNumber}</TableCell>
-        <TableCell align="right">₹{shop.advanceAmount.toLocaleString()}</TableCell>
-        <TableCell align="right">₹{advanceRemaining.toLocaleString()}</TableCell>
+        <TableCell>{tenantInfo.mobile_number}</TableCell>
+        <TableCell align="right">₹{(tenantInfo.advance_paid || 0).toLocaleString()}</TableCell>
+        <TableCell align="right">₹{(tenantInfo.advance_remaining || 0).toLocaleString()}</TableCell>
         <TableCell 
           align="right"
           sx={hasDues ? {
@@ -324,84 +499,195 @@ const TenantManagement: React.FC = () => {
             minWidth: 110,
           } : {}}
         >
-          ₹{totalDueAmount.toLocaleString()}
+          ₹{(tenantInfo.total_due || 0).toLocaleString()}
         </TableCell>
-        <TableCell>
-          {new Date(shop.tenant.agreementDate).toLocaleDateString()}
-        </TableCell>
+        <TableCell>{tenantInfo.agreement_status}</TableCell>
         <TableCell align="center">
-          {hasDues && (
-            <Tooltip title="Send WhatsApp notification">
-              <IconButton
-                color="success"
-                size="small"
-                onClick={() => handleWhatsAppNotification(shop, duesInfo)}
-              >
-                <WhatsAppIcon />
-              </IconButton>
-            </Tooltip>
-          )}
+          <Tooltip title={
+            !canSend 
+              ? (tenantInfo.status !== 'Active' ? "Cannot send: Tenant is inactive" : "Cannot send: Mobile number missing")
+              : (hasDues ? "Send dues reminder" : "Send NOC message")
+          }>
+            <IconButton
+              color={hasDues ? "error" : "success"}
+              size="small"
+              onClick={() => handleWhatsAppNotification(tenant, hasDues ? 'dues' : 'noc')}
+              disabled={!canSend}
+            >
+              {hasDues ? <WhatsAppIcon /> : <WhatsAppIcon />}
+            </IconButton>
+          </Tooltip>
         </TableCell>
       </TableRow>
     );
   };
 
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
+        <CircularProgress />
+        <Typography variant="body1" sx={{ ml: 2 }}>
+          Loading tenant data...
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+        <Button
+          variant="outlined"
+          onClick={() => window.location.reload()}
+        >
+          Retry
+        </Button>
+      </Box>
+    );
+  }
+
   return (
     <Box>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
           <Typography variant={isMobile ? "h5" : "h4"}>Tenant Management</Typography>
-          <FormControl size="small" sx={{ minWidth: 120 }}>
-            <InputLabel>Year</InputLabel>
-            <Select
-              value={selectedYear}
-              label="Year"
-              onChange={(e) => setSelectedYear(e.target.value)}
-            >
-              {availableYears.map((year) => (
-                <MenuItem key={year} value={year}>
-                  {year} {loadedYears.includes(year) ? '(Loaded)' : ''}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Typography variant="body2" color="textSecondary">
+            Showing: {filteredStats.filteredCount} of {allTenantStats.totalCount}
+          </Typography>
         </Box>
+
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(6, 1fr)',
+          gap: 2,
+          p: 2,
+          backgroundColor: 'grey.50',
+          borderRadius: 2,
+          border: '1px solid',
+          borderColor: 'grey.200'
+        }}>
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="h6" color="textSecondary">
+              {allTenantStats.totalCount}
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              Total Tenants
+            </Typography>
+          </Box>
+
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="h6" color="success.main">
+              {allTenantStats.activeCount}
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              Active
+            </Typography>
+          </Box>
+
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="h6" color="text.secondary">
+              {allTenantStats.inactiveCount}
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              Inactive
+            </Typography>
+          </Box>
+
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="h6" color="primary.main">
+              ₹{filteredStats.totalAdvance.toLocaleString()}
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              Total Advance
+            </Typography>
+          </Box>
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="h6" color="primary.main">
+              ₹{filteredStats.advanceRemaining.toLocaleString()}
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              Advance Remaining
+            </Typography>
+          </Box>
+
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="h6" color="error.main">
+              ₹{filteredStats.totalDues.toLocaleString()}
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              Total Dues
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+
+      <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+        <TextField
+          placeholder="Search by name, shop number, or mobile..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+          sx={{ minWidth: 300, maxWidth: 400 }}
+        />
+
+        <FormControl sx={{ minWidth: 120 }}>
+          <InputLabel>Status</InputLabel>
+          <Select
+            value={statusFilter}
+            label="Status"
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <MenuItem value="All">All</MenuItem>
+            <MenuItem value="Active">Active</MenuItem>
+            <MenuItem value="Inactive">Inactive</MenuItem>
+          </Select>
+        </FormControl>
+
+        <FormControl sx={{ minWidth: 140 }}>
+          <InputLabel>Message Type</InputLabel>
+          <Select
+            value={bulkMessageType}
+            label="Message Type"
+            onChange={(e) => setBulkMessageType(e.target.value as 'dues' | 'noc')}
+          >
+            <MenuItem value="dues">Dues Reminder</MenuItem>
+            <MenuItem value="noc">NOC Message</MenuItem>
+          </Select>
+        </FormControl>
+
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<SendIcon />}
+          onClick={handleBulkWhatsAppNotification}
+          sx={{ minWidth: 160 }}
+        >
+          Send Bulk Messages
+        </Button>
       </Box>
 
       <Card>
         <CardContent sx={{ p: isMobile ? 1 : 2 }}>
-          {isYearLoading(selectedYear) ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
-              <CircularProgress />
-              <Typography variant="body1" sx={{ ml: 2 }}>
-                Loading {selectedYear} data...
-              </Typography>
-            </Box>
-          ) : error && error.includes(selectedYear) ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
-              <Typography variant="body1" color="error" sx={{ textAlign: 'center' }}>
-                {error}
-                <br />
-                <Button 
-                  variant="outlined" 
-                  onClick={() => fetchYearData(selectedYear)}
-                  sx={{ mt: 2 }}
-                >
-                  Retry
-                </Button>
-              </Typography>
-            </Box>
-          ) : Object.keys(shops).length === 0 ? (
+          {filteredAndSortedData.length === 0 ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
               <Typography variant="body1" color="textSecondary">
-                No tenant data available for {selectedYear}
+                {searchTerm ? 'No tenants found matching your search.' : 'No tenant data available.'}
               </Typography>
             </Box>
           ) : isMobile ? (
             <Grid container spacing={2}>
-              {shopsWithDetails.map((details) => (
-                <Grid item xs={12} key={details.shopNumber}>
-                  {renderMobileCard(details)}
+              {filteredAndSortedData.map((tenant) => (
+                <Grid item xs={12} key={tenant.shop_no}>
+                  {renderMobileCard(tenant)}
                 </Grid>
               ))}
             </Grid>
@@ -412,19 +698,19 @@ const TenantManagement: React.FC = () => {
                   <TableRow>
                     <TableCell>Name</TableCell>
                     <TableCell>Shop Number</TableCell>
-                    <TableCell align="right">Rent Amount</TableCell>
+                    <TableCell align="right">Monthly Rent</TableCell>
                     <TableCell>Status</TableCell>
                     <TableCell>Mobile</TableCell>
-                    <TableCell align="right">Advance</TableCell>
+                    <TableCell align="right">Advance Paid</TableCell>
                     <TableCell align="right">Advance Remaining</TableCell>
-                    <TableCell align="right">Pending Dues</TableCell>
-                    <TableCell>Agreement Date</TableCell>
+                    <TableCell align="right">Total Due</TableCell>
+                    <TableCell>Agreement Status</TableCell>
                     <TableCell align="center">Action</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {shopsWithDetails.map((details) => 
-                    renderTableRow(details)
+                  {filteredAndSortedData.map((tenant) =>
+                    renderTableRow(tenant)
                   )}
                 </TableBody>
               </Table>
@@ -447,7 +733,7 @@ const TenantManagement: React.FC = () => {
           horizontal: 'center',
         }}
       >
-        {popoverShopDetails && (
+        {popoverTenant && (
           <Box sx={{ p: 2, position: 'relative', minWidth: 250, maxWidth: 320 }}>
             <IconButton
               aria-label="close"
@@ -456,10 +742,61 @@ const TenantManagement: React.FC = () => {
             >
               <CloseIcon />
             </IconButton>
-            {getDuesTooltip(popoverShopDetails.shop, popoverShopDetails.duesInfo)}
+            {getDuesTooltip(popoverTenant)}
           </Box>
         )}
       </Popover>
+
+      {/* Mobile Dialog for detailed view */}
+      <Dialog
+        open={mobileDialogOpen}
+        onClose={handleMobileDialogClose}
+        maxWidth="sm"
+        fullWidth
+        fullScreen={isMobile}
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h6">Tenant Details</Typography>
+          <IconButton
+            aria-label="close"
+            onClick={handleMobileDialogClose}
+            sx={{ color: (theme) => theme.palette.grey[500] }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          {selectedTenantForMobile && (
+            <Box sx={{ pt: 1 }}>
+              {getDuesTooltip(selectedTenantForMobile)}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ flexDirection: 'column', gap: 1 }}>
+          {selectedTenantForMobile && (
+            <Button
+              variant="contained"
+              color={selectedTenantForMobile.tenant.total_due && selectedTenantForMobile.tenant.total_due > 0 ? "error" : "success"}
+              startIcon={selectedTenantForMobile.tenant.total_due && selectedTenantForMobile.tenant.total_due > 0 ? <WhatsAppIcon /> : <WhatsAppIcon />}
+              onClick={() => {
+                const hasDues = selectedTenantForMobile.tenant.total_due && selectedTenantForMobile.tenant.total_due > 0;
+                handleWhatsAppNotification(selectedTenantForMobile, hasDues ? 'dues' : 'noc');
+                handleMobileDialogClose();
+              }}
+              disabled={!canSendWhatsApp(selectedTenantForMobile)}
+              fullWidth
+            >
+              {!canSendWhatsApp(selectedTenantForMobile) 
+                ? "Cannot Send" 
+                : (selectedTenantForMobile.tenant.total_due && selectedTenantForMobile.tenant.total_due > 0 ? "Send Dues Reminder" : "Send NOC")
+              }
+            </Button>
+          )}
+          <Button onClick={handleMobileDialogClose} variant="outlined" fullWidth>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
