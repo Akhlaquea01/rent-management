@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { CssBaseline, Box } from "@mui/material";
 import { Toaster } from "react-hot-toast";
+import './styles/global.css';
 
 // Components
 import Layout from "./components/Layout";
@@ -35,7 +36,7 @@ const theme = createTheme({
     },
   },
   typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: '"Excalifont","Roboto", "Helvetica", "Arial", sans-serif',
     h4: {
       fontWeight: 600,
     },

@@ -31,7 +31,7 @@ interface MonthlyData {
   paidAmount: number;
   advanceDeduction: number;
   status: string;
-  paymentDate: string;
+  comments: string;
 }
 
 interface YearlyData {
@@ -121,7 +121,7 @@ const RentTableHeader: React.FC = () => (
       <TableCell align="right">Paid Amount</TableCell>
       <TableCell align="right">Advance Used</TableCell>
       <TableCell>Status</TableCell>
-      <TableCell>Payment Date</TableCell>
+      <TableCell>Comments</TableCell>
     </TableRow>
   </TableHead>
 );
@@ -146,11 +146,8 @@ const RentTableRow: React.FC<{ monthData: MonthlyData; showChip?: boolean }> = (
     }
   };
 
-  const formatPaymentDate = (date: string) => {
-    if (date && !isNaN(new Date(date).getTime())) {
-      return new Date(date).toLocaleDateString();
-    }
-    return "-";
+  const formatComments = (comments: string) => {
+    return comments && comments.trim() ? comments : "-";
   };
 
   return (
@@ -183,7 +180,7 @@ const RentTableRow: React.FC<{ monthData: MonthlyData; showChip?: boolean }> = (
           monthData.status
         )}
       </TableCell>
-      <TableCell>{formatPaymentDate(monthData.paymentDate)}</TableCell>
+      <TableCell>{formatComments(monthData.comments)}</TableCell>
     </TableRow>
   );
 };
@@ -234,7 +231,7 @@ const SummarySection: React.FC<{
   const summaryItems = [
     { label: "Total Rent", value: getValue("totalRent"), color: "text.primary" },
     { label: "Total Paid", value: getValue("totalPaid"), color: "success.main" },
-    { label: "Pending", value: getValue("totalPending"), color: "warning.main" },
+    { label: "Dues", value: getValue("totalPending"), color: "warning.main" },
     { label: "Advance Balance", value: getValue("advanceBalance"), color: "primary.main" },
   ];
 
@@ -280,7 +277,7 @@ const PrintSummary: React.FC<{
   const summaryItems = [
     { label: "Total Rent", value: getValue("totalRent") },
     { label: "Total Paid", value: getValue("totalPaid") },
-    { label: "Pending", value: getValue("totalPending") },
+    { label: "Dues", value: getValue("totalPending") },
     { label: "Advance Balance", value: getValue("advanceBalance") },
   ];
 
@@ -412,85 +409,56 @@ const TenantHistory: React.FC = () => {
       return shopA.suffix.localeCompare(shopB.suffix);
     });
 
-  // Helper: months up to today for a given year
-  const getMonthsUpToToday = (year: string) => {
-    // const now = new Date();
-    const months = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
-    ];
-    // if (Number(year) < now.getFullYear()) return months;
-    // if (Number(year) > now.getFullYear()) return [];
-    return months;
+  // Helper: get only months that exist in the JSON data
+  const getMonthsFromData = (shop: any) => {
+    if (!shop?.monthlyData) return [];
+    return Object.keys(shop.monthlyData).sort((a, b) => {
+      const monthOrder = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+      ];
+      return monthOrder.indexOf(a) - monthOrder.indexOf(b);
+    });
   };
 
-  // Helper: get rent data for a shop and year, only up to today
+  // Helper: get rent data for a shop and year, only from JSON data
   const getYearlyData = (shopNumber: string, year: string): YearlyData | null => {
     const shop = data.years[year]?.shops[shopNumber];
     if (!shop) return null;
-    const months = getMonthsUpToToday(year);
+    
+    // Only get months that exist in the JSON data
+    const months = getMonthsFromData(shop);
     let totalRent = 0;
     let totalPaid = 0;
-    let currentYearRollingBalance = 0;
-    const previousDues = shop.previousYearDues?.totalDues || 0;
+    let totalAdvanceUsed = 0;
+    
+    // Get dues amount directly from data - this is the single source of truth
+    const totalDues = shop.previousYearDues?.totalDues || 0;
 
     const monthlyDataArray = months.map((month) => {
-      // Get the specific month's data
-      const monthData = shop.monthlyData?.[month];
+      // Get the specific month's data - this will always exist since we're only iterating over existing months
+      const monthData = shop.monthlyData[month];
       
-      // Determine the rent amount for this specific month
-      // If monthData exists and has a rent amount, use it
-      // Otherwise, fall back to the shop's default rent amount
-      const rentAmount = monthData?.rent !== undefined ? monthData.rent : shop.rentAmount;
-      
-      // Use the month data if it exists, otherwise create default data
-      const finalMonthData = monthData || {
-        rent: shop.rentAmount,
-        paid: 0, // Default paid amount
-        status: "Pending", // Default status
-        advanceUsed: 0,
-      };
-
-      // Update rolling balance
-      const totalPaidForMonth = (finalMonthData.paid || 0) + (finalMonthData.advanceUsed || 0);
-      currentYearRollingBalance += totalPaidForMonth - rentAmount;
+      // Use the rent amount from the month data
+      const rentAmount = monthData.rent;
 
       totalRent += rentAmount;
-      totalPaid += finalMonthData.paid || 0;
+      totalPaid += monthData.paid || 0;
+      totalAdvanceUsed += monthData.advanceUsed || 0;
 
-      // Determine status: Prioritize status from data, then calculate if not present.
-      let status: string;
-      if (monthData?.status) {
-        status = monthData.status;
-      } else {
-        if (totalPaidForMonth >= rentAmount && rentAmount > 0) {
-          status = "Paid";
-        } else if (totalPaidForMonth > 0) {
-          status = "Partially Paid";
-        } else {
-          status = "Pending";
-        }
-      }
+      // Use status directly from JSON data - no manual calculation
+      const status = monthData.status;
       
       return {
         month,
         rentAmount: rentAmount,
-        paidAmount: finalMonthData.paid || 0,
-        advanceDeduction: finalMonthData.advanceUsed || 0, 
+        paidAmount: monthData.paid || 0,
+        advanceDeduction: monthData.advanceUsed || 0, 
         status: status,
-        paymentDate: (finalMonthData as any).date || "-",
+        comments: monthData.comments || "-",
       };
     });
+    
     // Calculate advance balance from transactions
     const transactions = data.advanceTransactions[shopNumber] || [];
     const advanceBalance = transactions.reduce(
@@ -498,14 +466,14 @@ const TenantHistory: React.FC = () => {
         t.type === "Deposit" ? acc + t.amount : acc - t.amount,
       0
     );
+    
     return {
       totalRent,
       totalPaid,
-      // Total pending is previous dues + any new pending amount from the current year.
-      // An overpayment in the current year will reduce the total pending amount.
-      totalPending: Math.max(0, previousDues - currentYearRollingBalance),
-      // Advance is any overpayment from the current year that exceeds the previous dues.
-      advanceBalance: Math.max(0, currentYearRollingBalance - previousDues) + advanceBalance,
+      // Use dues amount directly from data - this is the correct pending amount
+      totalPending: totalDues,
+      // Advance balance from transactions
+      advanceBalance: advanceBalance,
       monthlyData: monthlyDataArray,
       status: shop.tenant.status,
     };
@@ -536,17 +504,17 @@ const TenantHistory: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedShopNumber, selectedYear, data, availableYears, getYearlyData]);
 
-  // Tooltip: pending months grouped by year
-  const getPendingTooltip = () => {
+  // Tooltip: dues months grouped by year
+  const getDuesTooltip = () => {
     if (!selectedShopNumber) return "";
-    const pendingByYear: Record<string, string[]> = {};
-    let totalPending = 0;
+    const duesByYear: Record<string, string[]> = {};
+    let totalDues = 0;
     
-    // The "All Years" data already has the correct final pending amount.
+    // The "All Years" data already has the correct final dues amount.
     if (selectedYear === "All Years" && allYearsData) {
-      totalPending = allYearsData.totalPending;
+      totalDues = allYearsData.totalPending;
     } else if (selectedYear !== "All Years") {
-      totalPending = getYearlyData(selectedShopNumber, selectedYear)?.totalPending || 0;
+      totalDues = getYearlyData(selectedShopNumber, selectedYear)?.totalPending || 0;
     }
 
     availableYears.forEach((year) => {
@@ -555,17 +523,17 @@ const TenantHistory: React.FC = () => {
         const months = yd.monthlyData
           .filter((m: MonthlyData) => m.status !== "Paid")
           .map((m: MonthlyData) => m.month);
-        if (months.length) pendingByYear[year] = months;
+        if (months.length) duesByYear[year] = months;
       }
     });
-    let tooltip = `Total pending months: ${Object.values(pendingByYear).reduce(
+    let tooltip = `Total dues months: ${Object.values(duesByYear).reduce(
       (a, b) => a + b.length,
       0
     )}\n`;
-    Object.entries(pendingByYear).forEach(([year, months]) => {
+    Object.entries(duesByYear).forEach(([year, months]) => {
       tooltip += `${year}: ${months.join(", ")}\n`;
     });
-    tooltip += `Total pending amount: ₹${totalPending.toLocaleString()}`;
+    tooltip += `Total dues amount: ₹${totalDues.toLocaleString()}`;
     return tooltip;
   };
 
@@ -585,7 +553,7 @@ const TenantHistory: React.FC = () => {
           mb: 3,
         }}
       >
-        <Tooltip title={getPendingTooltip()} arrow placement="bottom">
+        <Tooltip title={getDuesTooltip()} arrow placement="bottom">
           <Typography variant="h4" sx={{ cursor: "pointer" }}>
             Shop History
           </Typography>
