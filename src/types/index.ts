@@ -1,5 +1,6 @@
 export interface Tenant {
   name: string;
+  tenant_name_hindi: string;
   phoneNumber: string;
   email: string;
   address: string;
@@ -119,6 +120,7 @@ export interface ApiTenant {
   total_due: number | null;
   due_months: string | null;
   tenant_name: string;
+  tenant_name_hindi: string;
   advance_paid: number | null;
   fathers_name: string;
   monthly_rent: number;

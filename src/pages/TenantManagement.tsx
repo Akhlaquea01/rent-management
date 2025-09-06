@@ -36,7 +36,6 @@ import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import SendIcon from '@mui/icons-material/Send';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 import { ApiTenantData } from "../types";
 
@@ -508,14 +507,16 @@ const TenantManagement: React.FC = () => {
               ? (tenantInfo.status !== 'Active' ? "Cannot send: Tenant is inactive" : "Cannot send: Mobile number missing")
               : (hasDues ? "Send dues reminder" : "Send NOC message")
           }>
-            <IconButton
-              color={hasDues ? "error" : "success"}
-              size="small"
-              onClick={() => handleWhatsAppNotification(tenant, hasDues ? 'dues' : 'noc')}
-              disabled={!canSend}
-            >
-              {hasDues ? <WhatsAppIcon /> : <WhatsAppIcon />}
-            </IconButton>
+            <span>
+              <IconButton
+                color={hasDues ? "error" : "success"}
+                size="small"
+                onClick={() => handleWhatsAppNotification(tenant, hasDues ? 'dues' : 'noc')}
+                disabled={!canSend}
+              >
+                {hasDues ? <WhatsAppIcon /> : <WhatsAppIcon />}
+              </IconButton>
+            </span>
           </Tooltip>
         </TableCell>
       </TableRow>

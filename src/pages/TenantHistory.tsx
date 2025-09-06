@@ -355,10 +355,7 @@ const TenantHistory: React.FC = () => {
     return years.sort((a, b) => b.localeCompare(a));
   }, []);
 
-  // Get loaded years from data
-  const loadedYears = Object.keys(data.years)
-    .map(String)
-    .sort((a, b) => b.localeCompare(a));
+ 
   const allYearOptions = ["All Years", ...availableYears];
 
   // Fetch year data when selected year changes (if not "All Years")
@@ -430,7 +427,6 @@ const TenantHistory: React.FC = () => {
     const months = getMonthsFromData(shop);
     let totalRent = 0;
     let totalPaid = 0;
-    let totalAdvanceUsed = 0;
     
     // Get dues amount directly from data - this is the single source of truth
     const totalDues = shop.previousYearDues?.totalDues || 0;
@@ -444,7 +440,6 @@ const TenantHistory: React.FC = () => {
 
       totalRent += rentAmount;
       totalPaid += monthData.paid || 0;
-      totalAdvanceUsed += monthData.advanceUsed || 0;
 
       // Use status directly from JSON data - no manual calculation
       const status = monthData.status;
