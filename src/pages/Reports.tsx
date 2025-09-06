@@ -22,6 +22,8 @@ import {
 } from '@mui/material';
 import { Download as DownloadIcon } from '@mui/icons-material';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useRentContext } from "../context/RentContext";
 import { calculateTotalDues } from "../utils/duesCalculator";
 
@@ -210,7 +212,7 @@ const Reports: React.FC = () => {
             startIcon={<DownloadIcon />}
             sx={{ mr: 1 }}
             onClick={() => {
-              // Export Monthly Report
+              // Export Monthly Report as PDF
               const monthName = new Date(
                 selectedMonth + "-01"
               ).toLocaleDateString("en-US", { month: "long" });
@@ -225,7 +227,26 @@ const Reports: React.FC = () => {
               previousMonth2.setMonth(currentDate.getMonth() - 2);
               const previousMonth2Name = previousMonth2.toLocaleDateString("en-US", { month: "long" });
 
-              const exportData = shopsArray.map((shop: any) => {
+              // Create PDF document
+              const doc = new jsPDF('portrait', 'mm', 'legal');
+
+              // Configure font for better Unicode support
+              // Note: jsPDF has limited Unicode support, but we'll try to use the best available font
+              doc.setFont('helvetica', 'normal');
+
+              // Add title - centered
+              doc.setFontSize(16);
+              doc.setFont('helvetica', 'bold');
+
+              const pageWidth = doc.internal.pageSize.getWidth();
+              const text = `Monthly Rent Collection Report ${monthName} ${selectedYear}`;
+              const textWidth = doc.getTextWidth(text);
+              const centerX = (pageWidth - textWidth) / 2;
+
+              doc.text(text, centerX, 15);
+
+              // Prepare table data
+              const tableData = shopsArray.map((shop: any) => {
                 const monthData = shop.monthlyData?.[monthName];
                 const previousMonth1Data = shop.monthlyData?.[previousMonth1Name];
                 const previousMonth2Data = shop.monthlyData?.[previousMonth2Name];
@@ -243,7 +264,7 @@ const Reports: React.FC = () => {
                 // Calculate due months - only count months explicitly marked as "Due" or in dueMonths array
                 const dueMonths = [];
                 const monthlyData = shop.monthlyData || {};
-                
+
                 // Only count months that are explicitly marked as "Due" status
                 months.forEach((month) => {
                   const monthData = monthlyData[month];
@@ -257,48 +278,102 @@ const Reports: React.FC = () => {
                   dueMonths.push(...shop.previousYearDues.dueMonths);
                 }
 
-                const exportRow: any = {
-                  "Dues Months": dueMonths.length > 0 ? dueMonths.length : 0,
-                  "Shop Number": shop.shopNumber,
-                  "Tenant Name Hindi": shop.tenant.tenant_name_hindi || shop.tenant.name,
-                  "Rent Amount": rentAmount,
-                };
-
-                // Add previous month columns with dynamic names
-                exportRow[previousMonth2Name] = previousMonth2Data?.paid || 0;
-                exportRow[previousMonth1Name] = previousMonth1Data?.paid || 0;
-
-                // Add current month with actual month name
-                exportRow[monthName] = finalMonthData.status === "Paid" ? finalMonthData.paid : "";
-
-                // Add Date and Signature columns at the end
-                exportRow["Date"] = ""; // Empty for manual filling during print
-                exportRow["Signature"] = ""; // Empty for manual filling during print
-
-                return exportRow;
+                return [
+                  dueMonths.length > 0 ? dueMonths.length.toString() : "0",
+                  shop.shopNumber,
+                  shop.tenant.name, // Use PDF-safe name
+                  rentAmount.toLocaleString(),
+                  (previousMonth2Data?.paid || 0).toLocaleString(),
+                  (previousMonth1Data?.paid || 0).toLocaleString(),
+                  finalMonthData.status === "Paid" ? finalMonthData.paid.toLocaleString() : "",
+                  "", // Date column - empty for manual filling
+                  ""  // Signature column - empty for manual filling
+                ];
               });
 
-              const ws = XLSX.utils.json_to_sheet(exportData);
-
-              // Set column widths for better formatting
-              ws["!cols"] = [
-                { wch: 12 }, // Dues Months
-                { wch: 12 }, // Shop Number
-                { wch: 20 }, // Tenant Name Hindi
-                { wch: 12 }, // Rent Amount
-                { wch: 18 }, // Previous Month 2 Paid
-                { wch: 18 }, // Previous Month 1 Paid
-                { wch: 18 }, // Current Month Paid
-                { wch: 15 }, // Date
-                { wch: 15 }, // Signature
+              // Define table columns
+              const columns = [
+                'Dues\nMonths',
+                'Shop\nNumber',
+                'Tenant Name',
+                'Rent\nAmount',
+                previousMonth2Name,
+                previousMonth1Name,
+                monthName,
+                'Date',
+                'Signature'
               ];
 
-              const wb = XLSX.utils.book_new();
-              XLSX.utils.book_append_sheet(wb, ws, "MonthlyReport");
-              XLSX.writeFile(
-                wb,
-                `MonthlyReport_${selectedYear}_${monthName}.xlsx`
-              );
+              // Calculate column widths for full page utilization
+              const pageMargin = 5; // 5mm margin on each side
+              const availableWidth = pageWidth - (pageMargin * 2);
+
+              // Define column width ratios based on content needs
+              const columnWidths = [
+                availableWidth * 0.06, // Dues Months (6%)
+                availableWidth * 0.07, // Shop Number (7%)
+                availableWidth * 0.25, // Tenant Name (25%)
+                availableWidth * 0.09, // Rent Amount (9%)
+                availableWidth * 0.09, // Previous Month 2 (9%)
+                availableWidth * 0.09, // Previous Month 1 (9%)
+                availableWidth * 0.09, // Current Month (9%)
+                availableWidth * 0.08, // Date (8%)
+                availableWidth * 0.08  // Signature (8%)
+              ];
+
+              // Add table to PDF with full width
+              autoTable(doc, {
+                head: [columns],
+                body: tableData,
+                startY: 25,
+                margin: { left: pageMargin, right: pageMargin },
+                tableWidth: 'auto',
+                styles: {
+                  fontSize: 8,
+                  cellPadding: 2,
+                  overflow: 'linebreak',
+                  halign: 'center',
+                  lineColor: [0, 0, 0],
+                  lineWidth: 0.1,
+                  font: 'helvetica',
+                  fontStyle: 'normal',
+                },
+                headStyles: {
+                  fillColor: [66, 139, 202],
+                  textColor: 255,
+                  fontStyle: 'bold',
+                  halign: 'center',
+                  valign: 'middle',
+                  lineColor: [0, 0, 0],
+                  lineWidth: 0.1,
+                  font: 'helvetica',
+                },
+                bodyStyles: {
+                  valign: 'middle',
+                },
+                columnStyles: {
+                  0: { halign: 'center', cellWidth: columnWidths[0] }, // Dues Months
+                  1: { halign: 'center', cellWidth: columnWidths[1] }, // Shop Number
+                  2: { halign: 'left', cellWidth: columnWidths[2] },   // Tenant Name
+                  3: { halign: 'right', cellWidth: columnWidths[3] },  // Rent Amount
+                  4: { halign: 'right', cellWidth: columnWidths[4] },  // Previous Month 2
+                  5: { halign: 'right', cellWidth: columnWidths[5] },  // Previous Month 1
+                  6: { halign: 'right', cellWidth: columnWidths[6] },  // Current Month
+                  7: { halign: 'center', cellWidth: columnWidths[7] }, // Date
+                  8: { halign: 'center', cellWidth: columnWidths[8] }, // Signature
+                },
+                showHead: 'everyPage',
+                theme: 'grid',
+                didDrawPage: function (data: any) {
+                  // Add page number footer
+                  const pageCount = 3;
+                  doc.setFontSize(8);
+                  doc.text(`Page ${data.pageNumber} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 5, { align: 'center' });
+                },
+              });
+
+              // Save the PDF
+              doc.save(`MonthlyReport_${selectedYear}_${monthName}.pdf`);
             }}
           >
             Export Monthly Report
