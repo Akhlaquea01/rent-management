@@ -364,6 +364,18 @@ const Reports: React.FC = () => {
                 },
                 showHead: 'everyPage',
                 theme: 'grid',
+                // ADD THIS INSTEAD OF didDrawCell FOR BETTER PERFORMANCE
+                willDrawCell: function (data) {
+                  // Check if this is a body cell and in the first column (Dues Months)
+                  if (data.section === 'body' && data.column.index === 0) {
+                    const duesMonths = parseInt(data.cell.raw.toString()) || 0;
+
+                    // If dues months > 1, set fill color for the entire row
+                    if (duesMonths > 1) {
+                      doc.setFillColor(255, 200, 200); // Light red background
+                    }
+                  }
+                },
                 didDrawPage: function (data: any) {
                   // Add page number footer
                   const pageCount = 3;
