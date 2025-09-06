@@ -18,7 +18,7 @@ export interface MonthlyData {
   paid: number;
   status: 'Paid' | 'Pending' | 'Partial';
   date: string;
-  comments?: string;
+  comment?: string;
   advanceUsed: number;
 }
 

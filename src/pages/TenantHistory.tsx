@@ -31,7 +31,7 @@ interface MonthlyData {
   paidAmount: number;
   advanceDeduction: number;
   status: string;
-  comments: string;
+  comment: string;
 }
 
 interface YearlyData {
@@ -146,8 +146,8 @@ const RentTableRow: React.FC<{ monthData: MonthlyData; showChip?: boolean }> = (
     }
   };
 
-  const formatComments = (comments: string) => {
-    return comments && comments.trim() ? comments : "-";
+  const formatComments = (comment: string) => {
+    return comment && comment.trim() ? comment : "-";
   };
 
   return (
@@ -180,7 +180,7 @@ const RentTableRow: React.FC<{ monthData: MonthlyData; showChip?: boolean }> = (
           monthData.status
         )}
       </TableCell>
-      <TableCell>{formatComments(monthData.comments)}</TableCell>
+      <TableCell>{formatComments(monthData.comment)}</TableCell>
     </TableRow>
   );
 };
@@ -455,7 +455,7 @@ const TenantHistory: React.FC = () => {
         paidAmount: monthData.paid || 0,
         advanceDeduction: monthData.advanceUsed || 0, 
         status: status,
-        comments: monthData.comments || "-",
+        comment: monthData.comment || "-",
       };
     });
     
