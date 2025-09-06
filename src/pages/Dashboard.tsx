@@ -271,11 +271,11 @@ const Dashboard: React.FC = () => {
                           shop.previousYearDues?.dueMonths || [];
                         const dueMonths = previousYearDueMonths.join(", ");
                         return {
-                          Name: shop.tenant.name,
+                          Name: shop.tenant.tenant_name_hindi,
                           Shop: shop.shopNumber,
                           "Due Amount": shop.totalDues,
                           "Due Months": dueMonths,
-                          Phone: shop.tenant.phoneNumber,
+                          // Phone: shop.tenant.phoneNumber,
                         };
                       });
                       const ws = XLSX.utils.json_to_sheet(exportData);

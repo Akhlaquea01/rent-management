@@ -172,16 +172,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </Typography>
             <Box sx={{ display: "flex", gap: 0.5, flexShrink: 0 }}>
               <Button
-                variant="contained"
-                color="primary"
-                onClick={() => {
-                  console.log(state);
-                }}
-                sx={{ display: { xs: "none", sm: "flex" } }}
-              >
-                Log Data
-              </Button>
-              <Button
                 variant="outlined"
                 color="inherit"
                 onClick={handleLogout}
