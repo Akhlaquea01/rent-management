@@ -214,30 +214,85 @@ const Reports: React.FC = () => {
               const monthName = new Date(
                 selectedMonth + "-01"
               ).toLocaleDateString("en-US", { month: "long" });
+
+              // Get previous month names (two months back)
+              const currentDate = new Date(selectedMonth + "-01");
+              const previousMonth1 = new Date(currentDate);
+              previousMonth1.setMonth(currentDate.getMonth() - 1);
+              const previousMonth1Name = previousMonth1.toLocaleDateString("en-US", { month: "long" });
+
+              const previousMonth2 = new Date(currentDate);
+              previousMonth2.setMonth(currentDate.getMonth() - 2);
+              const previousMonth2Name = previousMonth2.toLocaleDateString("en-US", { month: "long" });
+
               const exportData = shopsArray.map((shop: any) => {
                 const monthData = shop.monthlyData?.[monthName];
-                
+                const previousMonth1Data = shop.monthlyData?.[previousMonth1Name];
+                const previousMonth2Data = shop.monthlyData?.[previousMonth2Name];
+
                 // Determine the rent amount for this specific month
-                // If monthData exists and has a rent amount, use it
-                // Otherwise, fall back to the shop's default rent amount
                 const rentAmount = monthData?.rent !== undefined ? monthData.rent : shop.rentAmount;
-                
+
                 // Use the month data if it exists, otherwise create default data
                 const finalMonthData = monthData || {
                   rent: shop.rentAmount,
                   paid: 0,
                   status: "Pending",
                 };
+
+                // Calculate due months - only count months explicitly marked as "Due" or in dueMonths array
+                const dueMonths = [];
+                const monthlyData = shop.monthlyData || {};
                 
-                return {
-                  Shop: shop.shopNumber,
-                  "Tenant Name": shop.tenant.name,
+                // Only count months that are explicitly marked as "Due" status
+                months.forEach((month) => {
+                  const monthData = monthlyData[month];
+                  if (monthData && monthData.status === "Due") {
+                    dueMonths.push(month);
+                  }
+                });
+
+                // Add previous year due months if any (these are already in the dueMonths array)
+                if (shop.previousYearDues?.dueMonths && shop.previousYearDues.dueMonths.length > 0) {
+                  dueMonths.push(...shop.previousYearDues.dueMonths);
+                }
+
+                const exportRow: any = {
+                  "Dues Months": dueMonths.length > 0 ? dueMonths.length : 0,
+                  "Shop Number": shop.shopNumber,
+                  "Tenant Name Hindi": shop.tenant.tenant_name_hindi || shop.tenant.name,
                   "Rent Amount": rentAmount,
-                  "Paid Amount": finalMonthData.paid || 0,
-                  Status: finalMonthData.status,
                 };
+
+                // Add previous month columns with dynamic names
+                exportRow[previousMonth2Name] = previousMonth2Data?.paid || 0;
+                exportRow[previousMonth1Name] = previousMonth1Data?.paid || 0;
+
+                // Add current month with actual month name
+                exportRow[monthName] = finalMonthData.status === "Paid" ? finalMonthData.paid : "";
+
+                // Add Date and Signature columns at the end
+                exportRow["Date"] = ""; // Empty for manual filling during print
+                exportRow["Signature"] = ""; // Empty for manual filling during print
+
+                return exportRow;
               });
+
               const ws = XLSX.utils.json_to_sheet(exportData);
+
+              // Set column widths for better formatting
+              ws["!cols"] = [
+                { wch: 12 }, // Dues Months
+                { wch: 12 }, // Shop Number
+                { wch: 20 }, // Tenant Name Hindi
+                { wch: 12 }, // Rent Amount
+                { wch: 18 }, // Previous Month 2 Paid
+                { wch: 18 }, // Previous Month 1 Paid
+                { wch: 18 }, // Current Month Paid
+                { wch: 15 }, // Date
+                { wch: 15 }, // Signature
+              ];
+
               const wb = XLSX.utils.book_new();
               XLSX.utils.book_append_sheet(wb, ws, "MonthlyReport");
               XLSX.writeFile(
