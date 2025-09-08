@@ -212,7 +212,7 @@ const ExpenditureDashboard: React.FC = () => {
           <Typography variant="h6" gutterBottom>
             Spending by Category
           </Typography>
-          <Box height={300}>
+          <Box height={500}>
             <Pie data={chartData} options={{ responsive: true, maintainAspectRatio: false }} />
           </Box>
         </CardContent>
@@ -266,40 +266,43 @@ const ExpenditureDashboard: React.FC = () => {
 
     return (
       <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Monthly Spending Trend
-              </Typography>
-              <Box height={300}>
-                <Line data={chartData} options={{ 
-                  responsive: true, 
-                  maintainAspectRatio: false,
-                  scales: {
-                    y: {
-                      beginAtZero: true,
-                      ticks: {
-                        callback: function(value) {
-                          return '₹' + value;
+        {/* Only show Monthly Spending Trend if no specific month is selected (showing multiple months) */}
+        {!selectedMonth && (
+          <Grid item xs={12}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Monthly Spending Trend
+                </Typography>
+                <Box height={300}>
+                  <Line data={chartData} options={{ 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    scales: {
+                      y: {
+                        beginAtZero: true,
+                        ticks: {
+                          callback: function(value) {
+                            return '₹' + value;
+                          }
+                        }
+                      }
+                    },
+                    plugins: {
+                      tooltip: {
+                        callbacks: {
+                          label: function(context) {
+                            return 'Total Spending: ₹' + context.parsed.y.toFixed(2);
+                          }
                         }
                       }
                     }
-                  },
-                  plugins: {
-                    tooltip: {
-                      callbacks: {
-                        label: function(context) {
-                          return 'Total Spending: ₹' + context.parsed.y.toFixed(2);
-                        }
-                      }
-                    }
-                  }
-                }} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+                  }} />
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
         
         <Grid item xs={12}>
           <Card>
@@ -702,9 +705,23 @@ const ExpenditureDashboard: React.FC = () => {
                     md: 'repeat(3, 1fr)'
                   },
                   gap: 1,
-                  maxHeight: { xs: '400px', sm: 'none' },
-                  overflowY: { xs: 'auto', sm: 'visible' },
-                  pr: { xs: 1, sm: 0 }
+                  maxHeight: { xs: '500px', sm: '600px', md: '700px' },
+                  overflowY: 'auto',
+                  pr: 1,
+                  '&::-webkit-scrollbar': {
+                    width: '6px',
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    background: 'rgba(0,0,0,0.1)',
+                    borderRadius: '3px',
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    background: 'rgba(0,0,0,0.3)',
+                    borderRadius: '3px',
+                    '&:hover': {
+                      background: 'rgba(0,0,0,0.5)',
+                    },
+                  },
                 }}
               >
                 {Object.entries(summaryStats.categoryTotals)
