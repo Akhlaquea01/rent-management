@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, PointElement, LineElement } from 'chart.js';
 import { Pie, Bar, Line } from 'react-chartjs-2';
-import { categoryColors } from '../data/expenditureData';
+import { generateCategoryColors } from '../data/expenditureData';
 
 // Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, PointElement, LineElement);
@@ -28,6 +28,9 @@ const ExpenditureCharts: React.FC<ExpenditureChartsProps> = ({
   totalAmount,
   budget = {}
 }) => {
+  // Generate dynamic category colors
+  const categoryColors = generateCategoryColors(Object.keys(categoryTotals));
+  
   // Category breakdown pie chart
   const pieChartData = {
     labels: Object.keys(categoryTotals),
@@ -98,7 +101,7 @@ const ExpenditureCharts: React.FC<ExpenditureChartsProps> = ({
                     </Box>
                     <Box display="flex" gap={1} alignItems="center">
                       <Typography variant="body2" color="textSecondary">
-                        ${actual.toFixed(2)} / ${budgetAmount.toFixed(2)}
+                        ₹{actual.toFixed(2)} / ₹{budgetAmount.toFixed(2)}
                       </Typography>
                       <Chip
                         label={`${percentage.toFixed(0)}%`}
@@ -156,7 +159,7 @@ const ExpenditureCharts: React.FC<ExpenditureChartsProps> = ({
                         label: function(context) {
                           const value = context.parsed;
                           const percentage = ((value / totalAmount) * 100).toFixed(1);
-                          return `${context.label}: $${value.toFixed(2)} (${percentage}%)`;
+                          return `${context.label}: ₹${value.toFixed(2)} (${percentage}%)`;
                         }
                       }
                     }
@@ -187,7 +190,7 @@ const ExpenditureCharts: React.FC<ExpenditureChartsProps> = ({
                         beginAtZero: true,
                         ticks: {
                           callback: function(value) {
-                            return '$' + value;
+                            return '₹' + value;
                           }
                         }
                       }
@@ -196,7 +199,7 @@ const ExpenditureCharts: React.FC<ExpenditureChartsProps> = ({
                       tooltip: {
                         callbacks: {
                           label: function(context) {
-                            return 'Total Spending: $' + context.parsed.y.toFixed(2);
+                            return 'Total Spending: ₹' + context.parsed.y.toFixed(2);
                           }
                         }
                       }

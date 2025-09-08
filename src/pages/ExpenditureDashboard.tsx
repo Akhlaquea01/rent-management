@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -19,7 +19,9 @@ import {
   ListItemIcon,
   Divider,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import {
   TrendingUp,
@@ -31,8 +33,8 @@ import {
 } from '@mui/icons-material';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, PointElement, LineElement } from 'chart.js';
 import { Pie, Bar, Line } from 'react-chartjs-2';
-import { expenditureData, categoryColors } from '../data/expenditureData';
-import { Expense, ViewMode, MonthlySummary, YearlySummary } from '../types';
+import { createExpenditureData, generateCategoryColors } from '../data/expenditureData';
+import { Expense, ViewMode, MonthlySummary, YearlySummary, ExpenditureData } from '../types';
 
 // Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, PointElement, LineElement);
@@ -45,9 +47,32 @@ const ExpenditureDashboard: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('monthly');
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [selectedYear, setSelectedYear] = useState<string>('');
+  const [expenditureData, setExpenditureData] = useState<ExpenditureData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load expenditure data from API
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await createExpenditureData();
+        setExpenditureData(data);
+      } catch (err) {
+        setError('Failed to load expenditure data. Please try again later.');
+        console.error('Error loading expenditure data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
 
   // Use all expenses directly (no filtering)
-  const allExpenses = expenditureData.expenses;
+  const allExpenses = expenditureData?.expenses || [];
+  const categoryColors = expenditureData ? generateCategoryColors(expenditureData.categories) : {};
 
   // Calculate summary statistics based on current view and selections
   const summaryStats = useMemo(() => {
@@ -102,7 +127,7 @@ const ExpenditureDashboard: React.FC = () => {
                   Total Spent
                 </Typography>
                 <Typography variant="h4" color="primary">
-                  ${summaryStats.total.toFixed(2)}
+                  ₹{summaryStats.total.toFixed(2)}
                 </Typography>
               </Box>
               <AttachMoney sx={{ fontSize: 40, color: 'primary.main' }} />
@@ -120,7 +145,7 @@ const ExpenditureDashboard: React.FC = () => {
                   Average Expense
                 </Typography>
                 <Typography variant="h4" color="secondary">
-                  ${summaryStats.average.toFixed(2)}
+                  ₹{summaryStats.average.toFixed(2)}
                 </Typography>
               </Box>
               <TrendingUp sx={{ fontSize: 40, color: 'secondary.main' }} />
@@ -197,10 +222,10 @@ const ExpenditureDashboard: React.FC = () => {
 
   // Monthly View Component
   const MonthlyView = () => {
-    const monthlyData = expenditureData.monthlySummaries.filter(month => {
+    const monthlyData = expenditureData?.monthlySummaries.filter(month => {
       if (selectedMonth) return month.month === selectedMonth;
       return true;
-    });
+    }) || [];
 
 
     const chartData = {
@@ -256,7 +281,7 @@ const ExpenditureDashboard: React.FC = () => {
                       beginAtZero: true,
                       ticks: {
                         callback: function(value) {
-                          return '$' + value;
+                          return '₹' + value;
                         }
                       }
                     }
@@ -265,7 +290,7 @@ const ExpenditureDashboard: React.FC = () => {
                     tooltip: {
                       callbacks: {
                         label: function(context) {
-                          return 'Total Spending: $' + context.parsed.y.toFixed(2);
+                          return 'Total Spending: ₹' + context.parsed.y.toFixed(2);
                         }
                       }
                     }
@@ -291,7 +316,7 @@ const ExpenditureDashboard: React.FC = () => {
                       </ListItemIcon>
                       <ListItemText
                         primary={month.month}
-                        secondary={`$${month.total.toFixed(2)} • ${month.expenseCount} expenses • Avg: $${month.averageExpense.toFixed(2)}`}
+                        secondary={`₹${month.total.toFixed(2)} • ${month.expenseCount} expenses • Avg: ₹${month.averageExpense.toFixed(2)}`}
                       />
                     </ListItem>
                     {index < monthlyData.length - 1 && <Divider />}
@@ -337,7 +362,7 @@ const ExpenditureDashboard: React.FC = () => {
                                   <Box display="flex" justifyContent="space-between" alignItems="center">
                                     <Typography variant="body1">{expense.description}</Typography>
                                     <Typography variant="h6" color="primary">
-                                      ${expense.amount.toFixed(2)}
+                                      ₹{expense.amount.toFixed(2)}
                                     </Typography>
                                   </Box>
                                 }
@@ -376,10 +401,10 @@ const ExpenditureDashboard: React.FC = () => {
 
   // Yearly View Component
   const YearlyView = () => {
-    const yearlyData = expenditureData.yearlySummaries.filter(year => {
+    const yearlyData = expenditureData?.yearlySummaries.filter(year => {
       if (selectedYear) return year.year === selectedYear;
       return true;
-    });
+    }) || [];
 
     // Group all expenses by year and month
     const expensesByYearMonth = allExpenses.reduce((acc, expense) => {
@@ -417,8 +442,8 @@ const ExpenditureDashboard: React.FC = () => {
                         <TrendingUp color="primary" />
                       </ListItemIcon>
                       <ListItemText
-                        primary={`${year.year} - $${year.total.toFixed(2)}`}
-                        secondary={`${year.expenseCount} expenses • Average: $${year.averageExpense.toFixed(2)}`}
+                        primary={`${year.year} - ₹${year.total.toFixed(2)}`}
+                        secondary={`${year.expenseCount} expenses • Average: ₹${year.averageExpense.toFixed(2)}`}
                       />
                     </ListItem>
                     {index < yearlyData.length - 1 && <Divider />}
@@ -472,7 +497,7 @@ const ExpenditureDashboard: React.FC = () => {
                                         <Box display="flex" justifyContent="space-between" alignItems="center">
                                           <Typography variant="body1">{expense.description}</Typography>
                                           <Typography variant="h6" color="primary">
-                                            ${expense.amount.toFixed(2)}
+                                            ₹{expense.amount.toFixed(2)}
                                           </Typography>
                                         </Box>
                                       }
@@ -516,6 +541,51 @@ const ExpenditureDashboard: React.FC = () => {
   };
 
 
+  // Show loading state
+  if (loading) {
+    return (
+      <Box sx={{ p: 3, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
+        <Box textAlign="center">
+          <CircularProgress size={60} />
+          <Typography variant="h6" sx={{ mt: 2 }}>
+            Loading expenditure data...
+          </Typography>
+        </Box>
+      </Box>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+        <Button 
+          variant="contained" 
+          onClick={() => window.location.reload()}
+        >
+          Retry
+        </Button>
+      </Box>
+    );
+  }
+
+  // Show empty state if no data
+  if (!expenditureData || expenditureData.expenses.length === 0) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Typography variant="h4" gutterBottom>
+          Expenditure Dashboard
+        </Typography>
+        <Alert severity="info">
+          No expenditure data available.
+        </Alert>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
@@ -557,11 +627,18 @@ const ExpenditureDashboard: React.FC = () => {
                     label="Select Month"
                   >
                     <MenuItem value="">All Months</MenuItem>
-                    {expenditureData.monthlySummaries.map((month) => (
-                      <MenuItem key={month.month} value={month.month}>
-                        {month.month}
-                      </MenuItem>
-                    ))}
+                    {expenditureData?.monthlySummaries
+                      .sort((a, b) => {
+                        // Parse month names to dates for proper sorting
+                        const dateA = new Date(a.month + ' 1, 2000');
+                        const dateB = new Date(b.month + ' 1, 2000');
+                        return dateB.getTime() - dateA.getTime(); // Descending order
+                      })
+                      .map((month) => (
+                        <MenuItem key={month.month} value={month.month}>
+                          {month.month}
+                        </MenuItem>
+                      ))}
                   </Select>
                 </FormControl>
               )}
@@ -575,11 +652,13 @@ const ExpenditureDashboard: React.FC = () => {
                     label="Select Year"
                   >
                     <MenuItem value="">All Years</MenuItem>
-                    {expenditureData.yearlySummaries.map((year) => (
-                      <MenuItem key={year.year} value={year.year}>
-                        {year.year}
-                      </MenuItem>
-                    ))}
+                    {expenditureData?.yearlySummaries
+                      .sort((a, b) => parseInt(b.year) - parseInt(a.year)) // Descending order
+                      .map((year) => (
+                        <MenuItem key={year.year} value={year.year}>
+                          {year.year}
+                        </MenuItem>
+                      ))}
                   </Select>
                 </FormControl>
               )}
@@ -605,37 +684,65 @@ const ExpenditureDashboard: React.FC = () => {
 
       {/* Category Chart */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12}>
           <CategoryChart />
         </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 Category Breakdown
               </Typography>
-              <List>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: {
+                    xs: '1fr',
+                    sm: 'repeat(2, 1fr)',
+                    md: 'repeat(3, 1fr)'
+                  },
+                  gap: 1,
+                  maxHeight: { xs: '400px', sm: 'none' },
+                  overflowY: { xs: 'auto', sm: 'visible' },
+                  pr: { xs: 1, sm: 0 }
+                }}
+              >
                 {Object.entries(summaryStats.categoryTotals)
                   .sort(([,a], [,b]) => b - a)
                   .map(([category, amount]) => (
-                    <ListItem key={category}>
-                      <ListItemIcon>
-                        <Box
-                          sx={{
-                            width: 16,
-                            height: 16,
-                            borderRadius: '50%',
-                            backgroundColor: categoryColors[category] || '#607D8B'
-                          }}
-                        />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={category}
-                        secondary={`$${amount.toFixed(2)} (${((amount / summaryStats.total) * 100).toFixed(1)}%)`}
+                    <Box
+                      key={category}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        p: 1,
+                        borderRadius: 1,
+                        '&:hover': {
+                          backgroundColor: 'action.hover'
+                        }
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: '50%',
+                          backgroundColor: categoryColors[category] || '#607D8B',
+                          mr: 1.5,
+                          flexShrink: 0
+                        }}
                       />
-                    </ListItem>
+                      <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Typography variant="body2" noWrap>
+                          {category}
+                        </Typography>
+                        <Typography variant="caption" color="textSecondary">
+                          ₹{amount.toFixed(2)} (${((amount / summaryStats.total) * 100).toFixed(1)}%)
+                        </Typography>
+                      </Box>
+                    </Box>
                   ))}
-              </List>
+              </Box>
             </CardContent>
           </Card>
         </Grid>

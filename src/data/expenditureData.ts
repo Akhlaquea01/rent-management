@@ -1,194 +1,40 @@
 import { ExpenditureData, Expense, MonthlySummary, YearlySummary } from '../types';
 
-// Sample expense data
-const sampleExpenses: Expense[] = [
-  {
-    date: "2024-01-15",
-    amount: 150.75,
-    category: "Groceries",
-    description: "Weekly grocery shopping at FreshMart",
-    paymentMethod: "Credit Card"
-  },
-  {
-    date: "2024-01-20",
-    amount: 89.99,
-    category: "Entertainment",
-    description: "Movie tickets for family",
-    paymentMethod: "Debit Card"
-  },
-  {
-    date: "2024-01-22",
-    amount: 45.50,
-    category: "Transportation",
-    description: "Gas for car",
-    paymentMethod: "Credit Card"
-  },
-  {
-    date: "2024-01-25",
-    amount: 120.00,
-    category: "Utilities",
-    description: "Electricity bill",
-    paymentMethod: "Bank Transfer"
-  },
-  {
-    date: "2024-01-28",
-    amount: 75.30,
-    category: "Dining",
-    description: "Dinner at restaurant",
-    paymentMethod: "Credit Card"
-  },
-  {
-    date: "2024-02-02",
-    amount: 200.00,
-    category: "Shopping",
-    description: "Clothing purchase",
-    paymentMethod: "Credit Card"
-  },
-  {
-    date: "2024-02-05",
-    amount: 85.00,
-    category: "Healthcare",
-    description: "Doctor visit",
-    paymentMethod: "Cash"
-  },
-  {
-    date: "2024-02-08",
-    amount: 65.25,
-    category: "Groceries",
-    description: "Organic vegetables",
-    paymentMethod: "Debit Card"
-  },
-  {
-    date: "2024-02-12",
-    amount: 35.00,
-    category: "Transportation",
-    description: "Public transport pass",
-    paymentMethod: "Cash"
-  },
-  {
-    date: "2024-02-15",
-    amount: 150.00,
-    category: "Utilities",
-    description: "Internet bill",
-    paymentMethod: "Bank Transfer"
-  },
-  {
-    date: "2024-02-18",
-    amount: 95.50,
-    category: "Entertainment",
-    description: "Concert tickets",
-    paymentMethod: "Credit Card"
-  },
-  {
-    date: "2024-02-22",
-    amount: 180.75,
-    category: "Shopping",
-    description: "Electronics purchase",
-    paymentMethod: "Credit Card"
-  },
-  {
-    date: "2024-02-25",
-    amount: 55.00,
-    category: "Dining",
-    description: "Lunch with colleagues",
-    paymentMethod: "Debit Card"
-  },
-  {
-    date: "2024-02-28",
-    amount: 110.00,
-    category: "Healthcare",
-    description: "Pharmacy purchase",
-    paymentMethod: "Credit Card"
-  },
-  {
-    date: "2024-03-03",
-    amount: 125.30,
-    category: "Groceries",
-    description: "Monthly grocery shopping",
-    paymentMethod: "Credit Card"
-  },
-  {
-    date: "2024-03-07",
-    amount: 70.00,
-    category: "Transportation",
-    description: "Car maintenance",
-    paymentMethod: "Cash"
-  },
-  {
-    date: "2024-03-10",
-    amount: 90.00,
-    category: "Entertainment",
-    description: "Streaming services subscription",
-    paymentMethod: "Bank Transfer"
-  },
-  {
-    date: "2024-03-15",
-    amount: 140.00,
-    category: "Utilities",
-    description: "Water bill",
-    paymentMethod: "Bank Transfer"
-  },
-  {
-    date: "2024-03-18",
-    amount: 85.50,
-    category: "Dining",
-    description: "Coffee shop visits",
-    paymentMethod: "Credit Card"
-  },
-  {
-    date: "2024-03-22",
-    amount: 220.00,
-    category: "Shopping",
-    description: "Home improvement items",
-    paymentMethod: "Credit Card"
-  },
-  {
-    date: "2024-03-25",
-    amount: 60.00,
-    category: "Healthcare",
-    description: "Gym membership",
-    paymentMethod: "Bank Transfer"
-  },
-  {
-    date: "2024-03-28",
-    amount: 95.75,
-    category: "Other",
-    description: "Miscellaneous expenses",
-    paymentMethod: "Cash"
-  },
-  {
-    date: "2024-04-02",
-    amount: 160.25,
-    category: "Groceries",
-    description: "Specialty food items",
-    paymentMethod: "Credit Card"
-  },
-  {
-    date: "2024-04-05",
-    amount: 45.00,
-    category: "Transportation",
-    description: "Taxi fare",
-    paymentMethod: "Credit Card"
-  },
-  {
-    date: "2024-04-08",
-    amount: 75.00,
-    category: "Entertainment",
-    description: "Book purchase",
-    paymentMethod: "Debit Card"
+// API endpoint for expenditure data
+const EXPENDITURE_API_URL = 'https://akhlaquea01.github.io/records_siwaipatti/expenses.json';
+
+// Interface for API response
+interface ApiExpenseResponse {
+  data: Expense[];
+}
+
+// Function to fetch expenditure data from API
+export const fetchExpenditureData = async (): Promise<Expense[]> => {
+  try {
+    const response = await fetch(EXPENDITURE_API_URL);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const apiData: ApiExpenseResponse = await response.json();
+    return apiData.data;
+  } catch (error) {
+    console.error('Error fetching expenditure data:', error);
+    // Return empty array as fallback
+    return [];
   }
-];
+};
 
-// Categories
-const categories = [
-  "Groceries", "Entertainment", "Utilities", "Dining", 
-  "Transportation", "Shopping", "Healthcare", "Other"
-];
+// Function to extract unique categories from expenses
+const extractCategories = (expenses: Expense[]): string[] => {
+  const categorySet = new Set(expenses.map(expense => expense.category));
+  return Array.from(categorySet).sort();
+};
 
-// Payment methods
-const paymentMethods = [
-  "Credit Card", "Debit Card", "Cash", "Bank Transfer"
-];
+// Function to extract unique payment methods from expenses
+const extractPaymentMethods = (expenses: Expense[]): string[] => {
+  const paymentMethodSet = new Set(expenses.map(expense => expense.paymentMethod));
+  return Array.from(paymentMethodSet).sort();
+};
 
 // Generate monthly summaries
 const generateMonthlySummaries = (expenses: Expense[]): MonthlySummary[] => {
@@ -255,22 +101,69 @@ const generateYearlySummaries = (expenses: Expense[]): YearlySummary[] => {
   }));
 };
 
-// Export the complete expenditure data
-export const expenditureData: ExpenditureData = {
-  expenses: sampleExpenses,
-  categories,
-  monthlySummaries: generateMonthlySummaries(sampleExpenses),
-  yearlySummaries: generateYearlySummaries(sampleExpenses)
+// Function to create expenditure data from API data
+export const createExpenditureData = async (): Promise<ExpenditureData> => {
+  const expenses = await fetchExpenditureData();
+  const categories = extractCategories(expenses);
+  
+  return {
+    expenses,
+    categories,
+    monthlySummaries: generateMonthlySummaries(expenses),
+    yearlySummaries: generateYearlySummaries(expenses)
+  };
 };
 
-// Category colors for consistent theming
+// Export the complete expenditure data (for backward compatibility)
+export const expenditureData: ExpenditureData = {
+  expenses: [],
+  categories: [],
+  monthlySummaries: [],
+  yearlySummaries: []
+};
+
+// Function to generate category colors dynamically
+export const generateCategoryColors = (categories: string[]): { [key: string]: string } => {
+  const colorPalette = [
+    "#4CAF50", "#FF9800", "#2196F3", "#E91E63", "#9C27B0", 
+    "#FF5722", "#F44336", "#607D8B", "#795548", "#3F51B5",
+    "#009688", "#FFC107", "#E91E63", "#673AB7", "#FF9800",
+    "#4CAF50", "#F44336", "#00BCD4", "#8BC34A", "#FF5722"
+  ];
+  
+  const colors: { [key: string]: string } = {};
+  categories.forEach((category, index) => {
+    colors[category] = colorPalette[index % colorPalette.length];
+  });
+  
+  return colors;
+};
+
+// Default category colors for consistent theming
 export const categoryColors: { [key: string]: string } = {
   "Groceries": "#4CAF50",
   "Entertainment": "#FF9800",
   "Utilities": "#2196F3",
-  "Dining": "#E91E63",
-  "Transportation": "#9C27B0",
+  "Dining & Leisure": "#E91E63",
+  "Fuel & Transportation": "#9C27B0",
   "Shopping": "#FF5722",
   "Healthcare": "#F44336",
-  "Other": "#607D8B"
+  "Other / Miscellaneous": "#607D8B",
+  "Loans & EMIs": "#795548",
+  "Household Supplies": "#3F51B5",
+  "Household Help": "#009688",
+  "Gifts / Donations": "#FFC107",
+  "Credit Card Payment": "#E91E63",
+  "Personal Care": "#673AB7",
+  "Household Cash": "#FF9800",
+  "Home Maintenance": "#4CAF50",
+  "Debt Repayment": "#F44336",
+  "Fees & Legal": "#00BCD4",
+  "Car Maintenance": "#8BC34A",
+  "Fees & Services": "#FF5722",
+  "Mobile Recharge": "#00BCD4",
+  "Gifts": "#FFC107",
+  "Gifts / Ceremonies": "#E91E63",
+  "Family": "#673AB7",
+  "Household Services": "#009688"
 };
