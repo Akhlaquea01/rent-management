@@ -12,6 +12,7 @@ import TenantManagement from "./pages/TenantManagement";
 import AdvanceTracker from "./pages/AdvanceTracker";
 import TenantHistory from "./pages/TenantHistory";
 import Reports from "./pages/Reports";
+import ExpenditureDashboard from "./pages/ExpenditureDashboard";
 import Login from "./pages/Login";
 
 // Contexts
@@ -94,6 +95,7 @@ function AppContent() {
             <Route path="/advance-tracker" element={<AdvanceTracker />} />
             <Route path="/tenant-history" element={<TenantHistory />} />
             <Route path="/reports" element={<Reports />} />
+            <Route path="/expenditure" element={<ExpenditureDashboard />} />
           </Routes>
         </Layout>
       </Box>

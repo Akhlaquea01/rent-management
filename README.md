@@ -4,7 +4,52 @@ A comprehensive, modern web application for managing rent collection, tenant tra
 
 ## 🚀 Core Features Overview
 
-### 1. **Dashboard Overview** 📊
+### 1. **Expenditure Dashboard** 💰
+**Location**: `src/pages/ExpenditureDashboard.tsx`
+
+**Key Functionality**:
+- **Multiple View Modes**: 
+  - Monthly View: Grid layout showing expenses by month with trend charts
+  - Yearly View: Annual summary with comparative analysis
+  - Timeline View: Chronological list of expenses with visual timeline
+- **Advanced Filtering System**:
+  - Amount Range Filter: Interactive slider for min/max amounts
+  - Category Filter: Multi-select dropdown for expense categories
+  - Date Range Filter: Custom date picker for specific periods
+  - Search Functionality: Text search in expense descriptions
+  - Payment Method Filter: Filter by credit card, debit card, cash, bank transfer
+- **Data Visualization**:
+  - Interactive pie charts for category breakdown
+  - Bar charts for monthly spending trends
+  - Progress bars for budget tracking
+  - Color-coded categories for easy identification
+- **Summary Statistics**:
+  - Total spent with real-time calculations
+  - Average expense per transaction
+  - Total number of expenses
+  - Categories used count
+- **Interactive Elements**:
+  - View mode toggle buttons with icons
+  - Expandable/collapsible filter sections
+  - Filter reset functionality
+  - Hover effects for detailed information
+  - Responsive design for all device sizes
+
+**Technical Implementation**:
+- Uses Chart.js for data visualization (Pie, Bar charts)
+- Custom hooks for filter management (`useExpenditureFilters`)
+- Material-UI components for consistent design
+- TypeScript interfaces for type safety
+- Hardcoded sample data with 25+ realistic expense entries
+- Responsive design with mobile-first approach
+
+**Sample Data Structure**:
+- 8 expense categories: Groceries, Entertainment, Utilities, Dining, Transportation, Shopping, Healthcare, Other
+- 4 payment methods: Credit Card, Debit Card, Cash, Bank Transfer
+- Monthly and yearly summaries with automatic calculations
+- Color-coded categories for visual consistency
+
+### 2. **Dashboard Overview** 📊
 **Location**: `src/pages/Dashboard.tsx`
 
 **Key Functionality**:

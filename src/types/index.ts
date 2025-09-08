@@ -132,4 +132,65 @@ export interface ApiTenant {
 export interface ApiTenantData {
   tenant: ApiTenant;
   shop_no: string;
+}
+
+// Expenditure Tracking Interfaces
+export interface Expense {
+  id?: number;
+  date: string;
+  amount: number;
+  category: string;
+  description: string;
+  paymentMethod: string;
+  tags?: string[];
+}
+
+export interface MonthlySummary {
+  month: string;
+  total: number;
+  byCategory: {
+    [category: string]: number;
+  };
+  expenseCount: number;
+  averageExpense: number;
+}
+
+export interface YearlySummary {
+  year: string;
+  total: number;
+  byCategory: {
+    [category: string]: number;
+  };
+  byMonth: {
+    [month: string]: number;
+  };
+  expenseCount: number;
+  averageExpense: number;
+}
+
+export interface ExpenditureData {
+  expenses: Expense[];
+  categories: string[];
+  monthlySummaries: MonthlySummary[];
+  yearlySummaries: YearlySummary[];
+}
+
+export interface ExpenditureFilters {
+  amountRange: {
+    min: number;
+    max: number;
+  };
+  selectedCategories: string[];
+  dateRange: {
+    start: string;
+    end: string;
+  };
+  searchQuery: string;
+  paymentMethods: string[];
+}
+
+export type ViewMode = 'monthly' | 'yearly';
+
+export interface CategoryColor {
+  [category: string]: string;
 } 

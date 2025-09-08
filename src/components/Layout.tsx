@@ -24,6 +24,7 @@ import {
   History as HistoryIcon,
   Assessment as AssessmentIcon,
   Logout as LogoutIcon,
+  TrendingUp as TrendingUpIcon,
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useRentContext } from "../context/RentContext";
@@ -38,7 +39,6 @@ interface LayoutProps {
 const menuItems = [
   { text: "Dashboard", icon: <DashboardIcon />, path: "/" },
   { text: "Tenant Management", icon: <PeopleIcon />, path: "/tenants" },
-
   {
     text: "Advance Tracker",
     icon: <AccountBalanceIcon />,
@@ -46,6 +46,7 @@ const menuItems = [
   },
   { text: "Tenant History", icon: <HistoryIcon />, path: "/tenant-history" },
   { text: "Reports", icon: <AssessmentIcon />, path: "/reports" },
+  { text: "Expenditure Dashboard", icon: <TrendingUpIcon />, path: "/expenditure" },
 ];
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
