@@ -45,7 +45,7 @@ A comprehensive, modern web application for managing rent collection, tenant tra
 **Optional Fields**:
 - Phone Number
 - Email Address
-- Physical Address
+- Physical Address 
 - Advance Amount (defaults to 0)
 
 **Advanced Features**:
