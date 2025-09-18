@@ -50,13 +50,24 @@ const generateDuesMessage = (
   totalDueAmount: number,
   dueMonths: string | null
 ): string => {
-  let message = `नमस्ते ${tenantName},\n• आपकी कुल बकाया राशि: ₹${totalDueAmount.toLocaleString()}`;
+  let message = `नमस्ते ${tenantName},
+
+🏠 *किराया भुगतान अनुस्मारक*
+
+• आपकी कुल बकाया राशि: *₹${totalDueAmount.toLocaleString()}*`;
 
   if (dueMonths) {
     message += `\n• बकाया महीने:\n${dueMonths}`;
   }
 
-  message += `\n\nकृपया जल्द से जल्द बकाया राशि का भुगतान करें।\n\nधन्यवाद!`;
+  message += `\n\n💳 *भुगतान करने के लिए नीचे दिए गए लिंक पर क्लिक करें:*
+upi://pay?pa=akhlaque14@ybl&pn=Akhlaque%20Ahmad&am=${totalDueAmount}&cu=INR
+
+⚠️ कृपया जल्द से जल्द बकाया राशि का भुगतान करें।
+
+🙏 धन्यवाद!
+मोहम्मद एहसान अहमद
+सिवाईपट्टी`;
 
   return message;
 };
@@ -70,17 +81,18 @@ const generateNOCMessage = (tenantName: string): string => {
 
 आपके सभी भुगतानों के लिए धन्यवाद।
 
-यह पत्र आपको सूचित करने के लिए है कि आपके सभी किराया भुगतान ${currentMonth} तक पूर्ण रूप से प्राप्त हो गए हैं।
+यह संदेश आपको सूचित करने के लिए है कि आपके सभी किराया भुगतान ${currentMonth} तक पूर्ण रूप से प्राप्त हो गए हैं।
 
-आपका NOC (No Objection Certificate) तैयार है।
-
-धन्यवाद!`;
+धन्यवाद!
+मोहम्मद एहसान अहमद
+सिवाईपट्टी`;
 };
 
 // Utility function to get WhatsApp URL
-const getWhatsAppUrl = (message: string): string => {
+const getWhatsAppUrl = (message: string, mobileNumber: string): string => {
   const encodedMessage = encodeWhatsAppText(message);
-  return `https://wa.me/918797247279?text=${encodedMessage}`;
+  const formattedNumber = `91${mobileNumber}`;
+  return `https://wa.me/${formattedNumber}?text=${encodedMessage}`;
 };
 
 const TenantManagement: React.FC = () => {
@@ -325,7 +337,7 @@ const TenantManagement: React.FC = () => {
       return; // Don't send message if no dues and trying to send dues message
     }
     
-    const whatsappUrl = getWhatsAppUrl(message);
+    const whatsappUrl = getWhatsAppUrl(message, tenantInfo.mobile_number);
     window.open(whatsappUrl, '_blank');
   };
 
