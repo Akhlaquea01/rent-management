@@ -61,8 +61,9 @@ const generateDuesMessage = (
   }
 
   message += `\n\n💳 *भुगतान करने के लिए नीचे दिए गए लिंक पर क्लिक करें:*
-upi://pay?pa=akhlaque14@ybl&pn=Akhlaque%20Ahmad&am=${totalDueAmount}&cu=INR
+upi://pay?pa=9798211257@ybl&pn=Mohammad%20Ehsan%20Ahmad&am=${totalDueAmount}&cu=INR
 
+    PhonePe: 9798211257
 ⚠️ कृपया जल्द से जल्द बकाया राशि का भुगतान करें।
 
 🙏 धन्यवाद!
@@ -76,7 +77,7 @@ upi://pay?pa=akhlaque14@ybl&pn=Akhlaque%20Ahmad&am=${totalDueAmount}&cu=INR
 const generateNOCMessage = (tenantName: string): string => {
   const currentDate = new Date();
   const currentMonth = currentDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
-  
+
   return `नमस्ते ${tenantName},
 
 आपके सभी भुगतानों के लिए धन्यवाद।
@@ -149,7 +150,7 @@ const TenantManagement: React.FC = () => {
   const allTenantStats = useMemo(() => {
     const activeCount = tenantData.filter(t => t.tenant.status === 'Active').length;
     const inactiveCount = tenantData.filter(t => t.tenant.status === 'Inactive').length;
-    
+
     return {
       activeCount,
       inactiveCount,
@@ -180,12 +181,12 @@ const TenantManagement: React.FC = () => {
       const shopA = parseShopNumber(a.shop_no);
       const shopB = parseShopNumber(b.shop_no);
 
-    if (shopA.number !== shopB.number) {
-      return shopA.number - shopB.number;
-    }
+      if (shopA.number !== shopB.number) {
+        return shopA.number - shopB.number;
+      }
 
-    return shopA.suffix.localeCompare(shopB.suffix);
-  });
+      return shopA.suffix.localeCompare(shopB.suffix);
+    });
   }, [tenantData, searchTerm, statusFilter]);
 
   // Calculate statistics for filtered data
@@ -193,7 +194,7 @@ const TenantManagement: React.FC = () => {
     const totalAdvance = filteredAndSortedData.reduce((sum, item) => sum + (item.tenant.advance_paid || 0), 0);
     const totalDues = filteredAndSortedData.reduce((sum, item) => sum + (item.tenant.total_due || 0), 0);
     const advanceRemaining = filteredAndSortedData.reduce((sum, item) => sum + (item.tenant.advance_remaining || 0), 0);
-    
+
     return {
       totalAdvance,
       totalDues,
@@ -273,8 +274,8 @@ const TenantManagement: React.FC = () => {
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>Due Months:</Typography>
                 <Typography variant="body2" sx={{ ml: 1, fontSize: '0.75rem' }}>
                   {tenantInfo.due_months}
-              </Typography>
-            </Box>
+                </Typography>
+              </Box>
             )}
           </>
         )}
@@ -307,23 +308,23 @@ const TenantManagement: React.FC = () => {
   // Check if tenant can receive WhatsApp messages
   const canSendWhatsApp = (tenant: ApiTenantData): boolean => {
     const { tenant: tenantInfo } = tenant;
-    return tenantInfo.status === 'Active' && 
-           tenantInfo.mobile_number && 
-           tenantInfo.mobile_number !== '0' && 
-           tenantInfo.mobile_number.trim() !== '';
+    return tenantInfo.status === 'Active' &&
+      tenantInfo.mobile_number &&
+      tenantInfo.mobile_number !== '0' &&
+      tenantInfo.mobile_number.trim() !== '';
   };
 
   // Handle single WhatsApp notification
   const handleWhatsAppNotification = (tenant: ApiTenantData, messageType: 'dues' | 'noc' = 'dues') => {
     const { tenant: tenantInfo } = tenant;
-    
+
     // Check if tenant can receive messages
     if (!canSendWhatsApp(tenant)) {
       const reason = tenantInfo.status !== 'Active' ? 'tenant is inactive' : 'mobile number is missing or invalid';
       alert(`Cannot send message: ${reason}`);
       return;
     }
-    
+
     let message: string;
     if (messageType === 'dues' && tenantInfo.total_due && tenantInfo.total_due > 0) {
       message = generateDuesMessage(
@@ -336,7 +337,7 @@ const TenantManagement: React.FC = () => {
     } else {
       return; // Don't send message if no dues and trying to send dues message
     }
-    
+
     const whatsappUrl = getWhatsAppUrl(message, tenantInfo.mobile_number);
     window.open(whatsappUrl, '_blank');
   };
@@ -348,7 +349,7 @@ const TenantManagement: React.FC = () => {
       if (!canSendWhatsApp(tenant)) {
         return false;
       }
-      
+
       // Then check message type criteria
       if (bulkMessageType === 'dues') {
         return tenant.tenant.total_due && tenant.tenant.total_due > 0;
@@ -394,33 +395,33 @@ const TenantManagement: React.FC = () => {
             size="small"
           />
         </Box>
-        
+
         <Typography variant="body2" color="textSecondary" gutterBottom>
           Shop: {tenant.shop_no}
         </Typography>
-        
+
         <Typography variant="body2" gutterBottom>
           Monthly Rent: ₹{tenantInfo.monthly_rent.toLocaleString()}
         </Typography>
-        
+
         <Typography variant="body2" color="textSecondary" gutterBottom>
           Mobile: {tenantInfo.mobile_number}
         </Typography>
-        
+
         {tenantInfo.advance_paid && (
-        <Typography variant="body2" color="textSecondary" gutterBottom>
+          <Typography variant="body2" color="textSecondary" gutterBottom>
             Advance Paid: ₹{tenantInfo.advance_paid.toLocaleString()}
-        </Typography>
+          </Typography>
         )}
-        
+
         {tenantInfo.advance_remaining && (
-        <Typography variant="body2" color="textSecondary" gutterBottom>
+          <Typography variant="body2" color="textSecondary" gutterBottom>
             Advance Remaining: ₹{tenantInfo.advance_remaining.toLocaleString()}
-        </Typography>
+          </Typography>
         )}
-        
-        <Typography 
-          variant="body2" 
+
+        <Typography
+          variant="body2"
           sx={hasDues ? {
             color: '#b71c1c',
             backgroundColor: '#ffebee',
@@ -436,7 +437,7 @@ const TenantManagement: React.FC = () => {
         >
           Total Due: ₹{(tenantInfo.total_due || 0).toLocaleString()}
         </Typography>
-        
+
         <Typography variant="body2" color="textSecondary" gutterBottom>
           Agreement Status: {tenantInfo.agreement_status}
         </Typography>
@@ -498,7 +499,7 @@ const TenantManagement: React.FC = () => {
         <TableCell>{tenantInfo.mobile_number}</TableCell>
         <TableCell align="right">₹{(tenantInfo.advance_paid || 0).toLocaleString()}</TableCell>
         <TableCell align="right">₹{(tenantInfo.advance_remaining || 0).toLocaleString()}</TableCell>
-        <TableCell 
+        <TableCell
           align="right"
           sx={hasDues ? {
             color: '#b71c1c',
@@ -515,7 +516,7 @@ const TenantManagement: React.FC = () => {
         <TableCell>{tenantInfo.agreement_status}</TableCell>
         <TableCell align="center">
           <Tooltip title={
-            !canSend 
+            !canSend
               ? (tenantInfo.status !== 'Active' ? "Cannot send: Tenant is inactive" : "Cannot send: Mobile number missing")
               : (hasDues ? "Send dues reminder" : "Send NOC message")
           }>
@@ -799,8 +800,8 @@ const TenantManagement: React.FC = () => {
               disabled={!canSendWhatsApp(selectedTenantForMobile)}
               fullWidth
             >
-              {!canSendWhatsApp(selectedTenantForMobile) 
-                ? "Cannot Send" 
+              {!canSendWhatsApp(selectedTenantForMobile)
+                ? "Cannot Send"
                 : (selectedTenantForMobile.tenant.total_due && selectedTenantForMobile.tenant.total_due > 0 ? "Send Dues Reminder" : "Send NOC")
               }
             </Button>
