@@ -329,12 +329,12 @@ const TenantManagement: React.FC = () => {
     let message: string;
     if (messageType === 'dues' && tenantInfo.total_due && tenantInfo.total_due > 0) {
       message = generateDuesMessage(
-        tenantInfo.tenant_name,
+        `${tenantInfo.tenant_name} (Shop No-${tenant.shop_no})`,
         tenantInfo.total_due,
         tenantInfo.due_months
       );
     } else if (messageType === 'noc') {
-      message = generateNOCMessage(tenantInfo.tenant_name);
+      message = generateNOCMessage(`${tenantInfo.tenant_name} (Shop No-${tenant.shop_no})`);
     } else {
       return; // Don't send message if no dues and trying to send dues message
     }
