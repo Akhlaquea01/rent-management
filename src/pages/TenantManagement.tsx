@@ -76,6 +76,7 @@ upi://pay?pa=9798211257@ybl&pn=Mohammad%20Ehsan%20Ahmad&am=${totalDueAmount}&cu=
 // Utility function to generate NOC (thanks for payment) message
 const generateNOCMessage = (tenantName: string): string => {
   const currentDate = new Date();
+  currentDate.setMonth(currentDate.getMonth() - 1);
   const currentMonth = currentDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
 
   return `नमस्ते ${tenantName},
