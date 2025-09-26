@@ -86,7 +86,12 @@ function AppContent() {
     );
 
   return (
-    <Router>
+    <Router
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <Box sx={{ display: "flex", minHeight: "100vh" }}>
         <Layout>
           <Routes>

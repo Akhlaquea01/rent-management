@@ -282,10 +282,10 @@ const Reports: React.FC = () => {
                   dueMonths.length > 0 ? dueMonths.length.toString() : "0",
                   shop.shopNumber,
                   shop.tenant.name, // Use PDF-safe name
-                  rentAmount.toLocaleString(),
+                  (rentAmount || 0).toLocaleString(),
                   (previousMonth2Data?.paid || 0).toLocaleString(),
                   (previousMonth1Data?.paid || 0).toLocaleString(),
-                  finalMonthData.status === "Paid" ? finalMonthData.paid.toLocaleString() : "",
+                  finalMonthData.status === "Paid" ? (finalMonthData.paid || 0).toLocaleString() : "",
                   "", // Date column - empty for manual filling
                   ""  // Signature column - empty for manual filling
                 ];
@@ -527,8 +527,8 @@ const Reports: React.FC = () => {
                 {monthlyStats.collectionRate.toFixed(1)}%
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                ₹{monthlyStats.totalCollected.toLocaleString()} / ₹
-                {monthlyStats.totalRent.toLocaleString()}
+                ₹{(monthlyStats.totalCollected || 0).toLocaleString()} / ₹
+                {(monthlyStats.totalRent || 0).toLocaleString()}
               </Typography>
             </CardContent>
           </Card>
@@ -546,8 +546,8 @@ const Reports: React.FC = () => {
                 {yearlyStats.collectionRate.toFixed(1)}%
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                ₹{yearlyStats.totalCollected.toLocaleString()} / ₹
-                {yearlyStats.totalRent.toLocaleString()}
+                ₹{(yearlyStats.totalCollected || 0).toLocaleString()} / ₹
+                {(yearlyStats.totalRent || 0).toLocaleString()}
               </Typography>
             </CardContent>
           </Card>
@@ -562,7 +562,7 @@ const Reports: React.FC = () => {
                 variant="h4"
                 sx={{ fontWeight: "bold", color: "info.main" }}
               >
-                ₹{totalAdvance.toLocaleString()}
+                ₹{(totalAdvance || 0).toLocaleString()}
               </Typography>
               <Typography variant="body2" color="textSecondary">
                 Across all shops
@@ -669,10 +669,10 @@ const Reports: React.FC = () => {
                           <TableCell>{shop.shopNumber}</TableCell>
                           <TableCell>{shop.tenant.name}</TableCell>
                           <TableCell align="right">
-                            ₹{shop.rentAmount.toLocaleString()}
+                            ₹{(shop.rentAmount || 0).toLocaleString()}
                           </TableCell>
                           <TableCell align="right">
-                            ₹{paidAmount.toLocaleString()}
+                            ₹{(paidAmount || 0).toLocaleString()}
                           </TableCell>
                           <TableCell>
                             <Chip
@@ -706,7 +706,7 @@ const Reports: React.FC = () => {
                     variant="h6"
                     sx={{ fontWeight: "bold", color: "success.main" }}
                   >
-                    ₹{monthlyStats.totalCollected.toLocaleString()}
+                    ₹{(monthlyStats.totalCollected || 0).toLocaleString()}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>
@@ -717,7 +717,7 @@ const Reports: React.FC = () => {
                     variant="h6"
                     sx={{ fontWeight: "bold", color: "warning.main" }}
                   >
-                    ₹{monthlyStats.totalPending.toLocaleString()}
+                    ₹{(monthlyStats.totalPending || 0).toLocaleString()}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>
@@ -728,7 +728,7 @@ const Reports: React.FC = () => {
                     variant="h6"
                     sx={{ fontWeight: "bold", color: "primary.main" }}
                   >
-                    ₹{monthlyStats.totalRent.toLocaleString()}
+                    ₹{(monthlyStats.totalRent || 0).toLocaleString()}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>
@@ -758,7 +758,7 @@ const Reports: React.FC = () => {
                     variant="h6"
                     sx={{ fontWeight: "bold", color: "success.main" }}
                   >
-                    ₹{yearlyStats.totalCollected.toLocaleString()}
+                    ₹{(yearlyStats.totalCollected || 0).toLocaleString()}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>
@@ -769,7 +769,7 @@ const Reports: React.FC = () => {
                     variant="h6"
                     sx={{ fontWeight: "bold", color: "warning.main" }}
                   >
-                    ₹{yearlyStats.totalPending.toLocaleString()}
+                    ₹{(yearlyStats.totalPending || 0).toLocaleString()}
                   </Typography>
                 </Grid>
               </Grid>
@@ -803,7 +803,7 @@ const Reports: React.FC = () => {
             <Grid item xs={6}>
               <Typography variant="h6">
                 Monthly Collection: ₹
-                {monthlyStats.totalCollected.toLocaleString()}
+                {(monthlyStats.totalCollected || 0).toLocaleString()}
               </Typography>
             </Grid>
             <Grid item xs={6}>
@@ -840,10 +840,10 @@ const Reports: React.FC = () => {
                     <TableRow key={shop.shopNumber}>
                       <TableCell>{shop.shopNumber}</TableCell>
                       <TableCell align="right">
-                        ₹{shop.rentAmount.toLocaleString()}
+                        ₹{(shop.rentAmount || 0).toLocaleString()}
                       </TableCell>
                       <TableCell align="right">
-                        ₹{paidAmount.toLocaleString()}
+                        ₹{(paidAmount || 0).toLocaleString()}
                       </TableCell>
                       <TableCell>{status}</TableCell>
                     </TableRow>
