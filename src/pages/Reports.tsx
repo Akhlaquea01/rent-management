@@ -24,6 +24,7 @@ import { Download as DownloadIcon } from '@mui/icons-material';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 import { useRentContext } from "../context/RentContext";
 import { calculateTotalDues } from "../utils/duesCalculator";
 
@@ -211,8 +212,8 @@ const Reports: React.FC = () => {
             variant="outlined"
             startIcon={<DownloadIcon />}
             sx={{ mr: 1 }}
-            onClick={() => {
-              // Export Monthly Report as PDF
+            onClick={async () => {
+              // Export Monthly Report as PDF with Hindi support using html2canvas
               const monthName = new Date(
                 selectedMonth + "-01"
               ).toLocaleDateString("en-US", { month: "long" });
@@ -227,165 +228,159 @@ const Reports: React.FC = () => {
               previousMonth2.setMonth(currentDate.getMonth() - 2);
               const previousMonth2Name = previousMonth2.toLocaleDateString("en-US", { month: "long" });
 
-              // Create PDF document
-              const doc = new jsPDF('portrait', 'mm', 'legal');
+              // Create paginated HTML tables with Hindi support
+              const createPaginatedHTMLTables = () => {
+                const rowsPerPage = 32;
+                const totalPages = Math.ceil(shopsArray.length / rowsPerPage);
+                const tables = [];
 
-              // Configure font for better Unicode support
-              // Note: jsPDF has limited Unicode support, but we'll try to use the best available font
-              doc.setFont('helvetica', 'normal');
+                for (let page = 0; page < totalPages; page++) {
+                  const startIndex = page * rowsPerPage;
+                  const endIndex = Math.min(startIndex + rowsPerPage, shopsArray.length);
+                  const pageShops = shopsArray.slice(startIndex, endIndex);
 
-              // Add title - centered
-              doc.setFontSize(16);
-              doc.setFont('helvetica', 'bold');
+                  const tableHTML = `
+                    <div style="font-family: 'Noto Sans Devanagari', Arial, sans-serif; padding: 20px; background: white; page-break-after: ${page < totalPages - 1 ? 'always' : 'avoid'};">
+                      <h2 style="text-align: center; margin-bottom: 10px; font-size: 18px; font-weight: bold; white-space: nowrap;">
+                        Monthly Rent Collection Report ${monthName} ${selectedYear} | (Page ${page + 1} of ${totalPages}) 
+                      </h2>
+                      <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                        <thead>
+                          <tr style="background-color: #4285f4; color: white;white-space: nowrap;">
+                            <th style="border: 1px solid #000; padding: 8px; text-align: center;">Dues Months</th>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: center;">Shop Number</th>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: left;">Tenant Name</th>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: right;">Rent Amount</th>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: right;">${previousMonth2Name}</th>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: right;">${previousMonth1Name}</th>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: right;">${monthName}</th>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: center;">Date</th>
+                            <th style="border: 1px solid #000; padding: 8px; text-align: center;">Signature</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          ${pageShops.map((shop: any) => {
+                            const monthData = shop.monthlyData?.[monthName];
+                            const previousMonth1Data = shop.monthlyData?.[previousMonth1Name];
+                            const previousMonth2Data = shop.monthlyData?.[previousMonth2Name];
 
-              const pageWidth = doc.internal.pageSize.getWidth();
-              const text = `Monthly Rent Collection Report ${monthName} ${selectedYear}`;
-              const textWidth = doc.getTextWidth(text);
-              const centerX = (pageWidth - textWidth) / 2;
+                            const rentAmount = monthData?.rent !== undefined ? monthData.rent : shop.rentAmount;
+                            const finalMonthData = monthData || {
+                              rent: shop.rentAmount,
+                              paid: 0,
+                              status: "Pending",
+                            };
 
-              doc.text(text, centerX, 15);
+                            // Calculate due months
+                            const dueMonths = [];
+                            const monthlyData = shop.monthlyData || {};
 
-              // Prepare table data
-              const tableData = shopsArray.map((shop: any) => {
-                const monthData = shop.monthlyData?.[monthName];
-                const previousMonth1Data = shop.monthlyData?.[previousMonth1Name];
-                const previousMonth2Data = shop.monthlyData?.[previousMonth2Name];
+                            months.forEach((month) => {
+                              const monthData = monthlyData[month];
+                              if (monthData && monthData.status === "Due") {
+                                dueMonths.push(month);
+                              }
+                            });
 
-                // Determine the rent amount for this specific month
-                const rentAmount = monthData?.rent !== undefined ? monthData.rent : shop.rentAmount;
+                            if (shop.previousYearDues?.dueMonths && shop.previousYearDues.dueMonths.length > 0) {
+                              dueMonths.push(...shop.previousYearDues.dueMonths);
+                            }
 
-                // Use the month data if it exists, otherwise create default data
-                const finalMonthData = monthData || {
-                  rent: shop.rentAmount,
-                  paid: 0,
-                  status: "Pending",
-                };
+                            // Use Hindi name for proper rendering
+                            const tenantName = shop.tenant.tenant_name_hindi || shop.tenant.name || 'N/A';
+                            const duesCount = dueMonths.length > 0 ? dueMonths.length : 0;
+                            const rowBgColor = duesCount > 1 ? 'background-color: #ffebee;' : '';
 
-                // Calculate due months - only count months explicitly marked as "Due" or in dueMonths array
-                const dueMonths = [];
-                const monthlyData = shop.monthlyData || {};
-
-                // Only count months that are explicitly marked as "Due" status
-                months.forEach((month) => {
-                  const monthData = monthlyData[month];
-                  if (monthData && monthData.status === "Due") {
-                    dueMonths.push(month);
-                  }
-                });
-
-                // Add previous year due months if any (these are already in the dueMonths array)
-                if (shop.previousYearDues?.dueMonths && shop.previousYearDues.dueMonths.length > 0) {
-                  dueMonths.push(...shop.previousYearDues.dueMonths);
+                            return `
+                              <tr style="${rowBgColor}">
+                                <td style="border: 1px solid #000; padding: 6px; text-align: center;">${duesCount}</td>
+                                <td style="border: 1px solid #000; padding: 6px; text-align: center;">${shop.shopNumber}</td>
+                                <td style="border: 1px solid #000; padding: 6px; text-align: left; font-family: 'Noto Sans Devanagari', Arial, sans-serif;">${tenantName}</td>
+                                <td style="border: 1px solid #000; padding: 6px; text-align: right;">₹${(rentAmount || 0).toLocaleString()}</td>
+                                <td style="border: 1px solid #000; padding: 6px; text-align: right;">₹${(previousMonth2Data?.paid || 0).toLocaleString()}</td>
+                                <td style="border: 1px solid #000; padding: 6px; text-align: right;">₹${(previousMonth1Data?.paid || 0).toLocaleString()}</td>
+                                <td style="border: 1px solid #000; padding: 6px; text-align: right;">${finalMonthData.status === "Paid" ? `₹${(finalMonthData.paid || 0).toLocaleString()}` : ""}</td>
+                                <td style="border: 1px solid #000; padding: 6px; text-align: center;"></td>
+                                <td style="border: 1px solid #000; padding: 6px; text-align: center;"></td>
+                              </tr>
+                            `;
+                          }).join('')}
+                        </tbody>
+                      </table>
+                    </div>
+                  `;
+                  tables.push(tableHTML);
                 }
 
-                return [
-                  dueMonths.length > 0 ? dueMonths.length.toString() : "0",
-                  shop.shopNumber,
-                  shop.tenant.name, // Use PDF-safe name
-                  (rentAmount || 0).toLocaleString(),
-                  (previousMonth2Data?.paid || 0).toLocaleString(),
-                  (previousMonth1Data?.paid || 0).toLocaleString(),
-                  finalMonthData.status === "Paid" ? (finalMonthData.paid || 0).toLocaleString() : "",
-                  "", // Date column - empty for manual filling
-                  ""  // Signature column - empty for manual filling
-                ];
-              });
+                return tables.join('');
+              };
 
-              // Define table columns
-              const columns = [
-                'Dues\nMonths',
-                'Shop\nNumber',
-                'Tenant Name',
-                'Rent\nAmount',
-                previousMonth2Name,
-                previousMonth1Name,
-                monthName,
-                'Date',
-                'Signature'
-              ];
+              // Create temporary element
+              const tempDiv = document.createElement('div');
+              tempDiv.innerHTML = createPaginatedHTMLTables();
+              tempDiv.style.position = 'absolute';
+              tempDiv.style.left = '-9999px';
+              tempDiv.style.top = '-9999px';
+              document.body.appendChild(tempDiv);
 
-              // Calculate column widths for full page utilization
-              const pageMargin = 5; // 5mm margin on each side
-              const availableWidth = pageWidth - (pageMargin * 2);
+              try {
+                // Create PDF with proper page handling
+                const pdf = new jsPDF('portrait', 'mm', 'a4');
+                const imgWidth = 210;
+                const pageHeight = 295;
+                const margin = 10;
+                const contentWidth = imgWidth - (2 * margin);
 
-              // Define column width ratios based on content needs
-              const columnWidths = [
-                availableWidth * 0.06, // Dues Months (6%)
-                availableWidth * 0.07, // Shop Number (7%)
-                availableWidth * 0.25, // Tenant Name (25%)
-                availableWidth * 0.09, // Rent Amount (9%)
-                availableWidth * 0.09, // Previous Month 2 (9%)
-                availableWidth * 0.09, // Previous Month 1 (9%)
-                availableWidth * 0.09, // Current Month (9%)
-                availableWidth * 0.08, // Date (8%)
-                availableWidth * 0.08  // Signature (8%)
-              ];
-
-              // Add table to PDF with full width
-              autoTable(doc, {
-                head: [columns],
-                body: tableData,
-                startY: 25,
-                margin: { left: pageMargin, right: pageMargin },
-                tableWidth: 'auto',
-                styles: {
-                  fontSize: 8,
-                  cellPadding: 2,
-                  overflow: 'linebreak',
-                  halign: 'center',
-                  lineColor: [0, 0, 0],
-                  lineWidth: 0.1,
-                  font: 'helvetica',
-                  fontStyle: 'normal',
-                },
-                headStyles: {
-                  fillColor: [66, 139, 202],
-                  textColor: 255,
-                  fontStyle: 'bold',
-                  halign: 'center',
-                  valign: 'middle',
-                  lineColor: [0, 0, 0],
-                  lineWidth: 0.1,
-                  font: 'helvetica',
-                },
-                bodyStyles: {
-                  valign: 'middle',
-                },
-                columnStyles: {
-                  0: { halign: 'center', cellWidth: columnWidths[0] }, // Dues Months
-                  1: { halign: 'center', cellWidth: columnWidths[1] }, // Shop Number
-                  2: { halign: 'left', cellWidth: columnWidths[2] },   // Tenant Name
-                  3: { halign: 'right', cellWidth: columnWidths[3] },  // Rent Amount
-                  4: { halign: 'right', cellWidth: columnWidths[4] },  // Previous Month 2
-                  5: { halign: 'right', cellWidth: columnWidths[5] },  // Previous Month 1
-                  6: { halign: 'right', cellWidth: columnWidths[6] },  // Current Month
-                  7: { halign: 'center', cellWidth: columnWidths[7] }, // Date
-                  8: { halign: 'center', cellWidth: columnWidths[8] }, // Signature
-                },
-                showHead: 'everyPage',
-                theme: 'grid',
-                // ADD THIS INSTEAD OF didDrawCell FOR BETTER PERFORMANCE
-                willDrawCell: function (data) {
-                  // Check if this is a body cell and in the first column (Dues Months)
-                  if (data.section === 'body' && data.column.index === 0) {
-                    const duesMonths = parseInt(data.cell.raw.toString()) || 0;
-
-                    // If dues months > 1, set fill color for the entire row
-                    if (duesMonths > 1) {
-                      doc.setFillColor(255, 200, 200); // Light red background
-                    }
+                // Get all page elements
+                const pageElements = tempDiv.querySelectorAll('div[style*="page-break-after"]');
+                
+                for (let i = 0; i < pageElements.length; i++) {
+                  if (i > 0) {
+                    pdf.addPage();
                   }
-                },
-                didDrawPage: function (data: any) {
-                  // Add page number footer
-                  const pageCount = 3;
-                  doc.setFontSize(8);
-                  doc.text(`Page ${data.pageNumber} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 5, { align: 'center' });
-                },
-              });
 
-              // Save the PDF
-              doc.save(`MonthlyReport_${selectedYear}_${monthName}.pdf`);
+                  // Create a temporary container for this page
+                  const pageContainer = document.createElement('div');
+                  pageContainer.appendChild(pageElements[i].cloneNode(true));
+                  pageContainer.style.position = 'absolute';
+                  pageContainer.style.left = '-9999px';
+                  pageContainer.style.top = '-9999px';
+                  pageContainer.style.width = '210mm';
+                  document.body.appendChild(pageContainer);
+
+                  try {
+                    // Capture this page as canvas
+                    const canvas = await html2canvas(pageContainer, {
+                      scale: 2,
+                      useCORS: true,
+                      allowTaint: true,
+                      backgroundColor: '#ffffff',
+                      width: 794, // A4 width in pixels at 96 DPI
+                      height: 1123 // A4 height in pixels at 96 DPI
+                    });
+
+                    // Add image to PDF
+                    const imgData = canvas.toDataURL('image/png');
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                    
+                    // Center the image on the page
+                    const yOffset = (pageHeight - imgHeight) / 2;
+                    pdf.addImage(imgData, 'PNG', margin, yOffset, contentWidth, imgHeight);
+                  } finally {
+                    // Clean up page container
+                    document.body.removeChild(pageContainer);
+                  }
+                }
+
+                // Save the PDF
+                pdf.save(`MonthlyReport_${selectedYear}_${monthName}.pdf`);
+              } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('Error generating PDF. Please try again.');
+              } finally {
+                // Clean up
+                document.body.removeChild(tempDiv);
+              }
             }}
           >
             Export Monthly Report
