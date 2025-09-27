@@ -31,13 +31,24 @@ import {
   Category,
   Payment
 } from '@mui/icons-material';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, PointElement, LineElement } from 'chart.js';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, PointElement, LineElement, Filler } from 'chart.js';
 import { Pie, Bar, Line } from 'react-chartjs-2';
 import { createExpenditureData, generateCategoryColors } from '../data/expenditureData';
 import { Expense, ViewMode, MonthlySummary, YearlySummary, ExpenditureData } from '../types';
 
 // Register Chart.js components
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, PointElement, LineElement);
+ChartJS.register(
+  ArcElement, 
+  Tooltip, 
+  Legend, 
+  CategoryScale, 
+  LinearScale, 
+  BarElement, 
+  Title, 
+  PointElement, 
+  LineElement, 
+  Filler
+);
 
 const ExpenditureDashboard: React.FC = () => {
   const theme = useTheme();
@@ -237,7 +248,6 @@ const ExpenditureDashboard: React.FC = () => {
           borderColor: 'rgba(25, 118, 210, 1)',
           backgroundColor: 'rgba(25, 118, 210, 0.1)',
           borderWidth: 3,
-          fill: true,
           tension: 0.4,
           pointBackgroundColor: 'rgba(25, 118, 210, 1)',
           pointBorderColor: '#fff',
@@ -362,28 +372,30 @@ const ExpenditureDashboard: React.FC = () => {
                               </ListItemIcon>
                               <ListItemText
                                 primary={
-                                  <Box display="flex" justifyContent="space-between" alignItems="center">
-                                    <Typography variant="body1">{expense.description}</Typography>
-                                    <Typography variant="h6" color="primary">
+                                  <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                    <span>{expense.description}</span>
+                                    <span style={{ fontWeight: 'bold', color: '#1976d2' }}>
                                       ₹{expense.amount.toFixed(2)}
-                                    </Typography>
-                                  </Box>
+                                    </span>
+                                  </span>
                                 }
                                 secondary={
-                                  <Box display="flex" justifyContent="space-between" alignItems="center">
-                                    <Box>
+                                  <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                    <span>
                                       <Chip
                                         label={expense.category}
                                         size="small"
                                         sx={{ backgroundColor: categoryColors[expense.category] || '#607D8B', color: 'white', mr: 1 }}
                                       />
-                                      <Chip label={expense.paymentMethod} size="small" variant="outlined" />
-                                    </Box>
-                                    <Typography variant="body2" color="textSecondary">
+                                      <Chip label={expense.sub_category || 'N/A'} size="small" variant="outlined" />
+                                    </span>
+                                    <span style={{ color: 'rgba(0, 0, 0, 0.6)', fontSize: '0.875rem' }}>
                                       {new Date(expense.date).toLocaleDateString()}
-                                    </Typography>
-                                  </Box>
+                                    </span>
+                                  </span>
                                 }
+                                primaryTypographyProps={{ component: 'div' }}
+                                secondaryTypographyProps={{ component: 'div' }}
                               />
                             </ListItem>
                             {index < expenses.length - 1 && <Divider />}
@@ -497,28 +509,30 @@ const ExpenditureDashboard: React.FC = () => {
                                     </ListItemIcon>
                                     <ListItemText
                                       primary={
-                                        <Box display="flex" justifyContent="space-between" alignItems="center">
-                                          <Typography variant="body1">{expense.description}</Typography>
-                                          <Typography variant="h6" color="primary">
+                                        <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                          <span>{expense.description}</span>
+                                          <span style={{ fontWeight: 'bold', color: '#1976d2' }}>
                                             ₹{expense.amount.toFixed(2)}
-                                          </Typography>
-                                        </Box>
+                                          </span>
+                                        </span>
                                       }
                                       secondary={
-                                        <Box display="flex" justifyContent="space-between" alignItems="center">
-                                          <Box>
+                                        <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                                          <span>
                                             <Chip
                                               label={expense.category}
                                               size="small"
                                               sx={{ backgroundColor: categoryColors[expense.category] || '#607D8B', color: 'white', mr: 1 }}
                                             />
-                                            <Chip label={expense.paymentMethod} size="small" variant="outlined" />
-                                          </Box>
-                                          <Typography variant="body2" color="textSecondary">
+                                            <Chip label={expense.sub_category || 'N/A'} size="small" variant="outlined" />
+                                          </span>
+                                          <span style={{ color: 'rgba(0, 0, 0, 0.6)', fontSize: '0.875rem' }}>
                                             {new Date(expense.date).toLocaleDateString()}
-                                          </Typography>
-                                        </Box>
+                                          </span>
+                                        </span>
                                       }
+                                      primaryTypographyProps={{ component: 'div' }}
+                                      secondaryTypographyProps={{ component: 'div' }}
                                     />
                                   </ListItem>
                                   {index < expenses.length - 1 && <Divider />}
@@ -548,7 +562,7 @@ const ExpenditureDashboard: React.FC = () => {
   if (loading) {
     return (
       <Box sx={{ p: 3, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
-        <Box textAlign="center">
+        <Box sx={{ textAlign: 'center' }}>
           <CircularProgress size={60} />
           <Typography variant="h6" sx={{ mt: 2 }}>
             Loading expenditure data...

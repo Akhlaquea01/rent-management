@@ -141,6 +141,7 @@ export interface Expense {
   amount: number;
   category: string;
   description: string;
+  sub_category: string;
   paymentMethod: string;
   tags?: string[];
 }
