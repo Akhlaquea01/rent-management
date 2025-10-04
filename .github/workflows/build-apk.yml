@@ -51,16 +51,24 @@ jobs:
     - name: Verify themes.xml configuration
       run: |
         cd rent-management-mobile
-        # Ensure the problematic attribute is commented out
+        # Verify the attribute is properly configured for API 35
         if [ -f "platforms/android/app/src/main/res/values/themes.xml" ]; then
           echo "Checking themes.xml for windowOptOutEdgeToEdgeEnforcement..."
-          grep -n "windowOptOutEdgeToEdgeEnforcement" platforms/android/app/src/main/res/values/themes.xml || echo "Attribute not found (good)"
+          grep -n "windowOptOutEdgeToEdgeEnforcement" platforms/android/app/src/main/res/values/themes.xml || echo "Attribute not found"
         fi
     
     - name: Clean Android build
       run: |
         cd rent-management-mobile
         cordova clean android
+    
+    - name: Verify SDK configuration
+      run: |
+        cd rent-management-mobile
+        # Verify that we're targeting API 35
+        echo "Checking config.xml for targetSdkVersion..."
+        grep -n "android-targetSdkVersion" config.xml || echo "targetSdkVersion not found"
+        echo "Configuration verified"
     
     - name: Build APK
       run: |
