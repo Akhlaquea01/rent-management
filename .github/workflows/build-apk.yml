@@ -34,9 +34,6 @@ jobs:
     - name: List files
       run: ls -la
     
-    - name: Navigate to mobile directory
-      run: cd rent-management-mobile
-    
     - name: Install dependencies
       run: |
         cd rent-management-mobile
@@ -48,36 +45,27 @@ jobs:
         cordova platform add android
         cordova platform list
     
-    - name: Verify themes.xml configuration
+    - name: Verify configuration
       run: |
         cd rent-management-mobile
-        # Verify the attribute is properly configured for API 35
-        if [ -f "platforms/android/app/src/main/res/values/themes.xml" ]; then
-          echo "Checking themes.xml for windowOptOutEdgeToEdgeEnforcement..."
-          grep -n "windowOptOutEdgeToEdgeEnforcement" platforms/android/app/src/main/res/values/themes.xml || echo "Attribute not found"
-        fi
-    
-    - name: Clean Android build
-      run: |
-        cd rent-management-mobile
-        cordova clean android
-        # Remove platform and re-add to ensure fresh build
-        cordova platform remove android
-        cordova platform add android
-    
-    - name: Verify SDK configuration
-      run: |
-        cd rent-management-mobile
-        # Verify that we're targeting API 35
         echo "Checking config.xml for targetSdkVersion..."
         grep -n "android-targetSdkVersion" config.xml || echo "targetSdkVersion not found"
+        echo "Checking if WhitelistPlugin.java exists..."
+        if [ -f "platforms/android/app/src/main/java/org/apache/cordova/whitelist/WhitelistPlugin.java" ]; then
+          echo "WhitelistPlugin.java found"
+        else
+          echo "WhitelistPlugin.java not found - this may cause build issues"
+        fi
         echo "Configuration verified"
     
     - name: Build APK
       run: |
         cd rent-management-mobile
+        echo "Starting Android build..."
         cordova build android --release
+        echo "Build completed, looking for APK files..."
         find . -name "*.apk" -type f
+        echo "APK search completed"
     
     - name: Upload APK
       uses: actions/upload-artifact@v4
