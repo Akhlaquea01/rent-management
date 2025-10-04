@@ -34,13 +34,37 @@ jobs:
     - name: List files
       run: ls -la
     
+    - name: Navigate to mobile directory
+      run: cd rent-management-mobile
+    
+    - name: Install dependencies
+      run: |
+        cd rent-management-mobile
+        npm install
+    
     - name: Add Android platform
       run: |
+        cd rent-management-mobile
         cordova platform add android
         cordova platform list
     
+    - name: Verify themes.xml configuration
+      run: |
+        cd rent-management-mobile
+        # Ensure the problematic attribute is commented out
+        if [ -f "platforms/android/app/src/main/res/values/themes.xml" ]; then
+          echo "Checking themes.xml for windowOptOutEdgeToEdgeEnforcement..."
+          grep -n "windowOptOutEdgeToEdgeEnforcement" platforms/android/app/src/main/res/values/themes.xml || echo "Attribute not found (good)"
+        fi
+    
+    - name: Clean Android build
+      run: |
+        cd rent-management-mobile
+        cordova clean android
+    
     - name: Build APK
       run: |
+        cd rent-management-mobile
         cordova build android --release
         find . -name "*.apk" -type f
     
@@ -48,5 +72,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: rent-management-apk
-        path: platforms/android/app/build/outputs/apk/release/app-release.apk
+        path: rent-management-mobile/platforms/android/app/build/outputs/apk/release/app-release.apk
         if-no-files-found: warn
