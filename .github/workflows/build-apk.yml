@@ -2,9 +2,9 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ android, main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ android, main, master ]
   workflow_dispatch:
 
 jobs:
@@ -18,12 +18,9 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: '18'
-        cache: 'npm'
     
-    - name: Install dependencies
-      run: |
-        npm install -g cordova
-        npm install
+    - name: Install Cordova
+      run: npm install -g cordova
     
     - name: Setup Java
       uses: actions/setup-java@v3
@@ -34,18 +31,22 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v2
     
+    - name: List files
+      run: ls -la
+    
     - name: Add Android platform
       run: |
-        cd rent-management-mobile
         cordova platform add android
+        cordova platform list
     
     - name: Build APK
       run: |
-        cd rent-management-mobile
         cordova build android --release
+        find . -name "*.apk" -type f
     
     - name: Upload APK
       uses: actions/upload-artifact@v3
       with:
         name: rent-management-apk
-        path: rent-management-mobile/platforms/android/app/build/outputs/apk/release/app-release.apk
+        path: platforms/android/app/build/outputs/apk/release/app-release.apk
+        if-no-files-found: warn
