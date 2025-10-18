@@ -72,11 +72,13 @@ const Reports: React.FC = () => {
   };
 
   // Compute stats from new data structure and sort by shop number
+  // Filter out inactive shops
   const shopsArray = Object.entries(selectedYearShops)
     .map(([shopNumber, shop]: [string, any]) => ({
       shopNumber,
       ...shop,
     }))
+    .filter((shop: any) => shop.tenant.status === "Active") // Only include active shops
     .sort((a, b) => {
       const shopA = parseShopNumber(a.shopNumber);
       const shopB = parseShopNumber(b.shopNumber);
@@ -88,11 +90,9 @@ const Reports: React.FC = () => {
       return shopA.suffix.localeCompare(shopB.suffix);
     });
 
-  const totalShops = shopsArray.length;
-  const activeShops = shopsArray.filter(
-    (shop: any) => shop.tenant.status === "Active"
-  ).length;
-  const inactiveShops = totalShops - activeShops;
+  const totalShops = shopsArray.length; // Now only active shops
+  const activeShops = totalShops; // All shops in array are active
+  const inactiveShops = 0; // Inactive shops are filtered out
 
   const totalAdvance = shopsArray.reduce(
     (sum: number, shop: any) => sum + shop.advanceAmount,
@@ -270,20 +270,8 @@ const Reports: React.FC = () => {
                               status: "Pending",
                             };
 
-                            // Calculate due months
-                            const dueMonths = [];
-                            const monthlyData = shop.monthlyData || {};
-
-                            months.forEach((month) => {
-                              const monthData = monthlyData[month];
-                              if (monthData && monthData.status === "Due") {
-                                dueMonths.push(month);
-                              }
-                            });
-
-                            if (shop.previousYearDues?.dueMonths && shop.previousYearDues.dueMonths.length > 0) {
-                              dueMonths.push(...shop.previousYearDues.dueMonths);
-                            }
+                            // Calculate due months - use previousYearDues as single source of truth
+                            const dueMonths = shop.previousYearDues?.dueMonths || [];
 
                             // Use Hindi name for proper rendering
                             const tenantName = shop.tenant.tenant_name_hindi || shop.tenant.name || 'N/A';
@@ -503,7 +491,7 @@ const Reports: React.FC = () => {
                 {totalShops}
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                {activeShops} Active, {inactiveShops} Inactive
+                Active Shops Only
               </Typography>
             </CardContent>
           </Card>
