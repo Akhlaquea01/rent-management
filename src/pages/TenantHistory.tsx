@@ -526,7 +526,13 @@ const TenantHistory: React.FC = () => {
               // Load the font
               const fontResponse = await fetch('/fonts/NotoSansDevanagari.ttf');
               const fontBuffer = await fontResponse.arrayBuffer();
-              const fontBase64 = btoa(String.fromCharCode(...new Uint8Array(fontBuffer)));
+              // Fixes ES2015+ iteration issue for Uint8Array:
+              let binary = "";
+              const uint8Arr = new Uint8Array(fontBuffer);
+              for (let i = 0; i < uint8Arr.length; i++) {
+                binary += String.fromCharCode(uint8Arr[i]);
+              }
+              const fontBase64 = btoa(binary);
 
               doc.addFileToVFS('NotoSansDevanagari.ttf', fontBase64);
               doc.addFont('NotoSansDevanagari.ttf', 'NotoSansDevanagari', 'normal');
