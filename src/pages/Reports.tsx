@@ -92,7 +92,6 @@ const Reports: React.FC = () => {
 
   const totalShops = shopsArray.length; // Now only active shops
   const activeShops = totalShops; // All shops in array are active
-  const inactiveShops = 0; // Inactive shops are filtered out
 
   const totalAdvance = shopsArray.reduce(
     (sum: number, shop: any) => sum + shop.advanceAmount,

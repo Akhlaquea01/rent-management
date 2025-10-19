@@ -26,7 +26,8 @@ import {
   FileDownload as FileDownloadIcon,
 } from '@mui/icons-material';
 import { useRentContext } from "../context/RentContext";
-import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import CollectionGraphs from "../components/CollectionGraphs";
 
 
@@ -263,33 +264,136 @@ const Dashboard: React.FC = () => {
                 <Box>
                   <FileDownloadIcon
                     sx={{ cursor: "pointer", ml: 1 }}
-                    titleAccess="Export to Excel"
-                    onClick={() => {
-                      // Prepare data for export
-                      const exportData = overdueShops.map((shop: any) => {
-                        const previousYearDueMonths =
-                          shop.previousYearDues?.dueMonths || [];
-                        const dueMonths = previousYearDueMonths.join(", ");
-                        return {
-                          Name: shop.tenant.tenant_name_hindi,
-                          Shop: shop.shopNumber,
-                          "Due Amount": shop.totalDues,
-                          "Due Months": dueMonths,
-                          // Phone: shop.tenant.phoneNumber,
+                    titleAccess="Export to PDF"
+                    onClick={async () => {
+                      try {
+                        // Create paginated HTML tables with proper page breaks
+                        const createPaginatedHTMLTables = () => {
+                          const rowsPerPage = 25; // Adjust based on your needs
+                          const totalPages = Math.ceil(overdueShops.length / rowsPerPage);
+                          const tables = [];
+
+                          for (let page = 0; page < totalPages; page++) {
+                            const startIndex = page * rowsPerPage;
+                            const endIndex = Math.min(startIndex + rowsPerPage, overdueShops.length);
+                            const pageShops = overdueShops.slice(startIndex, endIndex);
+
+                            const tableHTML = `
+                              <div style="font-family: Arial, sans-serif; padding: 20px; background: white; page-break-after: ${page < totalPages - 1 ? 'always' : 'avoid'};">
+                                <h2 style="text-align: center; margin-bottom: 10px; font-size: 18px; font-weight: bold;">
+                                  Shops with Dues Report - ${selectedYear} | (Page ${page + 1} of ${totalPages})
+                                </h2>
+                                <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                                  <thead>
+                                    <tr style="background-color: #1976d2; color: white;">
+                                      <th style="border: 1px solid #000; padding: 8px; text-align: center;">Name</th>
+                                      <th style="border: 1px solid #000; padding: 8px; text-align: center;">Shop</th>
+                                      <th style="border: 1px solid #000; padding: 8px; text-align: right;">Due Amount</th>
+                                      <th style="border: 1px solid #000; padding: 8px; text-align: center;">Due Months</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    ${pageShops.map((shop: any, index: number) => {
+                                      const previousYearDueMonths = shop.previousYearDues?.dueMonths || [];
+                                      const dueMonths = previousYearDueMonths.join(", ");
+                                      const rowBgColor = index % 2 === 0 ? 'background-color: #f5f5f5;' : '';
+                                      
+                                      return `
+                                        <tr style="${rowBgColor}">
+                                          <td style="border: 1px solid #000; padding: 6px; text-align: left;">${shop.tenant.tenant_name_hindi || shop.tenant.name}</td>
+                                          <td style="border: 1px solid #000; padding: 6px; text-align: center;">${shop.shopNumber}</td>
+                                          <td style="border: 1px solid #000; padding: 6px; text-align: right;">₹${shop.totalDues.toLocaleString()}</td>
+                                          <td style="border: 1px solid #000; padding: 6px; text-align: center;">${dueMonths || "N/A"}</td>
+                                        </tr>
+                                      `;
+                                    }).join('')}
+                                  </tbody>
+                                </table>
+                                ${page === totalPages - 1 ? `
+                                  <div style="margin-top: 20px; padding: 10px; background-color: #f0f0f0; border: 1px solid #ccc;">
+                                    <p style="margin: 5px 0; font-weight: bold;">Summary:</p>
+                                    <p style="margin: 5px 0;">Total Shops with Dues: ${overdueShops.length}</p>
+                                    <p style="margin: 5px 0;">Total Due Amount: ₹${overdueShops.reduce((sum: number, shop: any) => sum + shop.totalDues, 0).toLocaleString()}</p>
+                                  </div>
+                                ` : ''}
+                              </div>
+                            `;
+                            tables.push(tableHTML);
+                          }
+
+                          return tables.join('');
                         };
-                      });
-                      const ws = XLSX.utils.json_to_sheet(exportData);
-                      const wb = XLSX.utils.book_new();
-                      XLSX.utils.book_append_sheet(wb, ws, "ShopsWithDues");
-                      // Add date and time to filename
-                      const now = new Date();
-                      const pad = (n: number) => n.toString().padStart(2, "0");
-                      const dateStr = `${now.getFullYear()}-${pad(
-                        now.getMonth() + 1
-                      )}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(
-                        now.getMinutes()
-                      )}-${pad(now.getSeconds())}`;
-                      XLSX.writeFile(wb, `ShopsWithDues_${dateStr}.xlsx`);
+
+                        // Create temporary element
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = createPaginatedHTMLTables();
+                        tempDiv.style.position = 'absolute';
+                        tempDiv.style.left = '-9999px';
+                        tempDiv.style.top = '-9999px';
+                        document.body.appendChild(tempDiv);
+
+                        try {
+                          // Create PDF with proper page handling
+                          const pdf = new jsPDF('portrait', 'mm', 'a4');
+                          const imgWidth = 210;
+                          const pageHeight = 295;
+                          const margin = 10;
+                          const contentWidth = imgWidth - (2 * margin);
+
+                          // Get all page elements
+                          const pageElements = tempDiv.querySelectorAll('div[style*="page-break-after"]');
+                          
+                          for (let i = 0; i < pageElements.length; i++) {
+                            if (i > 0) {
+                              pdf.addPage();
+                            }
+
+                            // Create a temporary container for this page
+                            const pageContainer = document.createElement('div');
+                            pageContainer.appendChild(pageElements[i].cloneNode(true));
+                            pageContainer.style.position = 'absolute';
+                            pageContainer.style.left = '-9999px';
+                            pageContainer.style.top = '-9999px';
+                            pageContainer.style.width = '210mm';
+                            document.body.appendChild(pageContainer);
+
+                            try {
+                              // Capture this page as canvas
+                              const canvas = await html2canvas(pageContainer, {
+                                scale: 2,
+                                useCORS: true,
+                                allowTaint: true,
+                                backgroundColor: '#ffffff',
+                                width: 794, // A4 width in pixels at 96 DPI
+                                height: 1123 // A4 height in pixels at 96 DPI
+                              });
+
+                              // Add image to PDF
+                              const imgData = canvas.toDataURL('image/png');
+                              const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                              
+                              // Center the image on the page
+                              const yOffset = (pageHeight - imgHeight) / 2;
+                              pdf.addImage(imgData, 'PNG', margin, yOffset, contentWidth, imgHeight);
+                            } finally {
+                              // Clean up page container
+                              document.body.removeChild(pageContainer);
+                            }
+                          }
+
+                          // Save the PDF
+                          const now = new Date();
+                          const pad = (n: number) => n.toString().padStart(2, "0");
+                          const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+                          pdf.save(`ShopsWithDues_${timestamp}.pdf`);
+                        } finally {
+                          // Clean up
+                          document.body.removeChild(tempDiv);
+                        }
+                      } catch (error) {
+                        console.error('Error generating PDF:', error);
+                        alert('Error generating PDF. Please try again.');
+                      }
                     }}
                   />
                 </Box>
