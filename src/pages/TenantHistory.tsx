@@ -18,7 +18,6 @@ import {
   Paper,
   Chip,
   Button,
-  Divider,
   Tooltip,
 } from "@mui/material";
 import { Print as PrintIcon } from "@mui/icons-material";
@@ -83,8 +82,8 @@ const RentHistoryTables: React.FC<{
             <Typography variant="h6" gutterBottom>
               {getTableTitle(year)}
             </Typography>
-            <RentTable 
-              monthlyData={data.monthlyData} 
+            <RentTable
+              monthlyData={data.monthlyData}
               {...tableProps}
             />
           </Box>
@@ -94,15 +93,15 @@ const RentHistoryTables: React.FC<{
   }
 
   const yearlyData = getYearlyData(selectedShopNumber, selectedYear);
-  
+
   return (
     <>
       <Typography variant="h6" gutterBottom>
         {getTableTitle(selectedYear)}
       </Typography>
       {yearlyData ? (
-        <RentTable 
-          monthlyData={yearlyData.monthlyData} 
+        <RentTable
+          monthlyData={yearlyData.monthlyData}
           {...tableProps}
         />
       ) : (
@@ -129,9 +128,9 @@ const RentTableHeader: React.FC = () => (
 );
 
 // Reusable table row component
-const RentTableRow: React.FC<{ monthData: MonthlyData; showChip?: boolean }> = ({ 
-  monthData, 
-  showChip = true 
+const RentTableRow: React.FC<{ monthData: MonthlyData; showChip?: boolean }> = ({
+  monthData,
+  showChip = true
 }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -188,55 +187,55 @@ const RentTableRow: React.FC<{ monthData: MonthlyData; showChip?: boolean }> = (
 };
 
 // Reusable rent table component
-const RentTable: React.FC<{ 
-  monthlyData: MonthlyData[]; 
+const RentTable: React.FC<{
+  monthlyData: MonthlyData[];
   showChip?: boolean;
   size?: "small" | "medium";
   component?: React.ElementType;
-}> = ({ 
-  monthlyData, 
-  showChip = true, 
+}> = ({
+  monthlyData,
+  showChip = true,
   size = "medium",
-  component = Paper 
+  component = Paper
 }) => (
-  <TableContainer 
-    component={component}
-    sx={{
-      '@media print': {
-        maxHeight: 'none !important',
-        overflow: 'visible !important',
-      }
-    }}
-  >
-    <Table 
-      size={size}
+    <TableContainer
+      component={component}
       sx={{
         '@media print': {
-          fontSize: '10px !important',
-          '& th, & td': {
-            padding: '4px 6px !important',
-            fontSize: '9px !important',
-            lineHeight: '1.2 !important',
-          }
+          maxHeight: 'none !important',
+          overflow: 'visible !important',
         }
       }}
     >
-      <RentTableHeader />
-      <TableBody>
-        {monthlyData.map((monthData) => (
-          <RentTableRow 
-            key={monthData.month} 
-            monthData={monthData} 
-            showChip={showChip} 
-          />
-        ))}
-      </TableBody>
-    </Table>
-  </TableContainer>
-);
+      <Table
+        size={size}
+        sx={{
+          '@media print': {
+            fontSize: '10px !important',
+            '& th, & td': {
+              padding: '4px 6px !important',
+              fontSize: '9px !important',
+              lineHeight: '1.2 !important',
+            }
+          }
+        }}
+      >
+        <RentTableHeader />
+        <TableBody>
+          {monthlyData.map((monthData) => (
+            <RentTableRow
+              key={monthData.month}
+              monthData={monthData}
+              showChip={showChip}
+            />
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
 
 // Reusable summary component
-const SummarySection: React.FC<{ 
+const SummarySection: React.FC<{
   data: YearlyData | AllYearsData | null;
   selectedYear: string;
   selectedShopNumber: string;
@@ -268,8 +267,8 @@ const SummarySection: React.FC<{
             <Typography variant="body2" color="textSecondary">
               {item.label}
             </Typography>
-            <Typography 
-              variant="h6" 
+            <Typography
+              variant="h6"
               sx={{ fontWeight: "bold", color: item.color }}
             >
               ₹{item.value?.toLocaleString()}
@@ -297,7 +296,7 @@ const TenantHistory: React.FC = () => {
     return years.sort((a, b) => b.localeCompare(a));
   }, []);
 
- 
+
   const allYearOptions = ["All Years", ...availableYears];
 
   // Fetch year data when selected year changes (if not "All Years")
@@ -364,19 +363,19 @@ const TenantHistory: React.FC = () => {
   const getYearlyData = (shopNumber: string, year: string): YearlyData | null => {
     const shop = data.years[year]?.shops[shopNumber];
     if (!shop) return null;
-    
+
     // Only get months that exist in the JSON data
     const months = getMonthsFromData(shop);
     let totalRent = 0;
     let totalPaid = 0;
-    
+
     // Get dues amount directly from data - this is the single source of truth
     const totalDues = shop.previousYearDues?.totalDues || 0;
 
     const monthlyDataArray = months.map((month) => {
       // Get the specific month's data - this will always exist since we're only iterating over existing months
       const monthData = shop.monthlyData[month];
-      
+
       // Use the rent amount from the month data
       const rentAmount = monthData.rent;
 
@@ -385,17 +384,17 @@ const TenantHistory: React.FC = () => {
 
       // Use status directly from JSON data - no manual calculation
       const status = monthData.status;
-      
+
       return {
         month,
         rentAmount: rentAmount,
         paidAmount: monthData.paid || 0,
-        advanceDeduction: monthData.advanceUsed || 0, 
+        advanceDeduction: monthData.advanceUsed || 0,
         status: status,
         comment: monthData.comment || "-",
       };
     });
-    
+
     // Calculate advance balance from transactions
     const transactions = data.advanceTransactions[shopNumber] || [];
     const advanceBalance = transactions.reduce(
@@ -403,7 +402,7 @@ const TenantHistory: React.FC = () => {
         t.type === "Deposit" ? acc + t.amount : acc - t.amount,
       0
     );
-    
+
     return {
       totalRent,
       totalPaid,
@@ -419,17 +418,17 @@ const TenantHistory: React.FC = () => {
   // For All Years: aggregate Total Rent and Total Paid, but use latest year's dues
   const allYearsData = React.useMemo((): AllYearsData | null => {
     if (!selectedShopNumber || selectedYear !== "All Years") return null;
-    
+
     let totalRent = 0;
     let totalPaid = 0;
     let totalPending = 0;
     let advanceBalance = 0;
     const yearSections: Array<{ year: string; data: YearlyData }> = [];
-    
+
     // Get the latest year for dues calculation
     const latestYear = availableYears[0]; // First year in the sorted array (most recent)
     const latestYearData = getYearlyData(selectedShopNumber, latestYear);
-    
+
     // Aggregate all years for Total Rent and Total Paid
     availableYears
       .slice()
@@ -443,14 +442,14 @@ const TenantHistory: React.FC = () => {
           yearSections.push({ year, data: yd });
         }
       });
-    
+
     // Use latest year's dues only (not aggregated)
     if (latestYearData) {
       totalPending = latestYearData.totalPending;
     }
-    
+
     return { totalRent, totalPaid, totalPending, advanceBalance, yearSections };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedShopNumber, selectedYear, data, availableYears, getYearlyData]);
 
   // Tooltip: dues months grouped by year
@@ -458,7 +457,7 @@ const TenantHistory: React.FC = () => {
     if (!selectedShopNumber) return "";
     const duesByYear: Record<string, string[]> = {};
     let totalDues = 0;
-    
+
     // The "All Years" data already has the correct final dues amount.
     if (selectedYear === "All Years" && allYearsData) {
       totalDues = allYearsData.totalPending;
@@ -487,8 +486,8 @@ const TenantHistory: React.FC = () => {
   };
 
   // Get current data for display
-  const currentData = selectedYear === "All Years" 
-    ? allYearsData 
+  const currentData = selectedYear === "All Years"
+    ? allYearsData
     : getYearlyData(selectedShopNumber, selectedYear);
 
   // Render
@@ -525,7 +524,7 @@ const TenantHistory: React.FC = () => {
                 const selectedShop = activeShops.find(
                   (s) => s.shopNumber === selectedShopNumber
                 );
-                const tenantName = selectedShop?.tenant.name || "Unknown";
+                const tenantName = selectedShop?.tenant.tenant_name_hindi||selectedShop?.tenant.name || "Unknown";
 
                 const summaryItems = [
                   { label: "Total Rent", value: currentData.totalRent },
@@ -550,42 +549,52 @@ const TenantHistory: React.FC = () => {
                   </thead>`;
 
                 let tablesHtml = "";
+                const monthsEnglishToHindi = {
+                  "January": "जनवरी",
+                  "February": "फरवरी",
+                  "March": "मार्च",
+                  "April": "अप्रैल",
+                  "May": "मई",
+                  "June": "जून",
+                  "July": "जुलाई",
+                  "August": "अगस्त",
+                  "September": "सितंबर",
+                  "October": "अक्टूबर",
+                  "November": "नवंबर",
+                  "December": "दिसंबर"
+                };
                 if (selectedYear === "All Years" && allYearsData) {
                   allYearsData.yearSections.forEach((yearSection) => {
                     tablesHtml += `
                       <div style="page-break-inside: avoid;">
-                        <h3 style="margin: 15px 0 5px 0; font-size: 12px; font-weight: bold;">Monthly Rent History - ${
-                          yearSection.year
-                        }</h3>
+                        <h3 style="margin: 15px 0 5px 0; font-size: 12px; font-weight: bold;">Monthly Rent History - ${yearSection.year
+                      }</h3>
                         <table style="width: 100%; border-collapse: collapse; font-size: 9px; margin-bottom: 10px;">
                           ${tableHeaderHtml}
                           <tbody>
                             ${yearSection.data.monthlyData
-                              .map(
-                                (monthData: any) => `
+                        .map(
+                          (monthData: any) => `
                               <tr>
-                                <td style="border: 1px solid #333; padding: 3px;">${
-                                  monthData.month
-                                }</td>
+                                <td style="border: 1px solid #333; padding: 3px;">${monthsEnglishToHindi[monthData.month] || monthData.month
+                            }</td>
                                 <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(
-                                  monthData.rentAmount || 0
-                                ).toLocaleString()}</td>
+                              monthData.rentAmount || 0
+                            ).toLocaleString()}</td>
                                 <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(
-                                  monthData.paidAmount || 0
-                                ).toLocaleString()}</td>
+                              monthData.paidAmount || 0
+                            ).toLocaleString()}</td>
                                 <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(
-                                  monthData.advanceDeduction || 0
-                                ).toLocaleString()}</td>
-                                <td style="border: 1px solid #333; padding: 3px; text-align: center;">${
-                                  monthData.status
-                                }</td>
-                                <td style="border: 1px solid #333; padding: 3px;">${
-                                  monthData.comment || "-"
-                                }</td>
+                              monthData.advanceDeduction || 0
+                            ).toLocaleString()}</td>
+                                <td style="border: 1px solid #333; padding: 3px; text-align: center;">${monthData.status
+                            }</td>
+                                <td style="border: 1px solid #333; padding: 3px;">${monthData.comment || "-"
+                            }</td>
                               </tr>
                             `
-                              )
-                              .join("")}
+                        )
+                        .join("")}
                           </tbody>
                         </table>
                       </div>
@@ -603,31 +612,28 @@ const TenantHistory: React.FC = () => {
                       ${tableHeaderHtml}
                       <tbody>
                         ${monthlyData
-                          .map(
-                            (monthData: any) => `
+                      .map(
+                        (monthData: any) => `
                           <tr>
-                            <td style="border: 1px solid #333; padding: 3px;">${
-                              monthData.month
-                            }</td>
+                            <td style="border: 1px solid #333; padding: 3px;">${monthsEnglishToHindi[monthData.month] || monthData.month
+                          }</td>
                             <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(
-                              monthData.rentAmount || 0
-                            ).toLocaleString()}</td>
+                            monthData.rentAmount || 0
+                          ).toLocaleString()}</td>
                             <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(
-                              monthData.paidAmount || 0
-                            ).toLocaleString()}</td>
+                            monthData.paidAmount || 0
+                          ).toLocaleString()}</td>
                             <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(
-                              monthData.advanceDeduction || 0
-                            ).toLocaleString()}</td>
-                            <td style="border: 1px solid #333; padding: 3px; text-align: center;">${
-                              monthData.status
-                            }</td>
-                            <td style="border: 1px solid #333; padding: 3px;">${
-                              monthData.comment || "-"
-                            }</td>
+                            monthData.advanceDeduction || 0
+                          ).toLocaleString()}</td>
+                            <td style="border: 1px solid #333; padding: 3px; text-align: center;">${monthData.status
+                          }</td>
+                            <td style="border: 1px solid #333; padding: 3px;">${monthData.comment || "-"
+                          }</td>
                           </tr>
                         `
-                          )
-                          .join("")}
+                      )
+                      .join("")}
                       </tbody>
                     </table>
                   `;
@@ -637,26 +643,24 @@ const TenantHistory: React.FC = () => {
                   <div style="text-align: center; margin-bottom: 15px;">
                     <h2 style="margin: 0; font-size: 16px; font-weight: bold;">Rent Summary Report</h2>
                     <p style="margin: 3px 0; font-size: 12px;">${tenantName} - Shop ${selectedShopNumber}</p>
-                    <p style="margin: 2px 0; font-size: 10px;">${
-                      selectedYear === "All Years"
-                        ? "All Years"
-                        : `Year: ${selectedYear}`
-                    }</p>
+                    <p style="margin: 2px 0; font-size: 10px;">${selectedYear === "All Years"
+                    ? "All Years"
+                    : `Year: ${selectedYear}`
+                  }</p>
                   </div>
                   
                   <div style="margin-bottom: 10px;">
                     <div style="display: flex; flex-wrap: wrap; gap: 10px;">
                       ${summaryItems
-                        .map(
-                          (item) => `
+                    .map(
+                      (item) => `
                         <div style="flex: 1; min-width: 45%;">
-                          <span style="font-size: 10px; font-weight: bold;">${
-                            item.label
-                          }: ₹${(item.value || 0).toLocaleString()}</span>
+                          <span style="font-size: 10px; font-weight: bold;">${item.label
+                        }: ₹${(item.value || 0).toLocaleString()}</span>
                         </div>
                       `
-                        )
-                        .join("")}
+                    )
+                    .join("")}
                     </div>
                   </div>
                   
@@ -706,9 +710,8 @@ const TenantHistory: React.FC = () => {
                 document.body.removeChild(tempDiv);
 
                 // Download the PDF
-                const fileName = `RentSummary_${selectedShopNumber}_${selectedYear}_${
-                  new Date().toISOString().split("T")[0]
-                }.pdf`;
+                const fileName = `RentSummary_${selectedShopNumber}_${selectedYear}_${new Date().toISOString().split("T")[0]
+                  }.pdf`;
                 pdf.save(fileName);
               } catch (error) {
                 console.error("Error generating PDF:", error);
