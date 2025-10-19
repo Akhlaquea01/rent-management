@@ -513,7 +513,7 @@ const TenantHistory: React.FC = () => {
           <Button
             variant="outlined"
             startIcon={<PrintIcon />}
-            onClick={() => {
+            onClick={async () => {
               const doc = new jsPDF();
               const selectedShop = activeShops.find(
                 (s) => s.shopNumber === selectedShopNumber
@@ -522,6 +522,15 @@ const TenantHistory: React.FC = () => {
               const title = "Rent Summary Report";
               const subtitle = `${tenantName} - Shop ${selectedShopNumber}`;
               const yearInfo = selectedYear === "All Years" ? "All Years" : `Year: ${selectedYear}`;
+
+              // Load the font
+              const fontResponse = await fetch('/fonts/NotoSansDevanagari.ttf');
+              const fontBuffer = await fontResponse.arrayBuffer();
+              const fontBase64 = btoa(String.fromCharCode(...new Uint8Array(fontBuffer)));
+
+              doc.addFileToVFS('NotoSansDevanagari.ttf', fontBase64);
+              doc.addFont('NotoSansDevanagari.ttf', 'NotoSansDevanagari', 'normal');
+              doc.setFont('NotoSansDevanagari');
 
               const summaryData = [
                 ["Total Rent", `₹${(currentData.totalRent || 0).toLocaleString()}`],
@@ -548,6 +557,7 @@ const TenantHistory: React.FC = () => {
                 styles: {
                   fontSize: 10,
                   cellPadding: 2,
+                  font: 'NotoSansDevanagari',
                 },
                 columnStyles: {
                   0: { fontStyle: 'bold' },
@@ -575,7 +585,8 @@ const TenantHistory: React.FC = () => {
                   body: yearlySummaryRows,
                   startY,
                   theme: 'striped',
-                  headStyles: { fillColor: [22, 160, 133] },
+                  headStyles: { fillColor: [22, 160, 133], font: 'NotoSansDevanagari' },
+                  styles: { font: 'NotoSansDevanagari' },
                 });
 
                 startY = (doc as any).lastAutoTable.finalY + 10;
@@ -600,11 +611,16 @@ const TenantHistory: React.FC = () => {
                     body: monthlyRows,
                     startY,
                     theme: 'striped',
-                    headStyles: { fillColor: [41, 128, 185] },
+                    headStyles: { fillColor: [41, 128, 185], font: 'NotoSansDevanagari' },
+                    styles: { font: 'NotoSansDevanagari' },
                     didDrawPage: (data) => {
                       // Header
                       doc.setFontSize(18);
                       doc.text(title, 14, 20);
+                      // Footer
+                      const pageCount = (doc as any).internal.getNumberOfPages();
+                      doc.setFontSize(10);
+                      doc.text(`Page ${data.pageNumber} of ${pageCount}`, data.settings.margin.left, (doc as any).internal.pageSize.height - 10);
                     },
                   });
                   startY = (doc as any).lastAutoTable.finalY + 10;
@@ -629,11 +645,16 @@ const TenantHistory: React.FC = () => {
                   body: monthlyRows,
                   startY,
                   theme: 'striped',
-                  headStyles: { fillColor: [41, 128, 185] },
+                  headStyles: { fillColor: [41, 128, 185], font: 'NotoSansDevanagari' },
+                  styles: { font: 'NotoSansDevanagari' },
                   didDrawPage: (data) => {
                     // Header
                     doc.setFontSize(18);
                     doc.text(title, 14, 20);
+                    // Footer
+                    const pageCount = (doc as any).internal.getNumberOfPages();
+                    doc.setFontSize(10);
+                    doc.text(`Page ${data.pageNumber} of ${pageCount}`, data.settings.margin.left, (doc as any).internal.pageSize.height - 10);
                   },
                 });
               }
