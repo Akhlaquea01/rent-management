@@ -210,6 +210,7 @@ const RentTable: React.FC<{
       <Table
         size={size}
         sx={{
+          tableLayout: 'fixed',
           '@media print': {
             fontSize: '10px !important',
             '& th, & td': {
