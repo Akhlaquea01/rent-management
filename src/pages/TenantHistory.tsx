@@ -23,7 +23,7 @@ import {
 import { Print as PrintIcon } from "@mui/icons-material";
 import { useRentContext } from "../context/RentContext";
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import 'jspdf-autotable';
 
 // Types for better type safety
 interface MonthlyData {
@@ -201,6 +201,7 @@ const RentTable: React.FC<{
     <TableContainer
       component={component}
       sx={{
+        overflowX: 'auto',
         '@media print': {
           maxHeight: 'none !important',
           overflow: 'visible !important',
@@ -210,6 +211,7 @@ const RentTable: React.FC<{
       <Table
         size={size}
         sx={{
+          width: '100%',
           tableLayout: 'fixed',
           '@media print': {
             fontSize: '10px !important',
@@ -511,249 +513,133 @@ const TenantHistory: React.FC = () => {
           <Button
             variant="outlined"
             startIcon={<PrintIcon />}
-            onClick={async () => {
-              try {
-                const tempDiv = document.createElement("div");
-                tempDiv.style.position = "absolute";
-                tempDiv.style.left = "-9999px";
-                tempDiv.style.top = "-9999px";
-                tempDiv.style.width = "210mm"; // A4 width
-                tempDiv.style.backgroundColor = "white";
-                tempDiv.style.padding = "15px";
-                tempDiv.style.fontFamily = "Arial, sans-serif";
+            onClick={() => {
+              const doc = new jsPDF();
+              const selectedShop = activeShops.find(
+                (s) => s.shopNumber === selectedShopNumber
+              );
+              const tenantName = selectedShop?.tenant.tenant_name_hindi || selectedShop?.tenant.name || "Unknown";
+              const title = "Rent Summary Report";
+              const subtitle = `${tenantName} - Shop ${selectedShopNumber}`;
+              const yearInfo = selectedYear === "All Years" ? "All Years" : `Year: ${selectedYear}`;
 
-                const selectedShop = activeShops.find(
-                  (s) => s.shopNumber === selectedShopNumber
-                );
-                const tenantName = selectedShop?.tenant.tenant_name_hindi||selectedShop?.tenant.name || "Unknown";
+              const summaryData = [
+                ["Total Rent", `₹${(currentData.totalRent || 0).toLocaleString()}`],
+                ["Total Paid", `₹${(currentData.totalPaid || 0).toLocaleString()}`],
+                ["Dues", `₹${(currentData.totalPending || 0).toLocaleString()}`],
+                ["Advance Balance", `₹${(currentData.advanceBalance || 0).toLocaleString()}`],
+              ];
 
-                const summaryItems = [
-                  { label: "Total Rent", value: currentData.totalRent },
-                  { label: "Total Paid", value: currentData.totalPaid },
-                  { label: "Dues", value: currentData.totalPending },
-                  {
-                    label: "Advance Balance",
-                    value: currentData.advanceBalance,
-                  },
-                ];
+              let startY = 20;
+              doc.setFontSize(18);
+              doc.text(title, 14, startY);
+              startY += 8;
+              doc.setFontSize(12);
+              doc.text(subtitle, 14, startY);
+              startY += 6;
+              doc.setFontSize(10);
+              doc.text(yearInfo, 14, startY);
+              startY += 8;
 
-                let yearlySummaryHtml = "";
-                if (selectedYear === "All Years" && allYearsData) {
-                  const summaryHeader = `
-                    <thead>
-                      <tr style="background-color: #f5f5f5;">
-                        <th style="border: 1px solid #333; padding: 4px; text-align: left;">Year</th>
-                        <th style="border: 1px solid #333; padding: 4px; text-align: right;">Total Rent</th>
-                        <th style="border: 1px solid #333; padding: 4px; text-align: right;">Paid Amount</th>
-                        <th style="border: 1px solid #333; padding: 4px; text-align: right;">Dues</th>
-                      </tr>
-                    </thead>`;
+              (doc as any).autoTable({
+                body: summaryData,
+                startY,
+                theme: 'grid',
+                styles: {
+                  fontSize: 10,
+                  cellPadding: 2,
+                },
+                columnStyles: {
+                  0: { fontStyle: 'bold' },
+                },
+              });
 
-                  const summaryBody = `
-                    <tbody>
-                      ${allYearsData.yearSections.map(yearSection => `
-                        <tr>
-                          <td style="border: 1px solid #333; padding: 3px;">${yearSection.year}</td>
-                          <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(yearSection.data.totalRent || 0).toLocaleString()}</td>
-                          <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(yearSection.data.totalPaid || 0).toLocaleString()}</td>
-                          <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(yearSection.data.totalPending || 0).toLocaleString()}</td>
-                        </tr>
-                      `).join("")}
-                    </tbody>`;
+              startY = (doc as any).autoTable.previous.finalY + 10;
 
-                  yearlySummaryHtml = `
-                    <div style="page-break-inside: avoid;">
-                      <h3 style="margin: 15px 0 5px 0; font-size: 12px; font-weight: bold;">Year-wise Summary</h3>
-                      <table style="width: 100%; border-collapse: collapse; font-size: 9px; margin-bottom: 10px;">
-                        ${summaryHeader}
-                        ${summaryBody}
-                      </table>
-                    </div>
-                  `;
-                }
 
-                const tableHeaderHtml = `
-                  <thead>
-                    <tr style="background-color: #f5f5f5;">
-                      <th style="border: 1px solid #333; padding: 4px; text-align: left;">Month</th>
-                      <th style="border: 1px solid #333; padding: 4px; text-align: right;">Rent Amount</th>
-                      <th style="border: 1px solid #333; padding: 4px; text-align: right;">Paid Amount</th>
-                      <th style="border: 1px solid #333; padding: 4px; text-align: right;">Advance Used</th>
-                      <th style="border: 1px solid #333; padding: 4px; text-align: center;">Status</th>
-                      <th style="border: 1px solid #333; padding: 4px; text-align: left;">Comments</th>
-                    </tr>
-                  </thead>`;
+              if (selectedYear === "All Years" && allYearsData) {
+                const yearlySummaryColumns = ["Year", "Total Rent", "Paid Amount", "Dues"];
+                const yearlySummaryRows = allYearsData.yearSections.map(section => [
+                  section.year,
+                  `₹${(section.data.totalRent || 0).toLocaleString()}`,
+                  `₹${(section.data.totalPaid || 0).toLocaleString()}`,
+                  `₹${(section.data.totalPending || 0).toLocaleString()}`,
+                ]);
 
-                let tablesHtml = "";
-                const monthsEnglishToHindi = {
-                  "January": "जनवरी",
-                  "February": "फरवरी",
-                  "March": "मार्च",
-                  "April": "अप्रैल",
-                  "May": "मई",
-                  "June": "जून",
-                  "July": "जुलाई",
-                  "August": "अगस्त",
-                  "September": "सितंबर",
-                  "October": "अक्टूबर",
-                  "November": "नवंबर",
-                  "December": "दिसंबर"
-                };
-                if (selectedYear === "All Years" && allYearsData) {
-                  allYearsData.yearSections.forEach((yearSection) => {
-                    tablesHtml += `
-                      <div style="page-break-inside: avoid;">
-                        <h3 style="margin: 15px 0 5px 0; font-size: 12px; font-weight: bold;">Monthly Rent History - ${yearSection.year
-                      }</h3>
-                        <table style="width: 100%; border-collapse: collapse; font-size: 9px; margin-bottom: 10px;">
-                          ${tableHeaderHtml}
-                          <tbody>
-                            ${yearSection.data.monthlyData
-                        .map(
-                          (monthData: any) => `
-                              <tr>
-                                <td style="border: 1px solid #333; padding: 3px;">${monthsEnglishToHindi[monthData.month] || monthData.month
-                            }</td>
-                                <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(
-                              monthData.rentAmount || 0
-                            ).toLocaleString()}</td>
-                                <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(
-                              monthData.paidAmount || 0
-                            ).toLocaleString()}</td>
-                                <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(
-                              monthData.advanceDeduction || 0
-                            ).toLocaleString()}</td>
-                                <td style="border: 1px solid #333; padding: 3px; text-align: center;">${monthData.status
-                            }</td>
-                                <td style="border: 1px solid #333; padding: 3px;">${monthData.comment || "-"
-                            }</td>
-                              </tr>
-                            `
-                        )
-                        .join("")}
-                          </tbody>
-                        </table>
-                      </div>
-                    `;
-                  });
-                } else {
-                  let monthlyData: MonthlyData[] = [];
-                  if (currentData && "monthlyData" in currentData) {
-                    monthlyData =
-                      (currentData as YearlyData).monthlyData || [];
-                  }
-                  tablesHtml = `
-                    <h3 style="margin: 5px 0; font-size: 12px;">Monthly Rent History - ${selectedYear}</h3>
-                    <table style="width: 100%; border-collapse: collapse; font-size: 9px; margin: 5px 0;">
-                      ${tableHeaderHtml}
-                      <tbody>
-                        ${monthlyData
-                      .map(
-                        (monthData: any) => `
-                          <tr>
-                            <td style="border: 1px solid #333; padding: 3px;">${monthsEnglishToHindi[monthData.month] || monthData.month
-                          }</td>
-                            <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(
-                            monthData.rentAmount || 0
-                          ).toLocaleString()}</td>
-                            <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(
-                            monthData.paidAmount || 0
-                          ).toLocaleString()}</td>
-                            <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(
-                            monthData.advanceDeduction || 0
-                          ).toLocaleString()}</td>
-                            <td style="border: 1px solid #333; padding: 3px; text-align: center;">${monthData.status
-                          }</td>
-                            <td style="border: 1px solid #333; padding: 3px;">${monthData.comment || "-"
-                          }</td>
-                          </tr>
-                        `
-                      )
-                      .join("")}
-                      </tbody>
-                    </table>
-                  `;
-                }
+                doc.setFontSize(12);
+                doc.text("Year-wise Summary", 14, startY);
+                startY += 6;
 
-                const htmlContent = `
-                  <div style="text-align: center; margin-bottom: 15px;">
-                    <h2 style="margin: 0; font-size: 16px; font-weight: bold;">Rent Summary Report</h2>
-                    <p style="margin: 3px 0; font-size: 12px;">${tenantName} - Shop ${selectedShopNumber}</p>
-                    <p style="margin: 2px 0; font-size: 10px;">${selectedYear === "All Years"
-                    ? "All Years"
-                    : `Year: ${selectedYear}`
-                  }</p>
-                  </div>
-                  
-                  <div style="margin-bottom: 10px;">
-                    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                      ${summaryItems
-                    .map(
-                      (item) => `
-                        <div style="flex: 1; min-width: 45%;">
-                          <span style="font-size: 10px; font-weight: bold;">${item.label
-                        }: ₹${(item.value || 0).toLocaleString()}</span>
-                        </div>
-                      `
-                    )
-                    .join("")}
-                    </div>
-                  </div>
-                  
-                  <hr style="margin: 8px 0; border: 1px solid #ccc;">
-                  
-                  <div>
-                    ${yearlySummaryHtml}
-                    ${tablesHtml}
-                  </div>
-                `;
-
-                tempDiv.innerHTML = htmlContent;
-                document.body.appendChild(tempDiv);
-
-                // Generate PDF
-                const canvas = await html2canvas(tempDiv, {
-                  scale: 2,
-                  useCORS: true,
-                  allowTaint: true,
-                  backgroundColor: "#ffffff",
+                (doc as any).autoTable({
+                  head: [yearlySummaryColumns],
+                  body: yearlySummaryRows,
+                  startY,
+                  theme: 'striped',
+                  headStyles: { fillColor: [22, 160, 133] },
                 });
 
-                const imgData = canvas.toDataURL("image/png", 1.0);
-                const pdf = new jsPDF("portrait", "mm", "a4");
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = pdf.internal.pageSize.getHeight();
+                startY = (doc as any).autoTable.previous.finalY + 10;
 
-                const canvasWidth = canvas.width;
-                const canvasHeight = canvas.height;
+                allYearsData.yearSections.forEach(yearSection => {
+                  doc.setFontSize(12);
+                  doc.text(`Monthly Rent History - ${yearSection.year}`, 14, startY);
+                  startY += 6;
 
-                const ratio = canvasWidth / pdfWidth;
-                const imgHeight = canvasHeight / ratio;
+                  const monthlyColumns = ["Month", "Rent Amount", "Paid Amount", "Advance Used", "Status", "Comments"];
+                  const monthlyRows = yearSection.data.monthlyData.map(m => [
+                    m.month,
+                    `₹${(m.rentAmount || 0).toLocaleString()}`,
+                    `₹${(m.paidAmount || 0).toLocaleString()}`,
+                    `₹${(m.advanceDeduction || 0).toLocaleString()}`,
+                    m.status,
+                    m.comment,
+                  ]);
 
-                let heightLeft = imgHeight;
-                let position = 0;
+                  (doc as any).autoTable({
+                    head: [monthlyColumns],
+                    body: monthlyRows,
+                    startY,
+                    theme: 'striped',
+                    headStyles: { fillColor: [41, 128, 185] },
+                    didDrawPage: (data) => {
+                      // Header
+                      doc.setFontSize(18);
+                      doc.text(title, 14, 20);
+                    },
+                  });
+                  startY = (doc as any).autoTable.previous.finalY + 10;
+                });
+              } else if (currentData && "monthlyData" in currentData) {
+                const monthlyColumns = ["Month", "Rent Amount", "Paid Amount", "Advance Used", "Status", "Comments"];
+                const monthlyRows = (currentData as YearlyData).monthlyData.map(m => [
+                  m.month,
+                  `₹${(m.rentAmount || 0).toLocaleString()}`,
+                  `₹${(m.paidAmount || 0).toLocaleString()}`,
+                  `₹${(m.advanceDeduction || 0).toLocaleString()}`,
+                  m.status,
+                  m.comment,
+                ]);
 
-                pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
-                heightLeft -= pdfHeight;
+                doc.setFontSize(12);
+                doc.text(`Monthly Rent History - ${selectedYear}`, 14, startY);
+                startY += 6;
 
-                while (heightLeft > 0) {
-                  position = -heightLeft;
-                  pdf.addPage();
-                  pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
-                  heightLeft -= pdfHeight;
-                }
-
-                // Clean up
-                document.body.removeChild(tempDiv);
-
-                // Download the PDF
-                const fileName = `RentSummary_${selectedShopNumber}_${selectedYear}_${new Date().toISOString().split("T")[0]
-                  }.pdf`;
-                pdf.save(fileName);
-              } catch (error) {
-                console.error("Error generating PDF:", error);
-                alert("Error generating PDF. Please try again.");
+                (doc as any).autoTable({
+                  head: [monthlyColumns],
+                  body: monthlyRows,
+                  startY,
+                  theme: 'striped',
+                  headStyles: { fillColor: [41, 128, 185] },
+                  didDrawPage: (data) => {
+                    // Header
+                    doc.setFontSize(18);
+                    doc.text(title, 14, 20);
+                  },
+                });
               }
+
+              const fileName = `RentSummary_${selectedShopNumber}_${selectedYear}_${new Date().toISOString().split("T")[0]}.pdf`;
+              doc.save(fileName);
             }}
           >
             Download PDF
