@@ -117,12 +117,12 @@ const RentHistoryTables: React.FC<{
 const RentTableHeader: React.FC = () => (
   <TableHead>
     <TableRow>
-      <TableCell>Month</TableCell>
-      <TableCell align="right">Rent Amount</TableCell>
-      <TableCell align="right">Paid Amount</TableCell>
-      <TableCell align="right">Advance Used</TableCell>
-      <TableCell>Status</TableCell>
-      <TableCell>Comments</TableCell>
+      <TableCell sx={{ width: "15%" }}>Month</TableCell>
+      <TableCell sx={{ width: "17%" }} align="right">Rent Amount</TableCell>
+      <TableCell sx={{ width: "17%" }} align="right">Paid Amount</TableCell>
+      <TableCell sx={{ width: "17%" }} align="right">Advance Used</TableCell>
+      <TableCell sx={{ width: "14%" }}>Status</TableCell>
+      <TableCell sx={{ width: "20%" }}>Comments</TableCell>
     </TableRow>
   </TableHead>
 );
@@ -181,7 +181,7 @@ const RentTableRow: React.FC<{ monthData: MonthlyData; showChip?: boolean }> = (
           monthData.status
         )}
       </TableCell>
-      <TableCell>{formatComments(monthData.comment)}</TableCell>
+      <TableCell sx={{ wordBreak: 'break-word' }}>{formatComments(monthData.comment)}</TableCell>
     </TableRow>
   );
 };
@@ -536,6 +536,41 @@ const TenantHistory: React.FC = () => {
                   },
                 ];
 
+                let yearlySummaryHtml = "";
+                if (selectedYear === "All Years" && allYearsData) {
+                  const summaryHeader = `
+                    <thead>
+                      <tr style="background-color: #f5f5f5;">
+                        <th style="border: 1px solid #333; padding: 4px; text-align: left;">Year</th>
+                        <th style="border: 1px solid #333; padding: 4px; text-align: right;">Total Rent</th>
+                        <th style="border: 1px solid #333; padding: 4px; text-align: right;">Paid Amount</th>
+                        <th style="border: 1px solid #333; padding: 4px; text-align: right;">Dues</th>
+                      </tr>
+                    </thead>`;
+
+                  const summaryBody = `
+                    <tbody>
+                      ${allYearsData.yearSections.map(yearSection => `
+                        <tr>
+                          <td style="border: 1px solid #333; padding: 3px;">${yearSection.year}</td>
+                          <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(yearSection.data.totalRent || 0).toLocaleString()}</td>
+                          <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(yearSection.data.totalPaid || 0).toLocaleString()}</td>
+                          <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(yearSection.data.totalPending || 0).toLocaleString()}</td>
+                        </tr>
+                      `).join("")}
+                    </tbody>`;
+
+                  yearlySummaryHtml = `
+                    <div style="page-break-inside: avoid;">
+                      <h3 style="margin: 15px 0 5px 0; font-size: 12px; font-weight: bold;">Year-wise Summary</h3>
+                      <table style="width: 100%; border-collapse: collapse; font-size: 9px; margin-bottom: 10px;">
+                        ${summaryHeader}
+                        ${summaryBody}
+                      </table>
+                    </div>
+                  `;
+                }
+
                 const tableHeaderHtml = `
                   <thead>
                     <tr style="background-color: #f5f5f5;">
@@ -667,6 +702,7 @@ const TenantHistory: React.FC = () => {
                   <hr style="margin: 8px 0; border: 1px solid #ccc;">
                   
                   <div>
+                    ${yearlySummaryHtml}
                     ${tablesHtml}
                   </div>
                 `;
