@@ -474,23 +474,40 @@ const TenantHistory: React.FC = () => {
     };
   };
 
-  // For All Years: show latest year data only
+  // For All Years: aggregate Total Rent and Total Paid, but use latest year's dues
   const allYearsData = React.useMemo((): AllYearsData | null => {
     if (!selectedShopNumber || selectedYear !== "All Years") return null;
     
-    // Get the latest year data
+    let totalRent = 0;
+    let totalPaid = 0;
+    let totalPending = 0;
+    let advanceBalance = 0;
+    const yearSections: Array<{ year: string; data: YearlyData }> = [];
+    
+    // Get the latest year for dues calculation
     const latestYear = availableYears[0]; // First year in the sorted array (most recent)
     const latestYearData = getYearlyData(selectedShopNumber, latestYear);
     
-    if (!latestYearData) return null;
+    // Aggregate all years for Total Rent and Total Paid
+    availableYears
+      .slice()
+      .reverse()
+      .forEach((year) => {
+        const yd = getYearlyData(selectedShopNumber, year);
+        if (yd) {
+          totalRent += yd.totalRent;
+          totalPaid += yd.totalPaid;
+          advanceBalance = yd.advanceBalance; // last year wins
+          yearSections.push({ year, data: yd });
+        }
+      });
     
-    return {
-      totalRent: latestYearData.totalRent,
-      totalPaid: latestYearData.totalPaid,
-      totalPending: latestYearData.totalPending,
-      advanceBalance: latestYearData.advanceBalance,
-      yearSections: [{ year: latestYear, data: latestYearData }]
-    };
+    // Use latest year's dues only (not aggregated)
+    if (latestYearData) {
+      totalPending = latestYearData.totalPending;
+    }
+    
+    return { totalRent, totalPaid, totalPending, advanceBalance, yearSections };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedShopNumber, selectedYear, data, availableYears, getYearlyData]);
 
