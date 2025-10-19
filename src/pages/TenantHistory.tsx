@@ -23,6 +23,8 @@ import {
 } from "@mui/material";
 import { Print as PrintIcon } from "@mui/icons-material";
 import { useRentContext } from "../context/RentContext";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 // Types for better type safety
 interface MonthlyData {
@@ -197,8 +199,28 @@ const RentTable: React.FC<{
   size = "medium",
   component = Paper 
 }) => (
-  <TableContainer component={component}>
-    <Table size={size}>
+  <TableContainer 
+    component={component}
+    sx={{
+      '@media print': {
+        maxHeight: 'none !important',
+        overflow: 'visible !important',
+      }
+    }}
+  >
+    <Table 
+      size={size}
+      sx={{
+        '@media print': {
+          fontSize: '10px !important',
+          '& th, & td': {
+            padding: '4px 6px !important',
+            fontSize: '9px !important',
+            lineHeight: '1.2 !important',
+          }
+        }
+      }}
+    >
       <RentTableHeader />
       <TableBody>
         {monthlyData.map((monthData) => (
@@ -259,86 +281,6 @@ const SummarySection: React.FC<{
   );
 };
 
-// Reusable print summary component
-const PrintSummary: React.FC<{
-  selectedShopNumber: string;
-  selectedYear: string;
-  activeShops: Array<{ shopNumber: string; tenant: any; year: string }>;
-  allYearsData: AllYearsData | null;
-  getYearlyData: (shopNumber: string, year: string) => YearlyData | null;
-}> = ({ selectedShopNumber, selectedYear, activeShops, allYearsData, getYearlyData }) => {
-  const getValue = (key: keyof YearlyData) => {
-    if (selectedYear === "All Years") {
-      return allYearsData?.[key];
-    }
-    return getYearlyData(selectedShopNumber, selectedYear)?.[key];
-  };
-
-  const summaryItems = [
-    { label: "Total Rent", value: getValue("totalRent") },
-    { label: "Total Paid", value: getValue("totalPaid") },
-    { label: "Dues", value: getValue("totalPending") },
-    { label: "Advance Balance", value: getValue("advanceBalance") },
-  ];
-
-  return (
-    <Box
-      className="print-summary"
-      sx={{
-        display: "none",
-        "@media print": {
-          display: "block",
-          background: "white",
-          color: "black",
-          p: 4,
-        },
-      }}
-    >
-      <Paper elevation={0} sx={{ boxShadow: "none", p: 4, m: 0 }}>
-        <Typography
-          variant="h4"
-          gutterBottom
-          align="center"
-          sx={{ fontWeight: "bold" }}
-        >
-          Rent Summary Report
-        </Typography>
-        {selectedShopNumber && (
-          <Typography variant="h6" gutterBottom align="center">
-            {
-              activeShops.find((s) => s.shopNumber === selectedShopNumber)
-                ?.tenant.name
-            }{" "}
-            - Shop {selectedShopNumber}
-          </Typography>
-        )}
-        <Typography variant="body1" gutterBottom align="center">
-          {selectedYear === "All Years"
-            ? "All Years"
-            : `Year: ${selectedYear}`}
-        </Typography>
-        <Divider sx={{ my: 2 }} />
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          {summaryItems.map((item) => (
-            <Grid item xs={6} key={item.label}>
-              <Typography variant="h6">
-                {item.label}: ₹{item.value?.toLocaleString()}
-              </Typography>
-            </Grid>
-          ))}
-        </Grid>
-        
-                <RentHistoryTables
-          selectedYear={selectedYear}
-          selectedShopNumber={selectedShopNumber}
-          allYearsData={allYearsData}
-          getYearlyData={getYearlyData}
-          isPrintView={true}
-        />
-      </Paper>
-    </Box>
-  );
-};
 
 const TenantHistory: React.FC = () => {
   const { state, fetchYearData, isYearLoading } = useRentContext();
@@ -569,9 +511,154 @@ const TenantHistory: React.FC = () => {
           <Button
             variant="outlined"
             startIcon={<PrintIcon />}
-            onClick={() => window.print()}
+            onClick={async () => {
+              try {
+                // Create a temporary container for PDF generation
+                const tempDiv = document.createElement('div');
+                tempDiv.style.position = 'absolute';
+                tempDiv.style.left = '-9999px';
+                tempDiv.style.top = '-9999px';
+                tempDiv.style.width = '210mm';
+                tempDiv.style.backgroundColor = 'white';
+                tempDiv.style.padding = '15px';
+                tempDiv.style.fontFamily = 'Arial, sans-serif';
+                
+                // Get shop and tenant info
+                const selectedShop = activeShops.find((s) => s.shopNumber === selectedShopNumber);
+                const tenantName = selectedShop?.tenant.name || 'Unknown';
+                
+                // Create compact HTML content
+                const summaryItems = [
+                  { label: "Total Rent", value: currentData.totalRent },
+                  { label: "Total Paid", value: currentData.totalPaid },
+                  { label: "Dues", value: currentData.totalPending },
+                  { label: "Advance Balance", value: currentData.advanceBalance },
+                ];
+                
+                let htmlContent = `
+                  <div style="text-align: center; margin-bottom: 15px;">
+                    <h2 style="margin: 0; font-size: 16px; font-weight: bold;">Rent Summary Report</h2>
+                    <p style="margin: 3px 0; font-size: 12px;">${tenantName} - Shop ${selectedShopNumber}</p>
+                    <p style="margin: 2px 0; font-size: 10px;">${selectedYear === "All Years" ? "All Years" : `Year: ${selectedYear}`}</p>
+                  </div>
+                  
+                  <div style="margin-bottom: 10px;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                      ${summaryItems.map(item => `
+                        <div style="flex: 1; min-width: 45%;">
+                          <span style="font-size: 10px; font-weight: bold;">${item.label}: ₹${(item.value || 0).toLocaleString()}</span>
+                        </div>
+                      `).join('')}
+                    </div>
+                  </div>
+                  
+                  <hr style="margin: 8px 0; border: 1px solid #ccc;">
+                  
+                  <div>
+                    <h3 style="margin: 5px 0; font-size: 12px;">Monthly Rent History - ${selectedYear === "All Years" ? "All Years" : selectedYear}</h3>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 9px; margin: 5px 0;">
+                      <thead>
+                        <tr style="background-color: #f5f5f5;">
+                          <th style="border: 1px solid #333; padding: 4px; text-align: left;">Month</th>
+                          <th style="border: 1px solid #333; padding: 4px; text-align: right;">Rent Amount</th>
+                          <th style="border: 1px solid #333; padding: 4px; text-align: right;">Paid Amount</th>
+                          <th style="border: 1px solid #333; padding: 4px; text-align: right;">Advance Used</th>
+                          <th style="border: 1px solid #333; padding: 4px; text-align: center;">Status</th>
+                          <th style="border: 1px solid #333; padding: 4px; text-align: left;">Comments</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                `;
+                
+                // Add table rows for all years
+                if (selectedYear === "All Years" && allYearsData) {
+                  // Show all years' data
+                  allYearsData.yearSections.forEach((yearSection) => {
+                    htmlContent += `
+                      <tr style="background-color: #f0f0f0;">
+                        <td colspan="6" style="border: 1px solid #333; padding: 4px; font-weight: bold; text-align: center;">
+                          Monthly Rent History - ${yearSection.year}
+                        </td>
+                      </tr>
+                    `;
+                    
+                    yearSection.data.monthlyData.forEach((monthData: any) => {
+                      htmlContent += `
+                        <tr>
+                          <td style="border: 1px solid #333; padding: 3px;">${monthData.month}</td>
+                          <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(monthData.rentAmount || 0).toLocaleString()}</td>
+                          <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(monthData.paidAmount || 0).toLocaleString()}</td>
+                          <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(monthData.advanceDeduction || 0).toLocaleString()}</td>
+                          <td style="border: 1px solid #333; padding: 3px; text-align: center;">${monthData.status}</td>
+                          <td style="border: 1px solid #333; padding: 3px;">${monthData.comment || '-'}</td>
+                        </tr>
+                      `;
+                    });
+                  });
+                } else {
+                  // Show single year data
+                  let monthlyData: MonthlyData[] = [];
+                  if (currentData && 'monthlyData' in currentData) {
+                    monthlyData = (currentData as YearlyData).monthlyData || [];
+                  }
+                  
+                  monthlyData.forEach((monthData: any) => {
+                    htmlContent += `
+                      <tr>
+                        <td style="border: 1px solid #333; padding: 3px;">${monthData.month}</td>
+                        <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(monthData.rentAmount || 0).toLocaleString()}</td>
+                        <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(monthData.paidAmount || 0).toLocaleString()}</td>
+                        <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(monthData.advanceDeduction || 0).toLocaleString()}</td>
+                        <td style="border: 1px solid #333; padding: 3px; text-align: center;">${monthData.status}</td>
+                        <td style="border: 1px solid #333; padding: 3px;">${monthData.comment || '-'}</td>
+                      </tr>
+                    `;
+                  });
+                }
+                
+                htmlContent += `
+                      </tbody>
+                    </table>
+                  </div>
+                `;
+                
+                tempDiv.innerHTML = htmlContent;
+                document.body.appendChild(tempDiv);
+                
+                // Generate PDF
+                const pdf = new jsPDF('portrait', 'mm', 'a4');
+                const canvas = await html2canvas(tempDiv, {
+                  scale: 1.5,
+                  useCORS: true,
+                  allowTaint: true,
+                  backgroundColor: '#ffffff',
+                  width: 794,
+                  height: 1123,
+                  logging: false
+                });
+                
+                const imgData = canvas.toDataURL('image/png', 0.95);
+                const imgWidth = 210;
+                const pageHeight = 295;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                const finalHeight = Math.min(imgHeight, pageHeight - 20);
+                
+                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, finalHeight);
+                
+                // Clean up
+                document.body.removeChild(tempDiv);
+                
+                // Download the PDF
+                const fileName = `RentSummary_${selectedShopNumber}_${selectedYear}_${new Date().toISOString().split('T')[0]}.pdf`;
+                pdf.save(fileName);
+                
+              } catch (error) {
+                console.error('Error generating PDF:', error);
+                alert('Error generating PDF. Please try again.');
+              }
+            }}
           >
-            Print Summary
+            Download PDF
           </Button>
         )}
       </Box>
@@ -642,41 +729,6 @@ const TenantHistory: React.FC = () => {
         </Grid>
       </Grid>
 
-      {/* Printable Summary */}
-      <PrintSummary
-        selectedShopNumber={selectedShopNumber}
-        selectedYear={selectedYear}
-        activeShops={activeShops}
-        allYearsData={allYearsData}
-        getYearlyData={getYearlyData}
-      />
-
-      {/* Hide all non-essential UI in print mode */}
-      <style>{`
-        @media print {
-          body * { visibility: hidden !important; }
-          .print-summary, .print-summary * { visibility: visible !important; }
-          .print-summary {
-            display: block !important;
-            position: absolute !important;
-            left: 0; top: 0; width: 100vw;
-            background: white !important;
-            color: black !important;
-            box-shadow: none !important;
-            padding: 32px !important;
-            margin: 0 !important;
-            z-index: 9999;
-            page-break-after: avoid;
-          }
-          table, tr, td, th {
-            page-break-inside: avoid !important;
-          }
-          body, html {
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-        }
-      `}</style>
     </Box>
   );
 };
