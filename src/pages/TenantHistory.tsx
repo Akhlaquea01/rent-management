@@ -513,148 +513,206 @@ const TenantHistory: React.FC = () => {
             startIcon={<PrintIcon />}
             onClick={async () => {
               try {
-                // Create a temporary container for PDF generation
-                const tempDiv = document.createElement('div');
-                tempDiv.style.position = 'absolute';
-                tempDiv.style.left = '-9999px';
-                tempDiv.style.top = '-9999px';
-                tempDiv.style.width = '210mm';
-                tempDiv.style.backgroundColor = 'white';
-                tempDiv.style.padding = '15px';
-                tempDiv.style.fontFamily = 'Arial, sans-serif';
-                
-                // Get shop and tenant info
-                const selectedShop = activeShops.find((s) => s.shopNumber === selectedShopNumber);
-                const tenantName = selectedShop?.tenant.name || 'Unknown';
-                
-                // Create compact HTML content
+                const tempDiv = document.createElement("div");
+                tempDiv.style.position = "absolute";
+                tempDiv.style.left = "-9999px";
+                tempDiv.style.top = "-9999px";
+                tempDiv.style.width = "210mm"; // A4 width
+                tempDiv.style.backgroundColor = "white";
+                tempDiv.style.padding = "15px";
+                tempDiv.style.fontFamily = "Arial, sans-serif";
+
+                const selectedShop = activeShops.find(
+                  (s) => s.shopNumber === selectedShopNumber
+                );
+                const tenantName = selectedShop?.tenant.name || "Unknown";
+
                 const summaryItems = [
                   { label: "Total Rent", value: currentData.totalRent },
                   { label: "Total Paid", value: currentData.totalPaid },
                   { label: "Dues", value: currentData.totalPending },
-                  { label: "Advance Balance", value: currentData.advanceBalance },
+                  {
+                    label: "Advance Balance",
+                    value: currentData.advanceBalance,
+                  },
                 ];
-                
-                let htmlContent = `
+
+                const tableHeaderHtml = `
+                  <thead>
+                    <tr style="background-color: #f5f5f5;">
+                      <th style="border: 1px solid #333; padding: 4px; text-align: left;">Month</th>
+                      <th style="border: 1px solid #333; padding: 4px; text-align: right;">Rent Amount</th>
+                      <th style="border: 1px solid #333; padding: 4px; text-align: right;">Paid Amount</th>
+                      <th style="border: 1px solid #333; padding: 4px; text-align: right;">Advance Used</th>
+                      <th style="border: 1px solid #333; padding: 4px; text-align: center;">Status</th>
+                      <th style="border: 1px solid #333; padding: 4px; text-align: left;">Comments</th>
+                    </tr>
+                  </thead>`;
+
+                let tablesHtml = "";
+                if (selectedYear === "All Years" && allYearsData) {
+                  allYearsData.yearSections.forEach((yearSection) => {
+                    tablesHtml += `
+                      <div style="page-break-inside: avoid;">
+                        <h3 style="margin: 15px 0 5px 0; font-size: 12px; font-weight: bold;">Monthly Rent History - ${
+                          yearSection.year
+                        }</h3>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 9px; margin-bottom: 10px;">
+                          ${tableHeaderHtml}
+                          <tbody>
+                            ${yearSection.data.monthlyData
+                              .map(
+                                (monthData: any) => `
+                              <tr>
+                                <td style="border: 1px solid #333; padding: 3px;">${
+                                  monthData.month
+                                }</td>
+                                <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(
+                                  monthData.rentAmount || 0
+                                ).toLocaleString()}</td>
+                                <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(
+                                  monthData.paidAmount || 0
+                                ).toLocaleString()}</td>
+                                <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(
+                                  monthData.advanceDeduction || 0
+                                ).toLocaleString()}</td>
+                                <td style="border: 1px solid #333; padding: 3px; text-align: center;">${
+                                  monthData.status
+                                }</td>
+                                <td style="border: 1px solid #333; padding: 3px;">${
+                                  monthData.comment || "-"
+                                }</td>
+                              </tr>
+                            `
+                              )
+                              .join("")}
+                          </tbody>
+                        </table>
+                      </div>
+                    `;
+                  });
+                } else {
+                  let monthlyData: MonthlyData[] = [];
+                  if (currentData && "monthlyData" in currentData) {
+                    monthlyData =
+                      (currentData as YearlyData).monthlyData || [];
+                  }
+                  tablesHtml = `
+                    <h3 style="margin: 5px 0; font-size: 12px;">Monthly Rent History - ${selectedYear}</h3>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 9px; margin: 5px 0;">
+                      ${tableHeaderHtml}
+                      <tbody>
+                        ${monthlyData
+                          .map(
+                            (monthData: any) => `
+                          <tr>
+                            <td style="border: 1px solid #333; padding: 3px;">${
+                              monthData.month
+                            }</td>
+                            <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(
+                              monthData.rentAmount || 0
+                            ).toLocaleString()}</td>
+                            <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(
+                              monthData.paidAmount || 0
+                            ).toLocaleString()}</td>
+                            <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(
+                              monthData.advanceDeduction || 0
+                            ).toLocaleString()}</td>
+                            <td style="border: 1px solid #333; padding: 3px; text-align: center;">${
+                              monthData.status
+                            }</td>
+                            <td style="border: 1px solid #333; padding: 3px;">${
+                              monthData.comment || "-"
+                            }</td>
+                          </tr>
+                        `
+                          )
+                          .join("")}
+                      </tbody>
+                    </table>
+                  `;
+                }
+
+                const htmlContent = `
                   <div style="text-align: center; margin-bottom: 15px;">
                     <h2 style="margin: 0; font-size: 16px; font-weight: bold;">Rent Summary Report</h2>
                     <p style="margin: 3px 0; font-size: 12px;">${tenantName} - Shop ${selectedShopNumber}</p>
-                    <p style="margin: 2px 0; font-size: 10px;">${selectedYear === "All Years" ? "All Years" : `Year: ${selectedYear}`}</p>
+                    <p style="margin: 2px 0; font-size: 10px;">${
+                      selectedYear === "All Years"
+                        ? "All Years"
+                        : `Year: ${selectedYear}`
+                    }</p>
                   </div>
                   
                   <div style="margin-bottom: 10px;">
                     <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                      ${summaryItems.map(item => `
+                      ${summaryItems
+                        .map(
+                          (item) => `
                         <div style="flex: 1; min-width: 45%;">
-                          <span style="font-size: 10px; font-weight: bold;">${item.label}: ₹${(item.value || 0).toLocaleString()}</span>
+                          <span style="font-size: 10px; font-weight: bold;">${
+                            item.label
+                          }: ₹${(item.value || 0).toLocaleString()}</span>
                         </div>
-                      `).join('')}
+                      `
+                        )
+                        .join("")}
                     </div>
                   </div>
                   
                   <hr style="margin: 8px 0; border: 1px solid #ccc;">
                   
                   <div>
-                    <h3 style="margin: 5px 0; font-size: 12px;">Monthly Rent History - ${selectedYear === "All Years" ? "All Years" : selectedYear}</h3>
-                    <table style="width: 100%; border-collapse: collapse; font-size: 9px; margin: 5px 0;">
-                      <thead>
-                        <tr style="background-color: #f5f5f5;">
-                          <th style="border: 1px solid #333; padding: 4px; text-align: left;">Month</th>
-                          <th style="border: 1px solid #333; padding: 4px; text-align: right;">Rent Amount</th>
-                          <th style="border: 1px solid #333; padding: 4px; text-align: right;">Paid Amount</th>
-                          <th style="border: 1px solid #333; padding: 4px; text-align: right;">Advance Used</th>
-                          <th style="border: 1px solid #333; padding: 4px; text-align: center;">Status</th>
-                          <th style="border: 1px solid #333; padding: 4px; text-align: left;">Comments</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                `;
-                
-                // Add table rows for all years
-                if (selectedYear === "All Years" && allYearsData) {
-                  // Show all years' data
-                  allYearsData.yearSections.forEach((yearSection) => {
-                    htmlContent += `
-                      <tr style="background-color: #f0f0f0;">
-                        <td colspan="6" style="border: 1px solid #333; padding: 4px; font-weight: bold; text-align: center;">
-                          Monthly Rent History - ${yearSection.year}
-                        </td>
-                      </tr>
-                    `;
-                    
-                    yearSection.data.monthlyData.forEach((monthData: any) => {
-                      htmlContent += `
-                        <tr>
-                          <td style="border: 1px solid #333; padding: 3px;">${monthData.month}</td>
-                          <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(monthData.rentAmount || 0).toLocaleString()}</td>
-                          <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(monthData.paidAmount || 0).toLocaleString()}</td>
-                          <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(monthData.advanceDeduction || 0).toLocaleString()}</td>
-                          <td style="border: 1px solid #333; padding: 3px; text-align: center;">${monthData.status}</td>
-                          <td style="border: 1px solid #333; padding: 3px;">${monthData.comment || '-'}</td>
-                        </tr>
-                      `;
-                    });
-                  });
-                } else {
-                  // Show single year data
-                  let monthlyData: MonthlyData[] = [];
-                  if (currentData && 'monthlyData' in currentData) {
-                    monthlyData = (currentData as YearlyData).monthlyData || [];
-                  }
-                  
-                  monthlyData.forEach((monthData: any) => {
-                    htmlContent += `
-                      <tr>
-                        <td style="border: 1px solid #333; padding: 3px;">${monthData.month}</td>
-                        <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(monthData.rentAmount || 0).toLocaleString()}</td>
-                        <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(monthData.paidAmount || 0).toLocaleString()}</td>
-                        <td style="border: 1px solid #333; padding: 3px; text-align: right;">₹${(monthData.advanceDeduction || 0).toLocaleString()}</td>
-                        <td style="border: 1px solid #333; padding: 3px; text-align: center;">${monthData.status}</td>
-                        <td style="border: 1px solid #333; padding: 3px;">${monthData.comment || '-'}</td>
-                      </tr>
-                    `;
-                  });
-                }
-                
-                htmlContent += `
-                      </tbody>
-                    </table>
+                    ${tablesHtml}
                   </div>
                 `;
-                
+
                 tempDiv.innerHTML = htmlContent;
                 document.body.appendChild(tempDiv);
-                
+
                 // Generate PDF
-                const pdf = new jsPDF('portrait', 'mm', 'a4');
                 const canvas = await html2canvas(tempDiv, {
-                  scale: 1.5,
+                  scale: 2,
                   useCORS: true,
                   allowTaint: true,
-                  backgroundColor: '#ffffff',
-                  width: 794,
-                  height: 1123,
-                  logging: false
+                  backgroundColor: "#ffffff",
                 });
-                
-                const imgData = canvas.toDataURL('image/png', 0.95);
-                const imgWidth = 210;
-                const pageHeight = 295;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                const finalHeight = Math.min(imgHeight, pageHeight - 20);
-                
-                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, finalHeight);
-                
+
+                const imgData = canvas.toDataURL("image/png", 1.0);
+                const pdf = new jsPDF("portrait", "mm", "a4");
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+
+                const canvasWidth = canvas.width;
+                const canvasHeight = canvas.height;
+
+                const ratio = canvasWidth / pdfWidth;
+                const imgHeight = canvasHeight / ratio;
+
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
+                heightLeft -= pdfHeight;
+
+                while (heightLeft > 0) {
+                  position = -heightLeft;
+                  pdf.addPage();
+                  pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
+                  heightLeft -= pdfHeight;
+                }
+
                 // Clean up
                 document.body.removeChild(tempDiv);
-                
+
                 // Download the PDF
-                const fileName = `RentSummary_${selectedShopNumber}_${selectedYear}_${new Date().toISOString().split('T')[0]}.pdf`;
+                const fileName = `RentSummary_${selectedShopNumber}_${selectedYear}_${
+                  new Date().toISOString().split("T")[0]
+                }.pdf`;
                 pdf.save(fileName);
-                
               } catch (error) {
-                console.error('Error generating PDF:', error);
-                alert('Error generating PDF. Please try again.');
+                console.error("Error generating PDF:", error);
+                alert("Error generating PDF. Please try again.");
               }
             }}
           >
