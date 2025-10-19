@@ -474,28 +474,23 @@ const TenantHistory: React.FC = () => {
     };
   };
 
-  // For All Years: aggregate data
+  // For All Years: show latest year data only
   const allYearsData = React.useMemo((): AllYearsData | null => {
     if (!selectedShopNumber || selectedYear !== "All Years") return null;
-    let totalRent = 0,
-      totalPaid = 0,
-      totalPending = 0,
-      advanceBalance = 0;
-    const yearSections: Array<{ year: string; data: YearlyData }> = [];
-    availableYears
-      .slice()
-      .reverse()
-      .forEach((year) => {
-        const yd = getYearlyData(selectedShopNumber, year);
-        if (yd) {
-          totalRent += yd.totalRent;
-          totalPaid += yd.totalPaid;
-          totalPending += yd.totalPending;
-          advanceBalance = yd.advanceBalance; // last year wins
-          yearSections.push({ year, data: yd });
-        }
-      });
-    return { totalRent, totalPaid, totalPending, advanceBalance, yearSections };
+    
+    // Get the latest year data
+    const latestYear = availableYears[0]; // First year in the sorted array (most recent)
+    const latestYearData = getYearlyData(selectedShopNumber, latestYear);
+    
+    if (!latestYearData) return null;
+    
+    return {
+      totalRent: latestYearData.totalRent,
+      totalPaid: latestYearData.totalPaid,
+      totalPending: latestYearData.totalPending,
+      advanceBalance: latestYearData.advanceBalance,
+      yearSections: [{ year: latestYear, data: latestYearData }]
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedShopNumber, selectedYear, data, availableYears, getYearlyData]);
 
