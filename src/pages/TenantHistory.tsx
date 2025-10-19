@@ -23,7 +23,7 @@ import {
 import { Print as PrintIcon } from "@mui/icons-material";
 import { useRentContext } from "../context/RentContext";
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 // Types for better type safety
 interface MonthlyData {
@@ -541,7 +541,7 @@ const TenantHistory: React.FC = () => {
               doc.text(yearInfo, 14, startY);
               startY += 8;
 
-              (doc as any).autoTable({
+              autoTable(doc, {
                 body: summaryData,
                 startY,
                 theme: 'grid',
@@ -554,7 +554,7 @@ const TenantHistory: React.FC = () => {
                 },
               });
 
-              startY = (doc as any).autoTable.previous.finalY + 10;
+              startY = (doc as any).lastAutoTable.finalY + 10;
 
 
               if (selectedYear === "All Years" && allYearsData) {
@@ -570,7 +570,7 @@ const TenantHistory: React.FC = () => {
                 doc.text("Year-wise Summary", 14, startY);
                 startY += 6;
 
-                (doc as any).autoTable({
+                autoTable(doc, {
                   head: [yearlySummaryColumns],
                   body: yearlySummaryRows,
                   startY,
@@ -578,7 +578,7 @@ const TenantHistory: React.FC = () => {
                   headStyles: { fillColor: [22, 160, 133] },
                 });
 
-                startY = (doc as any).autoTable.previous.finalY + 10;
+                startY = (doc as any).lastAutoTable.finalY + 10;
 
                 allYearsData.yearSections.forEach(yearSection => {
                   doc.setFontSize(12);
@@ -595,7 +595,7 @@ const TenantHistory: React.FC = () => {
                     m.comment,
                   ]);
 
-                  (doc as any).autoTable({
+                  autoTable(doc, {
                     head: [monthlyColumns],
                     body: monthlyRows,
                     startY,
@@ -607,7 +607,7 @@ const TenantHistory: React.FC = () => {
                       doc.text(title, 14, 20);
                     },
                   });
-                  startY = (doc as any).autoTable.previous.finalY + 10;
+                  startY = (doc as any).lastAutoTable.finalY + 10;
                 });
               } else if (currentData && "monthlyData" in currentData) {
                 const monthlyColumns = ["Month", "Rent Amount", "Paid Amount", "Advance Used", "Status", "Comments"];
@@ -624,7 +624,7 @@ const TenantHistory: React.FC = () => {
                 doc.text(`Monthly Rent History - ${selectedYear}`, 14, startY);
                 startY += 6;
 
-                (doc as any).autoTable({
+                autoTable(doc, {
                   head: [monthlyColumns],
                   body: monthlyRows,
                   startY,
