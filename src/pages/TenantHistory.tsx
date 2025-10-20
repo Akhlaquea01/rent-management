@@ -331,7 +331,7 @@ const TenantHistory: React.FC = () => {
 
   // Get unique active shops and sort by shop number
   const activeShops = allShops
-    .filter((shop) => shop.tenant.status === "Active")
+    .filter((shop) => shop.tenant.status === "Active" || shop.tenant.status === "Inactive")
     .filter(
       (shop, index, self) =>
         index === self.findIndex((s) => s.shopNumber === shop.shopNumber)
@@ -524,7 +524,7 @@ const TenantHistory: React.FC = () => {
                 const selectedShop = activeShops.find(
                   (s) => s.shopNumber === selectedShopNumber
                 );
-                const tenantName = selectedShop?.tenant.tenant_name_hindi||selectedShop?.tenant.name || "Unknown";
+                const tenantName = selectedShop?.tenant.tenant_name_hindi || selectedShop?.tenant.name || "Unknown";
 
                 const summaryItems = [
                   { label: "Total Rent", value: currentData.totalRent },
