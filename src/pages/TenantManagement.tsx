@@ -112,6 +112,7 @@ const TenantManagement: React.FC = () => {
   const [mobileDialogOpen, setMobileDialogOpen] = useState(false);
   const [selectedTenantForMobile, setSelectedTenantForMobile] = useState<ApiTenantData | null>(null);
   const [bulkMessageType, setBulkMessageType] = useState<'dues' | 'noc'>('dues');
+  const showBulkOption = false;
 
   // Fetch data from API
   useEffect(() => {
@@ -667,7 +668,7 @@ const TenantManagement: React.FC = () => {
           </Select>
         </FormControl>
 
-        <FormControl sx={{ minWidth: 140 }}>
+        {showBulkOption && <FormControl sx={{ minWidth: 140 }}>
           <InputLabel>Message Type</InputLabel>
           <Select
             value={bulkMessageType}
@@ -677,9 +678,9 @@ const TenantManagement: React.FC = () => {
             <MenuItem value="dues">Dues Reminder</MenuItem>
             <MenuItem value="noc">NOC Message</MenuItem>
           </Select>
-        </FormControl>
+        </FormControl>}
 
-        <Button
+        {showBulkOption && <Button
           variant="contained"
           color="primary"
           startIcon={<SendIcon />}
@@ -687,7 +688,7 @@ const TenantManagement: React.FC = () => {
           sx={{ minWidth: 160 }}
         >
           Send Bulk Messages
-        </Button>
+        </Button>}
       </Box>
 
       <Card>
