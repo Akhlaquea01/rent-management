@@ -17,6 +17,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import {
   People as PeopleIcon,
@@ -114,6 +116,7 @@ const Dashboard: React.FC = () => {
     ? new Date().getFullYear().toString()
     : loadedYears[0] || new Date().getFullYear().toString();
   const [selectedYear, setSelectedYear] = useState<string>(defaultYear);
+  const [showInactiveShops, setShowInactiveShops] = useState<boolean>(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
@@ -175,7 +178,17 @@ const Dashboard: React.FC = () => {
 
 
   const overdueShops = shopsArray
-    .filter((shop: any) => shop.totalDues > 0)
+    .filter((shop: any) => {
+      const hasDues = shop.totalDues > 0;
+      const isActive = shop.tenant.status === "Active";
+      const isInactive = shop.tenant.status !== "Active";
+      
+      if (showInactiveShops) {
+        return hasDues; // Show both active and inactive shops with dues
+      } else {
+        return hasDues && isActive; // Show only active shops with dues
+      }
+    })
     .sort(
       (a: any, b: any) => b.totalDues - a.totalDues
     );
@@ -261,7 +274,18 @@ const Dashboard: React.FC = () => {
                 }}
               >
                 <span>Shops with Dues ({overdueShops.length})</span>
-                <Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={showInactiveShops}
+                        onChange={(e) => setShowInactiveShops(e.target.checked)}
+                        size="small"
+                      />
+                    }
+                    label="Include Inactive"
+                    sx={{ fontSize: "0.875rem" }}
+                  />
                   <FileDownloadIcon
                     sx={{ cursor: "pointer", ml: 1 }}
                     titleAccess="Export to PDF"
@@ -288,6 +312,7 @@ const Dashboard: React.FC = () => {
                                     <tr style="background-color: #1976d2; color: white;">
                                       <th style="border: 1px solid #000; padding: 8px; text-align: center;">Name</th>
                                       <th style="border: 1px solid #000; padding: 8px; text-align: center;">Shop</th>
+                                      ${showInactiveShops ? '<th style="border: 1px solid #000; padding: 8px; text-align: center;">Status</th>' : ''}
                                       <th style="border: 1px solid #000; padding: 8px; text-align: right;">Due Amount</th>
                                       <th style="border: 1px solid #000; padding: 8px; text-align: center;">Due Months</th>
                                     </tr>
@@ -302,6 +327,7 @@ const Dashboard: React.FC = () => {
                                         <tr style="${rowBgColor}">
                                           <td style="border: 1px solid #000; padding: 6px; text-align: left;">${shop.tenant.tenant_name_hindi || shop.tenant.name}</td>
                                           <td style="border: 1px solid #000; padding: 6px; text-align: center;">${shop.shopNumber}</td>
+                                          ${showInactiveShops ? `<td style="border: 1px solid #000; padding: 6px; text-align: center; color: ${shop.tenant.status === "Active" ? "green" : "red"}; font-weight: bold;">${shop.tenant.status}</td>` : ''}
                                           <td style="border: 1px solid #000; padding: 6px; text-align: right;">₹${shop.totalDues.toLocaleString()}</td>
                                           <td style="border: 1px solid #000; padding: 6px; text-align: center;">${dueMonths || "N/A"}</td>
                                         </tr>
@@ -420,6 +446,15 @@ const Dashboard: React.FC = () => {
                           <Typography variant="body2" color="textSecondary">
                             Shop {shop.shopNumber}
                           </Typography>
+                          {showInactiveShops && (
+                            <Typography 
+                              variant="caption" 
+                              color={shop.tenant.status === "Active" ? "success.main" : "error.main"}
+                              sx={{ fontWeight: "bold" }}
+                            >
+                              {shop.tenant.status}
+                            </Typography>
+                          )}
                         </Box>
                         <Box sx={{ textAlign: "right" }}>
                           <Typography
@@ -446,6 +481,7 @@ const Dashboard: React.FC = () => {
                       <TableRow>
                         <TableCell>Name</TableCell>
                         <TableCell>Shop</TableCell>
+                        {showInactiveShops && <TableCell>Status</TableCell>}
                         <TableCell align="right">Due Amount</TableCell>
                       </TableRow>
                     </TableHead>
@@ -454,6 +490,17 @@ const Dashboard: React.FC = () => {
                         <TableRow key={shop.shopNumber}>
                           <TableCell>{shop.tenant.name}</TableCell>
                           <TableCell>{shop.shopNumber}</TableCell>
+                          {showInactiveShops && (
+                            <TableCell>
+                              <Typography
+                                variant="body2"
+                                color={shop.tenant.status === "Active" ? "success.main" : "error.main"}
+                                sx={{ fontWeight: "bold" }}
+                              >
+                                {shop.tenant.status}
+                              </Typography>
+                            </TableCell>
+                          )}
                           <TableCell align="right">
                             <Typography
                               color="error.main"
