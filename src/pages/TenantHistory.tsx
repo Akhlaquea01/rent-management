@@ -258,9 +258,33 @@ const SummarySection: React.FC<{
 
   return (
     <Box sx={{ mt: 3 }}>
-      <Typography variant="h6" gutterBottom>
+      <Typography variant="h6" gutterBottom sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         Summary
+        {selectedShopNumber && (() => {
+          const yearlyData = selectedYear === "All Years"
+            ? allYearsData?.yearSections?.[0]?.data // use first year's status if "All Years"
+            : getYearlyData(selectedShopNumber, selectedYear);
+          const status = yearlyData?.status || "Inactive";
+          const color = status === "Active" ? "green" : "red";
+          return (
+            <Typography
+              variant="body2"
+              sx={{
+                color,
+                fontWeight: 600,
+                border: `1px solid ${color}`,
+                borderRadius: "8px",
+                px: 1.5,
+                py: 0.2,
+                fontSize: "0.8rem",
+              }}
+            >
+              {status}
+            </Typography>
+          );
+        })()}
       </Typography>
+
       <Grid container spacing={1}>
         {summaryItems.map((item) => (
           <Grid item xs={6} key={item.label}>
