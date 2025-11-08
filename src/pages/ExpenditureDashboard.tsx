@@ -28,8 +28,6 @@ import {
   TableRow,
   TablePagination,
   Drawer,
-  useTheme,
-  useMediaQuery,
   CircularProgress,
   Alert,
   Tabs,
@@ -242,7 +240,6 @@ const ParetoTooltip = ({ active, payload, label }: any) => {
 };
 
 const ExpenditureDashboard: React.FC = () => {
-  const theme = useTheme();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedChart, setSelectedChart] = useState<ChartView>('timeline');
   const [currentMonth, setCurrentMonth] = useState<{ year: string; month: string } | null>(null);

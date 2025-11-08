@@ -142,7 +142,7 @@ const CollectionGraphs: React.FC<CollectionGraphsProps> = ({ shopsArray, selecte
 
   const monthlyData = getMonthlyCollectionData();
   const summary = getCollectionSummary();
-  const statusData = getShopStatusData();
+  // Removed unused statusData
 
   // Chart configurations
   const monthlyCollectionConfig = {

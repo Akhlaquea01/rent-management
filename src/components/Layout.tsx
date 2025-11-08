@@ -27,7 +27,6 @@ import {
   TrendingUp as TrendingUpIcon,
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useRentContext } from "../context/RentContext";
 import { useAuth } from "../context/AuthContext";
 
 const drawerWidth = 240;
