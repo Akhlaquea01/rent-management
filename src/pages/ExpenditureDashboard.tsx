@@ -43,7 +43,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Close,
-  Refresh,
   BarChart,
   PieChart,
   ShowChart,
@@ -105,6 +104,24 @@ const COLORS = [
   '#FF5722', '#F44336', '#607D8B', '#795548', '#3F51B5',
   '#009688', '#FFC107', '#00BCD4', '#8BC34A', '#673AB7'
 ];
+
+// Category color mapping
+const getCategoryColor = (category: string): string => {
+  const categoryColors: { [key: string]: string } = {
+    'Family': '#E91E63',
+    'HouseHold': '#4CAF50',
+    'Vehicle Maintenance': '#607D8B',
+    'Other': '#9E9E9E',
+    'Utility & Bills': '#FF9800',
+    'Home Maintenance': '#795548',
+    'Transport': '#2196F3',
+    'Fuel & Transportation': '#00BCD4',
+    'Food': '#FF5722',
+    'Shopping': '#9C27B0',
+    'Gifts & Donations': '#E91E63',
+  };
+  return categoryColors[category] || '#757575';
+};
 
 // Custom Tooltip Component for Timeline
 const CustomTooltip = ({ active, payload, label, mode }: any) => {
@@ -574,6 +591,28 @@ const ExpenditureDashboard: React.FC = () => {
       .sort((a, b) => b.value - a.value);
   }, [stats.categoryTotals]);
 
+  // Monthly breakdown for yearly view
+  const monthlyBreakdownData = useMemo(() => {
+    if (!yearlyMode || !appliedFilters.year) return [];
+    
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlyTotals: Record<string, number> = {};
+    
+    allTransactions.forEach(tx => {
+      const txYear = tx.date.substring(0, 4);
+      if (txYear === appliedFilters.year) {
+        const txMonth = tx.date.substring(5, 7);
+        const monthIndex = parseInt(txMonth) - 1;
+        const monthName = monthNames[monthIndex];
+        monthlyTotals[monthName] = (monthlyTotals[monthName] || 0) + tx.amount;
+      }
+    });
+    
+    return monthNames.map(month => ({
+      month,
+      total: monthlyTotals[month] || 0
+    }));
+  }, [yearlyMode, appliedFilters.year, allTransactions]);
 
   const cumulativeData = useMemo(() => {
     let cumulative = 0;
@@ -690,43 +729,15 @@ const ExpenditureDashboard: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const exportToJSON = () => {
-    const exportData = {
-      export_timestamp: new Date().toISOString(),
-      transaction_count: currentViewTransactions.length,
-      total_spent: stats.total,
-      filters: appliedFilters,
-      transactions: currentViewTransactions
-    };
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+  const exportTransaction = (tx: Transaction) => {
+    const csv = `Date,Description,Amount,Category,Subcategory,Payment Method\n${tx.date},${tx.description},${tx.amount},${tx.category},${tx.sub_category},${tx.paymentMethod}`;
+    const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `SpendTimeline_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `SpendTimeline_Transaction_${tx.date}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-  };
-
-  const exportTransaction = (tx: Transaction, format: 'csv' | 'json') => {
-    if (format === 'csv') {
-      const csv = `Date,Description,Amount,Category,Subcategory,Payment Method\n${tx.date},${tx.description},${tx.amount},${tx.category},${tx.sub_category},${tx.paymentMethod}`;
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `SpendTimeline_Transaction_${tx.date}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } else {
-      const json = JSON.stringify(tx, null, 2);
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `SpendTimeline_Transaction_${tx.date}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
   };
 
   // Render charts
@@ -772,7 +783,56 @@ const ExpenditureDashboard: React.FC = () => {
         );
 
       case 'yearly':
-    return (
+        // Monthly View: Show category bar chart
+        if (!yearlyMode && !showAllData && currentMonth) {
+          return (
+            <ResponsiveContainer width="100%" height={400}>
+              <RechartsBarChart data={categoryData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="name" 
+                  tick={{ fontSize: 11 }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={100}
+                />
+                <YAxis 
+                  tick={{ fontSize: 11 }}
+                  tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
+                  width={60}
+                />
+                <RechartsTooltip content={<CategoryTooltip />} />
+                <RechartsLegend wrapperStyle={{ fontSize: '12px' }} />
+                <Bar dataKey="value" name="Category Total">
+                  {categoryData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={getCategoryColor(entry.name)} />
+                  ))}
+                </Bar>
+              </RechartsBarChart>
+            </ResponsiveContainer>
+          );
+        }
+        // Yearly View: Show monthly breakdown when in yearly mode
+        if (yearlyMode && monthlyBreakdownData.length > 0) {
+          return (
+            <ResponsiveContainer width="100%" height={400}>
+              <RechartsBarChart data={monthlyBreakdownData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                <YAxis 
+                  tick={{ fontSize: 11 }}
+                  tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
+                  width={60}
+                />
+                <RechartsTooltip content={<YearlyTooltip />} />
+                <RechartsLegend wrapperStyle={{ fontSize: '12px' }} />
+                <Bar dataKey="total" fill="#4CAF50" name="Monthly Total" />
+              </RechartsBarChart>
+            </ResponsiveContainer>
+          );
+        }
+        // Show All Data: Show year comparison
+        return (
           <ResponsiveContainer width="100%" height={400}>
             <RechartsBarChart data={yearlyData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -790,6 +850,7 @@ const ExpenditureDashboard: React.FC = () => {
         );
 
       case 'category':
+        // Always show pie chart for category view in all modes
         return (
           <ResponsiveContainer width="100%" height={400}>
             <RechartsPieChart>
@@ -921,7 +982,6 @@ const ExpenditureDashboard: React.FC = () => {
               variant="contained"
               color="error"
               size="small" 
-              startIcon={<Refresh />}
               onClick={() => fetchData()}
               disabled={isLoading}
             >
@@ -997,20 +1057,9 @@ const ExpenditureDashboard: React.FC = () => {
                 Filters
               </Button>
         </Badge>
-              <Button 
-                variant="outlined" 
-                startIcon={<Refresh />} 
-                onClick={() => fetchData()}
-                disabled={isLoading}
-              >
-                Refresh
-              </Button>
               <Button variant="outlined" startIcon={<Download />} onClick={exportToCSV}>
                 Export CSV
               </Button>
-              <Button variant="outlined" startIcon={<Download />} onClick={exportToJSON}>
-                Export JSON
-        </Button>
       </Box>
       </Box>
 
@@ -1126,7 +1175,12 @@ const ExpenditureDashboard: React.FC = () => {
             </Button>
             <Button
               variant={showAllData ? 'contained' : 'outlined'}
-              onClick={() => setShowAllData(!showAllData)}
+              onClick={() => {
+                setShowAllData(!showAllData);
+                if (!showAllData) {
+                  setYearlyMode(false);
+                }
+              }}
               size="small"
               color="secondary"
             >
@@ -1236,7 +1290,11 @@ const ExpenditureDashboard: React.FC = () => {
             scrollButtons="auto"
           >
             <Tab icon={<ShowChart />} label="Timeline" value="timeline" />
-            <Tab icon={<BarChart />} label="Yearly" value="yearly" />
+            <Tab 
+              icon={<BarChart />} 
+              label={!yearlyMode && !showAllData ? "Monthly" : "Yearly"} 
+              value="yearly" 
+            />
             <Tab icon={<PieChart />} label="Category" value="category" />
             <Tab icon={<ShowChart />} label="Cumulative" value="cumulative" />
             <Tab icon={<BarChart />} label="Pareto" value="pareto" />
@@ -1299,7 +1357,7 @@ const ExpenditureDashboard: React.FC = () => {
       {/* Transactions Table */}
       <Card>
         <CardContent>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Box display="flex" flexDirection={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} gap={2} mb={2}>
             <Typography variant="h6">Transactions</Typography>
             <TextField
               size="small"
@@ -1313,72 +1371,135 @@ const ExpenditureDashboard: React.FC = () => {
             />
       </Box>
 
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>
-        <Button 
-                size="small" 
-                onClick={() => {
-                        if (sortField === 'date') {
-                          setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-                        } else {
-                          setSortField('date');
-                          setSortOrder('desc');
-                        }
-                      }}
-                    >
-                      Date {sortField === 'date' && (sortOrder === 'asc' ? '↑' : '↓')}
-        </Button>
-                  </TableCell>
-                  <TableCell>Description</TableCell>
-                  <TableCell>Category</TableCell>
-                  <TableCell>Subcategory</TableCell>
-                  <TableCell>
-                    <Button
-                      size="small"
-                      onClick={() => {
-                        if (sortField === 'amount') {
-                          setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-                        } else {
-                          setSortField('amount');
-                          setSortOrder('desc');
-                        }
-                      }}
-                    >
-                      Amount {sortField === 'amount' && (sortOrder === 'asc' ? '↑' : '↓')}
-                    </Button>
-                  </TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {paginatedTransactions.map((tx, idx) => (
-                  <TableRow key={idx} hover>
-                    <TableCell>{new Date(tx.date).toLocaleDateString()}</TableCell>
-                    <TableCell>{tx.description}</TableCell>
+          {/* Desktop Table View */}
+          <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
                     <TableCell>
-                      <Chip label={tx.category} size="small" />
+          <Button 
+                  size="small" 
+                  onClick={() => {
+                          if (sortField === 'date') {
+                            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                          } else {
+                            setSortField('date');
+                            setSortOrder('desc');
+                          }
+                        }}
+                      >
+                        Date {sortField === 'date' && (sortOrder === 'asc' ? '↑' : '↓')}
+          </Button>
                     </TableCell>
-                    <TableCell>{tx.sub_category}</TableCell>
-                    <TableCell>₹{tx.amount.toFixed(2)}</TableCell>
+                    <TableCell>Description</TableCell>
                     <TableCell>
                       <Button
                         size="small"
                         onClick={() => {
-                          setSelectedTransaction(tx);
-                          setTransactionModalOpen(true);
+                          if (sortField === 'category') {
+                            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                          } else {
+                            setSortField('category');
+                            setSortOrder('asc');
+                          }
                         }}
                       >
-                        View
+                        Category {sortField === 'category' && (sortOrder === 'asc' ? '↑' : '↓')}
                       </Button>
                     </TableCell>
+                    <TableCell>Subcategory</TableCell>
+                    <TableCell>
+                      <Button
+                        size="small"
+                        onClick={() => {
+                          if (sortField === 'amount') {
+                            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                          } else {
+                            setSortField('amount');
+                            setSortOrder('desc');
+                          }
+                        }}
+                      >
+                        Amount {sortField === 'amount' && (sortOrder === 'asc' ? '↑' : '↓')}
+                      </Button>
+                    </TableCell>
+                    <TableCell>Actions</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {paginatedTransactions.map((tx, idx) => (
+                    <TableRow key={idx} hover>
+                      <TableCell>{new Date(tx.date).toLocaleDateString()}</TableCell>
+                      <TableCell>{tx.description}</TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={tx.category} 
+                          size="small" 
+                          sx={{ 
+                            backgroundColor: getCategoryColor(tx.category),
+                            color: '#fff',
+                            fontWeight: 'bold'
+                          }} 
+                        />
+                      </TableCell>
+                      <TableCell>{tx.sub_category}</TableCell>
+                      <TableCell>₹{tx.amount.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Button
+                          size="small"
+                          onClick={() => {
+                            setSelectedTransaction(tx);
+                            setTransactionModalOpen(true);
+                          }}
+                        >
+                          View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
+
+          {/* Mobile Card View */}
+          <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+            {paginatedTransactions.map((tx, idx) => (
+              <Card key={idx} variant="outlined" sx={{ mb: 2, cursor: 'pointer' }} onClick={() => {
+                setSelectedTransaction(tx);
+                setTransactionModalOpen(true);
+              }}>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
+                    <Typography variant="body2" fontWeight="bold" sx={{ flex: 1, pr: 1 }}>
+                      {tx.description}
+                    </Typography>
+                    <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
+                      ₹{tx.amount.toFixed(2)}
+                    </Typography>
+                  </Box>
+                  <Box display="flex" gap={1} mb={1} flexWrap="wrap">
+                    <Chip 
+                      label={tx.category} 
+                      size="small" 
+                      sx={{ 
+                        backgroundColor: getCategoryColor(tx.category),
+                        color: '#fff',
+                        fontWeight: 'bold'
+                      }} 
+                    />
+                    {tx.sub_category && (
+                      <Chip label={tx.sub_category} size="small" variant="outlined" />
+                    )}
+                  </Box>
+                  <Typography variant="caption" color="textSecondary">
+                    {tx.paymentMethod}
+                  </Typography>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
 
           <TablePagination
             component="div"
@@ -1565,11 +1686,8 @@ const ExpenditureDashboard: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => selectedTransaction && exportTransaction(selectedTransaction, 'csv')}>
+          <Button onClick={() => selectedTransaction && exportTransaction(selectedTransaction)}>
             Export CSV
-          </Button>
-          <Button onClick={() => selectedTransaction && exportTransaction(selectedTransaction, 'json')}>
-            Export JSON
           </Button>
           <Button onClick={() => setTransactionModalOpen(false)}>Close</Button>
         </DialogActions>
