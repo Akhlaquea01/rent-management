@@ -148,7 +148,63 @@ const CustomTooltip = ({ active, payload, label, mode }: any) => {
   return null;
 };
 
-// Custom Tooltip for Yearly Chart
+// Custom Tooltip for Stacked Bar Charts
+const StackedBarTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    const total = payload.reduce((sum: number, item: any) => sum + (item.value || 0), 0);
+    return (
+      <Box
+        sx={{
+          backgroundColor: 'rgba(255, 255, 255, 0.98)',
+          border: '2px solid #333',
+          borderRadius: 2,
+          padding: 2,
+          boxShadow: 3,
+          minWidth: 200,
+        }}
+      >
+        <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1.5, fontSize: '13px' }}>
+          {label}
+        </Typography>
+        {payload.map((item: any, index: number) => (
+          item.value > 0 && (
+            <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+              <Box
+                sx={{
+                  width: 12,
+                  height: 12,
+                  backgroundColor: item.fill || item.color,
+                  borderRadius: '2px',
+                  mr: 1,
+                  flexShrink: 0,
+                }}
+              />
+              <Typography variant="caption" sx={{ fontSize: '11px', flex: 1 }}>
+                {item.name}:
+              </Typography>
+              <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '11px', ml: 1 }}>
+                ₹{item.value.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </Typography>
+            </Box>
+          )
+        ))}
+        <Box sx={{ borderTop: '1px solid #ddd', mt: 1, pt: 1 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: '12px' }}>
+              Total:
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: '12px', color: 'primary.main' }}>
+              ₹{total.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+    );
+  }
+  return null;
+};
+
+// Custom Tooltip for Yearly Chart (simple, non-stacked)
 const YearlyTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
@@ -166,34 +222,6 @@ const YearlyTooltip = ({ active, payload, label }: any) => {
         </Typography>
         <Typography variant="body2" color="primary">
           Total: ₹{payload[0].value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-        </Typography>
-      </Box>
-    );
-  }
-  return null;
-};
-
-// Custom Tooltip for Category Pie Chart
-const CategoryTooltip = ({ active, payload }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <Box
-        sx={{
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-          border: '1px solid #ccc',
-          borderRadius: 1,
-          padding: 2,
-          boxShadow: 2,
-        }}
-      >
-        <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
-          {payload[0].name}
-        </Typography>
-        <Typography variant="body2" color="primary">
-          Amount: ₹{payload[0].value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-        </Typography>
-        <Typography variant="body2" color="textSecondary">
-          {payload[0].payload.percent}%
         </Typography>
       </Box>
     );
@@ -591,12 +619,58 @@ const ExpenditureDashboard: React.FC = () => {
       .sort((a, b) => b.value - a.value);
   }, [stats.categoryTotals]);
 
-  // Monthly breakdown for yearly view
+  // Category data with subcategory breakdown for stacked bar chart
+  const categoryStackedData = useMemo(() => {
+    const categorySubcategoryMap: Record<string, Record<string, number>> = {};
+    
+    currentViewTransactions.forEach(tx => {
+      if (!categorySubcategoryMap[tx.category]) {
+        categorySubcategoryMap[tx.category] = {};
+      }
+      const subcat = tx.sub_category || 'Other';
+      categorySubcategoryMap[tx.category][subcat] = 
+        (categorySubcategoryMap[tx.category][subcat] || 0) + tx.amount;
+    });
+
+    // Get all unique subcategories
+    const allSubcategories = new Set<string>();
+    Object.values(categorySubcategoryMap).forEach(subcats => {
+      Object.keys(subcats).forEach(subcat => allSubcategories.add(subcat));
+    });
+
+    // Transform to array format for stacked bar chart
+    return Object.entries(categorySubcategoryMap)
+      .map(([category, subcats]) => {
+        const total = Object.values(subcats).reduce((sum, val) => sum + val, 0);
+        return {
+          category,
+          total,
+          ...subcats
+        };
+      })
+      .sort((a, b) => b.total - a.total);
+  }, [currentViewTransactions]);
+
+  // Get unique subcategories for the legend
+  const uniqueSubcategories = useMemo(() => {
+    const subcats = new Set<string>();
+    currentViewTransactions.forEach(tx => {
+      subcats.add(tx.sub_category || 'Other');
+    });
+    return Array.from(subcats);
+  }, [currentViewTransactions]);
+
+  // Monthly breakdown for yearly view with category stacking
   const monthlyBreakdownData = useMemo(() => {
     if (!yearlyMode || !appliedFilters.year) return [];
     
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const monthlyTotals: Record<string, number> = {};
+    const monthlyData: Record<string, Record<string, number>> = {};
+    
+    // Initialize all months
+    monthNames.forEach(month => {
+      monthlyData[month] = {};
+    });
     
     allTransactions.forEach(tx => {
       const txYear = tx.date.substring(0, 4);
@@ -604,15 +678,37 @@ const ExpenditureDashboard: React.FC = () => {
         const txMonth = tx.date.substring(5, 7);
         const monthIndex = parseInt(txMonth) - 1;
         const monthName = monthNames[monthIndex];
-        monthlyTotals[monthName] = (monthlyTotals[monthName] || 0) + tx.amount;
+        const category = tx.category;
+        
+        monthlyData[monthName][category] = 
+          (monthlyData[monthName][category] || 0) + tx.amount;
       }
     });
     
-    return monthNames.map(month => ({
-      month,
-      total: monthlyTotals[month] || 0
-    }));
+    // Get all unique categories for this year
+    const allCategories = new Set<string>();
+    Object.values(monthlyData).forEach(categories => {
+      Object.keys(categories).forEach(cat => allCategories.add(cat));
+    });
+    
+    return monthNames.map(month => {
+      const total = Object.values(monthlyData[month]).reduce((sum, val) => sum + val, 0);
+      return {
+        month,
+        total,
+        ...monthlyData[month]
+      };
+    });
   }, [yearlyMode, appliedFilters.year, allTransactions]);
+
+  // Get unique categories for monthly breakdown
+  const uniqueCategories = useMemo(() => {
+    const cats = new Set<string>();
+    currentViewTransactions.forEach(tx => {
+      cats.add(tx.category);
+    });
+    return Array.from(cats);
+  }, [currentViewTransactions]);
 
   const cumulativeData = useMemo(() => {
     let cumulative = 0;
@@ -783,14 +879,14 @@ const ExpenditureDashboard: React.FC = () => {
         );
 
       case 'yearly':
-        // Monthly View: Show category bar chart
+        // Monthly View: Show category bar chart with subcategory stacking
         if (!yearlyMode && !showAllData && currentMonth) {
           return (
             <ResponsiveContainer width="100%" height={400}>
-              <RechartsBarChart data={categoryData}>
+              <RechartsBarChart data={categoryStackedData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
-                  dataKey="name" 
+                  dataKey="category" 
                   tick={{ fontSize: 11 }}
                   angle={-45}
                   textAnchor="end"
@@ -801,18 +897,20 @@ const ExpenditureDashboard: React.FC = () => {
                   tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
                   width={60}
                 />
-                <RechartsTooltip content={<CategoryTooltip />} />
-                <RechartsLegend wrapperStyle={{ fontSize: '12px' }} />
-                <Bar dataKey="value" name="Category Total">
-                  {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={getCategoryColor(entry.name)} />
-                  ))}
-                </Bar>
+                <RechartsTooltip content={<StackedBarTooltip />} />
+                {uniqueSubcategories.map((subcat, index) => (
+                  <Bar 
+                    key={subcat} 
+                    dataKey={subcat} 
+                    stackId="a" 
+                    fill={COLORS[index % COLORS.length]}
+                  />
+                ))}
               </RechartsBarChart>
             </ResponsiveContainer>
           );
         }
-        // Yearly View: Show monthly breakdown when in yearly mode
+        // Yearly View: Show monthly breakdown with category stacking
         if (yearlyMode && monthlyBreakdownData.length > 0) {
           return (
             <ResponsiveContainer width="100%" height={400}>
@@ -824,9 +922,15 @@ const ExpenditureDashboard: React.FC = () => {
                   tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
                   width={60}
                 />
-                <RechartsTooltip content={<YearlyTooltip />} />
-                <RechartsLegend wrapperStyle={{ fontSize: '12px' }} />
-                <Bar dataKey="total" fill="#4CAF50" name="Monthly Total" />
+                <RechartsTooltip content={<StackedBarTooltip />} />
+                {uniqueCategories.map((category, index) => (
+                  <Bar 
+                    key={category} 
+                    dataKey={category} 
+                    stackId="a" 
+                    fill={getCategoryColor(category)}
+                  />
+                ))}
               </RechartsBarChart>
             </ResponsiveContainer>
           );
@@ -850,30 +954,68 @@ const ExpenditureDashboard: React.FC = () => {
         );
 
       case 'category':
-        // Always show pie chart for category view in all modes
+        // Doughnut chart for category view in all modes
+        const CategoryPieTooltip = ({ active, payload }: any) => {
+          if (active && payload && payload.length) {
+            const data = payload[0];
+            const percent = stats.total > 0 ? ((data.value / stats.total) * 100).toFixed(1) : '0';
+            
+            return (
+              <Box
+                sx={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                  border: '2px solid #333',
+                  borderRadius: 2,
+                  padding: 2,
+                  boxShadow: 3,
+                  minWidth: 180,
+                }}
+              >
+                <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1, fontSize: '13px' }}>
+                  {data.name}
+                </Typography>
+                <Typography variant="body2" color="primary" sx={{ mb: 0.5, fontSize: '12px' }}>
+                  Amount: ₹{data.value.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 'bold', color: 'secondary.main', fontSize: '12px' }}>
+                  {percent}%
+                </Typography>
+              </Box>
+            );
+          }
+          return null;
+        };
+
         return (
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height={500}>
             <RechartsPieChart>
               <Pie
                 data={categoryData}
                 cx="50%"
                 cy="50%"
-                labelLine={false}
-                label={(entry: any) => {
-                  const percent = entry.percent || 0;
-                  const name = entry.name.length > 15 ? entry.name.substring(0, 12) + '...' : entry.name;
-                  return `${name} ${(percent * 100).toFixed(0)}%`;
+                labelLine={{
+                  stroke: '#888',
+                  strokeWidth: 1,
                 }}
-                style={{ fontSize: '11px' }}
-                outerRadius={120}
+                label={(entry: any) => {
+                  const percent = stats.total > 0 ? ((entry.value / stats.total) * 100).toFixed(1) : '0';
+                  // Only show label if percentage is significant (>2%)
+                  if (parseFloat(percent) < 2) return '';
+                  const name = entry.name.length > 12 ? entry.name.substring(0, 10) + '..' : entry.name;
+                  return `${name} ${percent}%`;
+                }}
+                style={{ fontSize: '11px', fontWeight: '600' }}
+                innerRadius={80}
+                outerRadius={140}
                 fill="#8884d8"
                 dataKey="value"
+                paddingAngle={2}
               >
                 {categoryData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${index}`} fill={getCategoryColor(entry.name) || COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <RechartsTooltip content={<CategoryTooltip />} />
+              <RechartsTooltip content={<CategoryPieTooltip />} />
             </RechartsPieChart>
           </ResponsiveContainer>
         );
