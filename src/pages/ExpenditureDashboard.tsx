@@ -62,7 +62,6 @@ import {
   Tooltip as RechartsTooltip,
   Legend as RechartsLegend,
   ResponsiveContainer,
-  Brush,
   ComposedChart
 } from 'recharts';
 // API endpoint for expenditure data
@@ -865,7 +864,6 @@ const ExpenditureDashboard: React.FC = () => {
               <RechartsTooltip 
                 content={<CustomTooltip mode={showAllData ? 'showAll' : (yearlyMode ? 'yearly' : 'daily')} />}
               />
-              <RechartsLegend wrapperStyle={{ fontSize: '12px' }} />
               <Line 
                 type="monotone" 
                 dataKey="amount" 
@@ -873,7 +871,6 @@ const ExpenditureDashboard: React.FC = () => {
                 strokeWidth={2}
                 name={showAllData ? "Period Total" : (yearlyMode ? "Monthly Total" : "Daily Total")}
               />
-              {(showAllData || !yearlyMode) && <Brush />}
             </LineChart>
           </ResponsiveContainer>
         );
