@@ -145,13 +145,13 @@ const ExpenditureDashboard: React.FC = () => {
     dateRange: { from: '', to: '' },
     year: '',
     categories: [],
-    amountRange: [0, 10000]
+    amountRange: [0, 1000000]
   });
   const [appliedFilters, setAppliedFilters] = useState<FilterState>({
     dateRange: { from: '', to: '' },
     year: '',
     categories: [],
-    amountRange: [0, 10000]
+    amountRange: [0, 1000000]
   });
 
   // Fetch data from API
@@ -492,7 +492,7 @@ const ExpenditureDashboard: React.FC = () => {
       dateRange: { from: '', to: '' },
       year: '',
       categories: [],
-      amountRange: [0, 10000]
+      amountRange: [0, 1000000]
     };
     setTempFilters(resetFilters);
     setAppliedFilters(resetFilters);
@@ -509,7 +509,7 @@ const ExpenditureDashboard: React.FC = () => {
     // Don't count year filter if in yearly mode (it's part of the view selector)
     if (appliedFilters.year && (!yearlyMode || showAllData)) count++;
     if (appliedFilters.categories.length > 0) count++;
-    if (appliedFilters.amountRange[0] > 0 || appliedFilters.amountRange[1] < 10000) count++;
+    if (appliedFilters.amountRange[0] > 0 || appliedFilters.amountRange[1] < 1000000) count++;
     return count;
   }, [appliedFilters, yearlyMode, showAllData]);
 
@@ -1231,7 +1231,7 @@ const ExpenditureDashboard: React.FC = () => {
           />
 
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
-            Amount Range: ₹{tempFilters.amountRange[0]} - ₹{tempFilters.amountRange[1]}
+            Amount Range: ₹{tempFilters.amountRange[0].toLocaleString()} - ₹{tempFilters.amountRange[1].toLocaleString()}
               </Typography>
           <Slider
             value={tempFilters.amountRange}
@@ -1239,8 +1239,10 @@ const ExpenditureDashboard: React.FC = () => {
               setTempFilters({ ...tempFilters, amountRange: newValue as [number, number] })
             }
             min={0}
-            max={10000}
+            max={1000000}
+            step={1000}
             valueLabelDisplay="auto"
+            valueLabelFormat={(value) => `₹${(value / 1000).toFixed(0)}k`}
             sx={{ mb: 3 }}
           />
 
