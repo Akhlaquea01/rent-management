@@ -760,12 +760,18 @@ const ExpenditureDashboard: React.FC = () => {
                 angle={showAllData ? -45 : 0}
                 textAnchor={showAllData ? 'end' : 'middle'}
                 height={showAllData ? 80 : 60}
+                tick={{ fontSize: 12 }}
               />
-              <YAxis label={{ value: 'Amount (₹)', angle: -90, position: 'insideLeft' }} />
+              <YAxis 
+                label={{ value: 'Amount (₹)', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                tick={{ fontSize: 11 }}
+                tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
+                width={60}
+              />
               <RechartsTooltip 
                 content={<CustomTooltip mode={showAllData ? 'showAll' : (yearlyMode ? 'yearly' : 'daily')} />}
               />
-              <RechartsLegend />
+              <RechartsLegend wrapperStyle={{ fontSize: '12px' }} />
               <Line 
                 type="monotone" 
                 dataKey="amount" 
@@ -783,10 +789,14 @@ const ExpenditureDashboard: React.FC = () => {
           <ResponsiveContainer width="100%" height={400}>
             <RechartsBarChart data={yearlyData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="year" />
-              <YAxis />
+              <XAxis dataKey="year" tick={{ fontSize: 12 }} />
+              <YAxis 
+                tick={{ fontSize: 11 }}
+                tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
+                width={60}
+              />
               <RechartsTooltip content={<YearlyTooltip />} />
-              <RechartsLegend />
+              <RechartsLegend wrapperStyle={{ fontSize: '12px' }} />
               <Bar dataKey="total" fill="#4CAF50" />
             </RechartsBarChart>
           </ResponsiveContainer>
@@ -803,8 +813,10 @@ const ExpenditureDashboard: React.FC = () => {
                 labelLine={false}
                 label={(entry: any) => {
                   const percent = entry.percent || 0;
-                  return `${entry.name} ${(percent * 100).toFixed(0)}%`;
+                  const name = entry.name.length > 15 ? entry.name.substring(0, 12) + '...' : entry.name;
+                  return `${name} ${(percent * 100).toFixed(0)}%`;
                 }}
+                style={{ fontSize: '11px' }}
                 outerRadius={120}
                 fill="#8884d8"
                 dataKey="value"
@@ -823,10 +835,14 @@ const ExpenditureDashboard: React.FC = () => {
           <ResponsiveContainer width="100%" height={400}>
             <LineChart data={cumulativeData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
+              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+              <YAxis 
+                tick={{ fontSize: 11 }}
+                tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
+                width={60}
+              />
               <RechartsTooltip content={<CumulativeTooltip />} />
-              <RechartsLegend />
+              <RechartsLegend wrapperStyle={{ fontSize: '12px' }} />
               <Line type="monotone" dataKey="cumulative" stroke="#9C27B0" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
@@ -837,11 +853,22 @@ const ExpenditureDashboard: React.FC = () => {
           <ResponsiveContainer width="100%" height={400}>
             <ComposedChart data={paretoData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis yAxisId="left" />
-              <YAxis yAxisId="right" orientation="right" />
+              <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-45} textAnchor="end" height={80} />
+              <YAxis 
+                yAxisId="left" 
+                tick={{ fontSize: 11 }}
+                tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
+                width={60}
+              />
+              <YAxis 
+                yAxisId="right" 
+                orientation="right" 
+                tick={{ fontSize: 11 }}
+                tickFormatter={(value) => `${value.toFixed(0)}%`}
+                width={50}
+              />
               <RechartsTooltip content={<ParetoTooltip />} />
-              <RechartsLegend />
+              <RechartsLegend wrapperStyle={{ fontSize: '12px' }} />
               <Bar yAxisId="left" dataKey="value" fill="#2196F3" />
               <Line yAxisId="right" type="monotone" dataKey="percentage" stroke="#FF5722" strokeWidth={2} />
             </ComposedChart>
