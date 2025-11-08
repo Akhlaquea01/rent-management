@@ -125,24 +125,10 @@ const CollectionGraphs: React.FC<CollectionGraphsProps> = ({ shopsArray, selecte
     };
   };
 
-  // Calculate shop status distribution
-  const getShopStatusData = () => {
-    const activeShops = shopsArray.filter(shop => shop.tenant.status === 'Active').length;
-    const inactiveShops = shopsArray.length - activeShops;
-    const shopsWithDues = shopsArray.filter(shop => (shop.previousYearDues?.totalDues || 0) > 0).length;
-    const shopsWithoutDues = shopsArray.length - shopsWithDues;
-
-    return {
-      activeShops,
-      inactiveShops,
-      shopsWithDues,
-      shopsWithoutDues,
-    };
-  };
+  // Removed unused getShopStatusData function
 
   const monthlyData = getMonthlyCollectionData();
   const summary = getCollectionSummary();
-  // Removed unused statusData
 
   // Chart configurations
   const monthlyCollectionConfig = {
