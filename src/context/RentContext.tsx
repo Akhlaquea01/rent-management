@@ -392,6 +392,7 @@ export const RentProvider: React.FC<RentProviderProps> = ({ children }) => {
     const currentYear = new Date().getFullYear().toString(); // Use actual current year
     fetchAdvanceTransactions();
     fetchYearData(currentYear);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Load all years data in background for application-wide access
@@ -409,6 +410,7 @@ export const RentProvider: React.FC<RentProviderProps> = ({ children }) => {
     if (!state.loading && Object.keys(state.data.years).length > 0) {
       loadAllYearsData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.loading, state.data.years, state.loadingYears]);
 
   // Memoize the context value to prevent unnecessary re-renders

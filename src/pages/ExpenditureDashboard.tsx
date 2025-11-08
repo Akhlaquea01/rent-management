@@ -27,7 +27,6 @@ import {
   TableHead,
   TableRow,
   TablePagination,
-  Paper,
   Drawer,
   useTheme,
   useMediaQuery,
@@ -40,11 +39,6 @@ import {
   Badge
 } from '@mui/material';
 import {
-  TrendingUp,
-  TrendingDown,
-  CalendarMonth,
-  AttachMoney,
-  Category,
   FilterList,
   Download,
   Search,
@@ -52,13 +46,10 @@ import {
   ChevronRight,
   Close,
   Refresh,
-  ViewList,
   BarChart,
   PieChart,
   ShowChart,
-  CalendarToday,
-  Warning,
-  CheckCircle
+  Warning
 } from '@mui/icons-material';
 import {
   LineChart,
@@ -68,8 +59,6 @@ import {
   PieChart as RechartsPieChart,
   Pie,
   Cell,
-  AreaChart,
-  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -254,7 +243,6 @@ const ParetoTooltip = ({ active, payload, label }: any) => {
 
 const ExpenditureDashboard: React.FC = () => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedChart, setSelectedChart] = useState<ChartView>('timeline');
   const [currentMonth, setCurrentMonth] = useState<{ year: string; month: string } | null>(null);
@@ -388,9 +376,11 @@ const ExpenditureDashboard: React.FC = () => {
   // When year filter changes in yearly mode, update it
   useEffect(() => {
     if (yearlyMode && !appliedFilters.year && availableYears.length > 0) {
-      setAppliedFilters({ ...appliedFilters, year: availableYears[availableYears.length - 1] });
-      setTempFilters({ ...tempFilters, year: availableYears[availableYears.length - 1] });
+      const latestYear = availableYears[availableYears.length - 1];
+      setAppliedFilters(prev => ({ ...prev, year: latestYear }));
+      setTempFilters(prev => ({ ...prev, year: latestYear }));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [yearlyMode, availableYears]);
 
   // When switching to monthly mode, ensure current month respects year filter

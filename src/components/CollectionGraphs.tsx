@@ -2,7 +2,6 @@ import React from 'react';
 import {
   Card,
   CardContent,
-  Typography,
   Box,
   Grid,
   useTheme,
@@ -235,40 +234,7 @@ const CollectionGraphs: React.FC<CollectionGraphsProps> = ({ shopsArray, selecte
     ],
   };
 
-  const shopStatusConfig = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom' as const,
-      },
-      title: {
-        display: true,
-        text: 'Shop Status Distribution',
-        font: {
-          size: isMobile ? 12 : 14,
-        },
-      },
-    },
-  };
-
-  const shopStatusData = {
-    labels: ['Active', 'Inactive'],
-    datasets: [
-      {
-        data: [statusData.activeShops, statusData.inactiveShops],
-        backgroundColor: [
-          'rgba(46, 125, 50, 0.8)',
-          'rgba(158, 158, 158, 0.8)',
-        ],
-        borderColor: [
-          'rgba(46, 125, 50, 1)',
-          'rgba(158, 158, 158, 1)',
-        ],
-        borderWidth: 2,
-      },
-    ],
-  };
+  // Removed unused shopStatusConfig and shopStatusData
 
   // Collection rate trend (cumulative)
   const getCollectionRateTrend = () => {

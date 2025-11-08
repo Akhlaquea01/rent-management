@@ -55,7 +55,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const navigate = useNavigate();
   const location = useLocation();
-  const { state } = useRentContext();
   const { logout } = useAuth();
 
   const handleDrawerToggle = () => {

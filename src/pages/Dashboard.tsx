@@ -181,7 +181,6 @@ const Dashboard: React.FC = () => {
     .filter((shop: any) => {
       const hasDues = shop.totalDues > 0;
       const isActive = shop.tenant.status === "Active";
-      const isInactive = shop.tenant.status !== "Active";
       
       if (showInactiveShops) {
         return hasDues; // Show both active and inactive shops with dues
