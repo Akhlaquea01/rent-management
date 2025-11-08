@@ -119,6 +119,139 @@ const COLORS = [
   '#009688', '#FFC107', '#00BCD4', '#8BC34A', '#673AB7'
 ];
 
+// Custom Tooltip Component for Timeline
+const CustomTooltip = ({ active, payload, label, mode }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <Box
+        sx={{
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          border: '1px solid #ccc',
+          borderRadius: 1,
+          padding: 2,
+          boxShadow: 2,
+        }}
+      >
+        <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+          {mode === 'showAll' ? `Period: ${label}` : mode === 'yearly' ? `Month: ${label}` : `Day: ${label}`}
+        </Typography>
+        <Typography variant="body2" color="primary">
+          Amount: ₹{payload[0].value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </Typography>
+      </Box>
+    );
+  }
+  return null;
+};
+
+// Custom Tooltip for Yearly Chart
+const YearlyTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <Box
+        sx={{
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          border: '1px solid #ccc',
+          borderRadius: 1,
+          padding: 2,
+          boxShadow: 2,
+        }}
+      >
+        <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+          Year: {label}
+        </Typography>
+        <Typography variant="body2" color="primary">
+          Total: ₹{payload[0].value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </Typography>
+      </Box>
+    );
+  }
+  return null;
+};
+
+// Custom Tooltip for Category Pie Chart
+const CategoryTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <Box
+        sx={{
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          border: '1px solid #ccc',
+          borderRadius: 1,
+          padding: 2,
+          boxShadow: 2,
+        }}
+      >
+        <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+          {payload[0].name}
+        </Typography>
+        <Typography variant="body2" color="primary">
+          Amount: ₹{payload[0].value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </Typography>
+        <Typography variant="body2" color="textSecondary">
+          {payload[0].payload.percent}%
+        </Typography>
+      </Box>
+    );
+  }
+  return null;
+};
+
+// Custom Tooltip for Cumulative Chart
+const CumulativeTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <Box
+        sx={{
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          border: '1px solid #ccc',
+          borderRadius: 1,
+          padding: 2,
+          boxShadow: 2,
+        }}
+      >
+        <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+          Date: {label}
+        </Typography>
+        <Typography variant="body2" color="primary">
+          Cumulative: ₹{payload[0].value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </Typography>
+      </Box>
+    );
+  }
+  return null;
+};
+
+// Custom Tooltip for Pareto Chart
+const ParetoTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <Box
+        sx={{
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          border: '1px solid #ccc',
+          borderRadius: 1,
+          padding: 2,
+          boxShadow: 2,
+        }}
+      >
+        <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+          {label}
+        </Typography>
+        {payload.map((entry: any, index: number) => (
+          <Typography key={index} variant="body2" sx={{ color: entry.color }}>
+            {entry.name === 'value' 
+              ? `Amount: ₹${entry.value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              : `Cumulative: ${entry.value.toFixed(1)}%`
+            }
+          </Typography>
+        ))}
+      </Box>
+    );
+  }
+  return null;
+};
+
 const ExpenditureDashboard: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -139,6 +272,7 @@ const ExpenditureDashboard: React.FC = () => {
   const [spendingData, setSpendingData] = useState<SpendingData>({});
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [retryAttempt, setRetryAttempt] = useState(0);
 
   // Filter states (temp vs applied)
   const [tempFilters, setTempFilters] = useState<FilterState>({
@@ -154,20 +288,55 @@ const ExpenditureDashboard: React.FC = () => {
     amountRange: [0, 1000000]
   });
 
-  // Fetch data from API
-  const fetchData = useCallback(async () => {
+  // Fetch data from API - using same pattern as RentContext
+  const fetchData = useCallback(async (retryCount = 0) => {
+    const MAX_RETRIES = 3;
+    
     try {
       setIsLoading(true);
       setApiError(null);
+      setRetryAttempt(retryCount);
+      
+      // Simple fetch without CORS mode (same as RentContext)
       const response = await fetch(EXPENDITURE_API_URL);
+      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+      
       const data = await response.json();
+      
+      // Validate data structure
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid data format received');
+      }
+      
       setSpendingData(data as SpendingData);
-    } catch (error) {
+      setRetryAttempt(0);
+      console.log('Expenditure data loaded successfully');
+    } catch (error: any) {
       console.error('Error fetching expenditure data:', error);
-      setApiError(error instanceof Error ? error.message : 'Failed to fetch data');
+      
+      // Retry logic for network errors
+      if (retryCount < MAX_RETRIES) {
+        console.log(`Retrying... Attempt ${retryCount + 1} of ${MAX_RETRIES}`);
+        setRetryAttempt(retryCount + 1);
+        setTimeout(() => {
+          fetchData(retryCount + 1);
+        }, 2000 * (retryCount + 1)); // Exponential backoff: 2s, 4s, 6s
+        return;
+      }
+      
+      // Set user-friendly error message after all retries failed
+      let errorMessage = 'Failed to load expenditure data. ';
+      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        errorMessage += 'Network error. Please check your internet connection and try again.';
+      } else {
+        errorMessage += error.message || 'Unknown error occurred.';
+      }
+      
+      setApiError(errorMessage);
+      setRetryAttempt(0);
     } finally {
       setIsLoading(false);
     }
@@ -594,10 +763,7 @@ const ExpenditureDashboard: React.FC = () => {
               />
               <YAxis label={{ value: 'Amount (₹)', angle: -90, position: 'insideLeft' }} />
               <RechartsTooltip 
-                formatter={(value: number) => [`₹${value.toFixed(2)}`, 'Amount']}
-                labelFormatter={(label) => 
-                  showAllData ? `Period: ${label}` : (yearlyMode ? `Month: ${label}` : `Day: ${label}`)
-                }
+                content={<CustomTooltip mode={showAllData ? 'showAll' : (yearlyMode ? 'yearly' : 'daily')} />}
               />
               <RechartsLegend />
               <Line 
@@ -619,7 +785,7 @@ const ExpenditureDashboard: React.FC = () => {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="year" />
               <YAxis />
-              <RechartsTooltip />
+              <RechartsTooltip content={<YearlyTooltip />} />
               <RechartsLegend />
               <Bar dataKey="total" fill="#4CAF50" />
             </RechartsBarChart>
@@ -647,7 +813,7 @@ const ExpenditureDashboard: React.FC = () => {
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <RechartsTooltip />
+              <RechartsTooltip content={<CategoryTooltip />} />
             </RechartsPieChart>
           </ResponsiveContainer>
         );
@@ -659,7 +825,7 @@ const ExpenditureDashboard: React.FC = () => {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
               <YAxis />
-              <RechartsTooltip />
+              <RechartsTooltip content={<CumulativeTooltip />} />
               <RechartsLegend />
               <Line type="monotone" dataKey="cumulative" stroke="#9C27B0" strokeWidth={2} />
             </LineChart>
@@ -674,7 +840,7 @@ const ExpenditureDashboard: React.FC = () => {
               <XAxis dataKey="name" />
               <YAxis yAxisId="left" />
               <YAxis yAxisId="right" orientation="right" />
-              <RechartsTooltip />
+              <RechartsTooltip content={<ParetoTooltip />} />
               <RechartsLegend />
               <Bar yAxisId="left" dataKey="value" fill="#2196F3" />
               <Line yAxisId="right" type="monotone" dataKey="percentage" stroke="#FF5722" strokeWidth={2} />
@@ -696,12 +862,27 @@ const ExpenditureDashboard: React.FC = () => {
   // Loading state
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <Box sx={{ textAlign: 'center' }}>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '100vh',
+        p: 2 
+      }}>
+        <Box sx={{ textAlign: 'center', maxWidth: 400 }}>
           <CircularProgress size={60} />
-          <Typography variant="h6" sx={{ mt: 2 }}>
+          <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
             Loading expenditure data...
           </Typography>
+          {retryAttempt > 0 ? (
+            <Typography variant="body2" color="warning.main" sx={{ fontWeight: 'bold' }}>
+              Retry attempt {retryAttempt} of 3...
+            </Typography>
+          ) : (
+            <Typography variant="body2" color="textSecondary">
+              This may take a moment on slower connections
+            </Typography>
+          )}
         </Box>
       </Box>
     );
@@ -712,26 +893,52 @@ const ExpenditureDashboard: React.FC = () => {
     return (
       <Box sx={{ p: { xs: 2, md: 3 }, minHeight: '100vh' }}>
         <Alert 
-          severity="error" 
-          action={
-            <Button 
-              color="inherit" 
-              size="small" 
-              startIcon={<Refresh />}
-              onClick={fetchData}
-              disabled={isLoading}
-            >
-              Retry
-            </Button>
-          }
+          severity="error"
+          sx={{ mb: 2 }}
         >
           <Typography variant="h6" gutterBottom>
             Failed to load expenditure data
           </Typography>
-          <Typography variant="body2">
+          <Typography variant="body2" sx={{ mb: 2 }}>
             {apiError}
           </Typography>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <Button 
+              variant="contained"
+              color="error"
+              size="small" 
+              startIcon={<Refresh />}
+              onClick={() => fetchData()}
+              disabled={isLoading}
+            >
+              Retry
+            </Button>
+            <Button 
+              variant="outlined"
+              size="small"
+              onClick={() => window.location.reload()}
+            >
+              Reload Page
+            </Button>
+          </Box>
         </Alert>
+        
+        <Card sx={{ mt: 2 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Troubleshooting Tips:
+            </Typography>
+            <Typography variant="body2" component="div">
+              <ul style={{ paddingLeft: 20, margin: 0 }}>
+                <li>Check your internet connection</li>
+                <li>Try switching between WiFi and mobile data</li>
+                <li>Clear your browser cache</li>
+                <li>Try again in a few minutes</li>
+                <li>If the problem persists, contact support</li>
+              </ul>
+            </Typography>
+          </CardContent>
+        </Card>
       </Box>
     );
   }
@@ -779,7 +986,7 @@ const ExpenditureDashboard: React.FC = () => {
               <Button 
                 variant="outlined" 
                 startIcon={<Refresh />} 
-                onClick={fetchData}
+                onClick={() => fetchData()}
                 disabled={isLoading}
               >
                 Refresh
