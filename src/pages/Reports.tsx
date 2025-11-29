@@ -271,10 +271,12 @@ const Reports: React.FC = () => {
 
                             // Calculate due months - use previousYearDues as single source of truth
                             const dueMonths = shop.previousYearDues?.dueMonths || [];
+                            const totalDues = shop.previousYearDues?.totalDues || 0;
 
                             // Use Hindi name for proper rendering
                             const tenantName = shop.tenant.tenant_name_hindi || shop.tenant.name || 'N/A';
-                            const duesCount = dueMonths.length > 0 ? dueMonths.length : 0;
+                            // If totalDues is 0, duesCount should be 0 even if dueMonths array has entries
+                            const duesCount = totalDues > 0 ? (dueMonths.length > 0 ? dueMonths.length : 0) : 0;
                             const rowBgColor = duesCount > 1 ? 'background-color: #ffebee;' : '';
 
                             return `
@@ -402,15 +404,19 @@ const Reports: React.FC = () => {
                   0
                 );
                 // Previous Year Pending Months
-                const prevPending = (
-                  shop.previousYearDues?.dueMonths || []
-                ).join(", ");
+                // Only show pending months if totalDues > 0
+                const totalDues = shop.previousYearDues?.totalDues || 0;
+                const prevPending = totalDues > 0 
+                  ? (shop.previousYearDues?.dueMonths || []).join(", ")
+                  : "";
                 // Current Year Pending Months
                 const monthlyData = shop.monthlyData || {};
+                // Only count months as pending if they have data AND status is not "Paid"
+                // Don't count months with no data as pending
                 const currPendingMonths = monthCols
                   .filter((month) => {
                     const m = monthlyData[month];
-                    return !m || m.status !== "Paid";
+                    return m && m.status !== "Paid";
                   })
                   .join(", ");
                 // Row
@@ -445,9 +451,10 @@ const Reports: React.FC = () => {
                   }
                 }
                 // Highlight pending months
+                // Use same logic as currPendingMonths: only highlight months with data AND status is not "Paid"
                 monthCols.forEach((month, mIdx) => {
                   const m = monthlyData[month];
-                  if (!m || m.status !== "Paid") {
+                  if (m && m.status !== "Paid") {
                     const cell = XLSX.utils.encode_cell({
                       r: rowIdx,
                       c: 6 + mIdx,
