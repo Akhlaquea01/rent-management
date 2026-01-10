@@ -30,27 +30,27 @@ type RentAction =
   | { type: "SET_YEAR_LOADING"; payload: { year: string; loading: boolean } }
   | { type: "SET_YEAR_DATA"; payload: { year: string; yearData: any } }
   | {
-      type: "ADD_TENANT";
-      payload: { year: string; shopNumber: string; shopData: ShopData };
-    }
+    type: "ADD_TENANT";
+    payload: { year: string; shopNumber: string; shopData: ShopData };
+  }
   | {
-      type: "UPDATE_TENANT";
-      payload: { year: string; shopNumber: string; shopData: ShopData };
-    }
+    type: "UPDATE_TENANT";
+    payload: { year: string; shopNumber: string; shopData: ShopData };
+  }
   | { type: "DELETE_TENANT"; payload: { year: string; shopNumber: string } }
   | {
-      type: "UPDATE_MONTHLY_DATA";
-      payload: {
-        year: string;
-        shopNumber: string;
-        month: string;
-        monthlyData: any;
-      };
-    }
-  | {
-      type: "ADD_ADVANCE_TRANSACTION";
-      payload: { shopNumber: string; transaction: AdvanceTransaction };
+    type: "UPDATE_MONTHLY_DATA";
+    payload: {
+      year: string;
+      shopNumber: string;
+      month: string;
+      monthlyData: any;
     };
+  }
+  | {
+    type: "ADD_ADVANCE_TRANSACTION";
+    payload: { shopNumber: string; transaction: AdvanceTransaction };
+  };
 
 // Reducer function
 const rentReducer = (state: RentState, action: RentAction): RentState => {
@@ -264,22 +264,41 @@ export const RentProvider: React.FC<RentProviderProps> = ({ children }) => {
       const res = await fetch(
         `https://akhlaquea01.github.io/records_siwaipatti/${year}.json`
       );
-      
+
       if (!res.ok) {
+        if (res.status === 404) {
+          // If year data is missing (e.g. future year), initialize as empty
+          dispatch({
+            type: "SET_YEAR_DATA",
+            payload: { year, yearData: { shops: {} } }
+          });
+          return;
+        }
         throw new Error(`Failed to load data for year ${year}`);
       }
-      
+
       const json = await res.json();
-      
+
       // Extract the year data from the response
       const yearData = json[year];
       if (!yearData) {
-        throw new Error(`No data found for year ${year}`);
+        // If JSON exists but year key is missing, treat as empty
+        dispatch({
+          type: "SET_YEAR_DATA",
+          payload: { year, yearData: { shops: {} } }
+        });
+        return;
       }
 
       dispatch({ type: "SET_YEAR_DATA", payload: { year, yearData } });
     } catch (err) {
       console.error(`Error loading year ${year}:`, err);
+      // For network errors or other issues, we still want to set some state
+      // regarding the year so we don't retry infinitely if the effect depends on data presence
+      dispatch({
+        type: "SET_YEAR_DATA",
+        payload: { year, yearData: { shops: {} } }
+      });
       dispatch({ type: "SET_ERROR", payload: `Failed to load data for year ${year}` });
     } finally {
       dispatch({ type: "SET_YEAR_LOADING", payload: { year, loading: false } });

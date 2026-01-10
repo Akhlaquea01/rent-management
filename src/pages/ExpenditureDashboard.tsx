@@ -271,7 +271,7 @@ const ParetoTooltip = ({ active, payload, label }: any) => {
         </Typography>
         {payload.map((entry: any, index: number) => (
           <Typography key={index} variant="body2" sx={{ color: entry.color }}>
-            {entry.name === 'value' 
+            {entry.name === 'value'
               ? `Amount: ₹${entry.value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
               : `Cumulative: ${entry.value.toFixed(1)}%`
             }
@@ -320,32 +320,42 @@ const ExpenditureDashboard: React.FC = () => {
   // Fetch data from API - using same pattern as RentContext
   const fetchData = useCallback(async (retryCount = 0) => {
     const MAX_RETRIES = 3;
-    
+
     try {
       setIsLoading(true);
       setApiError(null);
       setRetryAttempt(retryCount);
-      
+
+
       // Simple fetch without CORS mode (same as RentContext)
       const response = await fetch(EXPENDITURE_API_URL);
-      
+
       if (!response.ok) {
+        if (response.status === 404) {
+          setSpendingData({}); // Initialize with empty data
+          setRetryAttempt(0);
+          console.log('Expenditure data not found (404), initialized as empty');
+          return;
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       // Validate data structure
       if (!data || typeof data !== 'object') {
-        throw new Error('Invalid data format received');
+        // If data is invalid, fallback to empty
+        setSpendingData({});
+        setRetryAttempt(0);
+        return;
       }
-      
+
       setSpendingData(data as SpendingData);
       setRetryAttempt(0);
       console.log('Expenditure data loaded successfully');
     } catch (error: any) {
       console.error('Error fetching expenditure data:', error);
-      
+
       // Retry logic for network errors
       if (retryCount < MAX_RETRIES) {
         console.log(`Retrying... Attempt ${retryCount + 1} of ${MAX_RETRIES}`);
@@ -355,7 +365,7 @@ const ExpenditureDashboard: React.FC = () => {
         }, 2000 * (retryCount + 1)); // Exponential backoff: 2s, 4s, 6s
         return;
       }
-      
+
       // Set user-friendly error message after all retries failed
       let errorMessage = 'Failed to load expenditure data. ';
       if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
@@ -363,7 +373,7 @@ const ExpenditureDashboard: React.FC = () => {
       } else {
         errorMessage += error.message || 'Unknown error occurred.';
       }
-      
+
       setApiError(errorMessage);
       setRetryAttempt(0);
     } finally {
@@ -496,12 +506,12 @@ const ExpenditureDashboard: React.FC = () => {
   // Get transactions for current view
   const currentViewTransactions = useMemo(() => {
     let transactions = [...filteredTransactions];
-    
+
     // If "Show All Data" is enabled, return all filtered transactions
     if (showAllData) {
       return transactions;
     }
-    
+
     if (yearlyMode) {
       // In yearly mode, show all months of the selected year or all data
       if (appliedFilters.year) {
@@ -518,7 +528,7 @@ const ExpenditureDashboard: React.FC = () => {
         });
       }
     }
-    
+
     return transactions;
   }, [filteredTransactions, yearlyMode, appliedFilters.year, currentMonth, showAllData]);
 
@@ -547,13 +557,13 @@ const ExpenditureDashboard: React.FC = () => {
         const date = new Date(tx.date);
         const monthName = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
         const sortKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        
+
         if (!monthlyData[monthName]) {
           monthlyData[monthName] = { amount: 0, sortKey };
         }
         monthlyData[monthName].amount += tx.amount;
       });
-      
+
       return Object.entries(monthlyData)
         .map(([date, data]) => ({ date, amount: data.amount, sortKey: data.sortKey }))
         .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
@@ -566,22 +576,22 @@ const ExpenditureDashboard: React.FC = () => {
         const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
         monthlyData[monthKey] = (monthlyData[monthKey] || 0) + tx.amount;
       });
-      
+
       const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       // Show all months, even if no data
-      return monthOrder.map(month => ({ 
-        date: month, 
-        amount: monthlyData[month] || 0 
+      return monthOrder.map(month => ({
+        date: month,
+        amount: monthlyData[month] || 0
       }));
     } else {
       // For monthly mode, show all days of the month
       if (!currentMonth) return [];
-      
+
       // Get the number of days in the current month
       const year = parseInt(currentMonth.year);
       const monthIndex = new Date(`${currentMonth.month} 1, ${year}`).getMonth();
       const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-      
+
       // Create data for all days
       const dailyData: Record<number, number> = {};
       currentViewTransactions.forEach(tx => {
@@ -589,7 +599,7 @@ const ExpenditureDashboard: React.FC = () => {
         const day = date.getDate();
         dailyData[day] = (dailyData[day] || 0) + tx.amount;
       });
-      
+
       // Return all days, even if no transactions
       return Array.from({ length: daysInMonth }, (_, i) => {
         const day = i + 1;
@@ -621,13 +631,13 @@ const ExpenditureDashboard: React.FC = () => {
   // Category data with subcategory breakdown for stacked bar chart
   const categoryStackedData = useMemo(() => {
     const categorySubcategoryMap: Record<string, Record<string, number>> = {};
-    
+
     currentViewTransactions.forEach(tx => {
       if (!categorySubcategoryMap[tx.category]) {
         categorySubcategoryMap[tx.category] = {};
       }
       const subcat = tx.sub_category || 'Other';
-      categorySubcategoryMap[tx.category][subcat] = 
+      categorySubcategoryMap[tx.category][subcat] =
         (categorySubcategoryMap[tx.category][subcat] || 0) + tx.amount;
     });
 
@@ -662,15 +672,15 @@ const ExpenditureDashboard: React.FC = () => {
   // Monthly breakdown for yearly view with category stacking
   const monthlyBreakdownData = useMemo(() => {
     if (!yearlyMode || !appliedFilters.year) return [];
-    
+
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const monthlyData: Record<string, Record<string, number>> = {};
-    
+
     // Initialize all months
     monthNames.forEach(month => {
       monthlyData[month] = {};
     });
-    
+
     allTransactions.forEach(tx => {
       const txYear = tx.date.substring(0, 4);
       if (txYear === appliedFilters.year) {
@@ -678,18 +688,18 @@ const ExpenditureDashboard: React.FC = () => {
         const monthIndex = parseInt(txMonth) - 1;
         const monthName = monthNames[monthIndex];
         const category = tx.category;
-        
-        monthlyData[monthName][category] = 
+
+        monthlyData[monthName][category] =
           (monthlyData[monthName][category] || 0) + tx.amount;
       }
     });
-    
+
     // Get all unique categories for this year
     const allCategories = new Set<string>();
     Object.values(monthlyData).forEach(categories => {
       Object.keys(categories).forEach(cat => allCategories.add(cat));
     });
-    
+
     return monthNames.map(month => {
       const total = Object.values(monthlyData[month]).reduce((sum, val) => sum + val, 0);
       return {
@@ -759,13 +769,13 @@ const ExpenditureDashboard: React.FC = () => {
     : false;
   const canNavigateNext = currentMonth
     ? filteredAvailableMonths.findIndex(m => m.year === currentMonth.year && m.month === currentMonth.month) <
-      filteredAvailableMonths.length - 1
+    filteredAvailableMonths.length - 1
     : false;
 
   // Filter functions
   const handleApplyFilters = () => {
     setAppliedFilters({ ...tempFilters });
-    
+
     // When applying year filter in monthly mode, navigate to first month of that year
     if (!yearlyMode && tempFilters.year && tempFilters.year !== appliedFilters.year) {
       const firstMonthOfYear = availableMonths.find(m => m.year === tempFilters.year);
@@ -773,7 +783,7 @@ const ExpenditureDashboard: React.FC = () => {
         setCurrentMonth(firstMonthOfYear);
       }
     }
-    
+
     setDrawerOpen(false);
   };
 
@@ -786,7 +796,7 @@ const ExpenditureDashboard: React.FC = () => {
     };
     setTempFilters(resetFilters);
     setAppliedFilters(resetFilters);
-    
+
     // Reset to latest month when clearing filters
     if (!yearlyMode && availableMonths.length > 0) {
       setCurrentMonth(availableMonths[availableMonths.length - 1]);
@@ -839,35 +849,35 @@ const ExpenditureDashboard: React.FC = () => {
   const renderChart = () => {
     switch (selectedChart) {
       case 'timeline':
-    return (
+        return (
           <ResponsiveContainer width="100%" height={400}>
             <LineChart data={timelineData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="date" 
-                label={{ 
-                  value: showAllData ? 'Month' : (yearlyMode ? 'Month' : 'Day'), 
-                  position: 'insideBottom', 
-                  offset: -5 
+              <XAxis
+                dataKey="date"
+                label={{
+                  value: showAllData ? 'Month' : (yearlyMode ? 'Month' : 'Day'),
+                  position: 'insideBottom',
+                  offset: -5
                 }}
                 angle={showAllData ? -45 : 0}
                 textAnchor={showAllData ? 'end' : 'middle'}
                 height={showAllData ? 80 : 60}
                 tick={{ fontSize: 12 }}
               />
-              <YAxis 
+              <YAxis
                 label={{ value: 'Amount (₹)', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
                 tick={{ fontSize: 11 }}
                 tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
                 width={60}
               />
-              <RechartsTooltip 
+              <RechartsTooltip
                 content={<CustomTooltip mode={showAllData ? 'showAll' : (yearlyMode ? 'yearly' : 'daily')} />}
               />
-              <Line 
-                type="monotone" 
-                dataKey="amount" 
-                stroke="#2196F3" 
+              <Line
+                type="monotone"
+                dataKey="amount"
+                stroke="#2196F3"
                 strokeWidth={2}
                 name={showAllData ? "Period Total" : (yearlyMode ? "Monthly Total" : "Daily Total")}
               />
@@ -882,24 +892,24 @@ const ExpenditureDashboard: React.FC = () => {
             <ResponsiveContainer width="100%" height={400}>
               <RechartsBarChart data={categoryStackedData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="category" 
+                <XAxis
+                  dataKey="category"
                   tick={{ fontSize: 11 }}
                   angle={-45}
                   textAnchor="end"
                   height={100}
                 />
-                <YAxis 
+                <YAxis
                   tick={{ fontSize: 11 }}
                   tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
                   width={60}
                 />
                 <RechartsTooltip content={<StackedBarTooltip />} />
                 {uniqueSubcategories.map((subcat, index) => (
-                  <Bar 
-                    key={subcat} 
-                    dataKey={subcat} 
-                    stackId="a" 
+                  <Bar
+                    key={subcat}
+                    dataKey={subcat}
+                    stackId="a"
                     fill={COLORS[index % COLORS.length]}
                   />
                 ))}
@@ -914,17 +924,17 @@ const ExpenditureDashboard: React.FC = () => {
               <RechartsBarChart data={monthlyBreakdownData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                <YAxis 
+                <YAxis
                   tick={{ fontSize: 11 }}
                   tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
                   width={60}
                 />
                 <RechartsTooltip content={<StackedBarTooltip />} />
                 {uniqueCategories.map((category, index) => (
-                  <Bar 
-                    key={category} 
-                    dataKey={category} 
-                    stackId="a" 
+                  <Bar
+                    key={category}
+                    dataKey={category}
+                    stackId="a"
                     fill={getCategoryColor(category)}
                   />
                 ))}
@@ -938,7 +948,7 @@ const ExpenditureDashboard: React.FC = () => {
             <RechartsBarChart data={yearlyData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="year" tick={{ fontSize: 12 }} />
-              <YAxis 
+              <YAxis
                 tick={{ fontSize: 11 }}
                 tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
                 width={60}
@@ -956,7 +966,7 @@ const ExpenditureDashboard: React.FC = () => {
           if (active && payload && payload.length) {
             const data = payload[0];
             const percent = stats.total > 0 ? ((data.value / stats.total) * 100).toFixed(1) : '0';
-            
+
             return (
               <Box
                 sx={{
@@ -1023,7 +1033,7 @@ const ExpenditureDashboard: React.FC = () => {
             <LineChart data={cumulativeData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-              <YAxis 
+              <YAxis
                 tick={{ fontSize: 11 }}
                 tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
                 width={60}
@@ -1041,15 +1051,15 @@ const ExpenditureDashboard: React.FC = () => {
             <ComposedChart data={paretoData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-45} textAnchor="end" height={80} />
-              <YAxis 
-                yAxisId="left" 
+              <YAxis
+                yAxisId="left"
                 tick={{ fontSize: 11 }}
                 tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}k`}
                 width={60}
               />
-              <YAxis 
-                yAxisId="right" 
-                orientation="right" 
+              <YAxis
+                yAxisId="right"
+                orientation="right"
                 tick={{ fontSize: 11 }}
                 tickFormatter={(value) => `${value.toFixed(0)}%`}
                 width={50}
@@ -1076,12 +1086,12 @@ const ExpenditureDashboard: React.FC = () => {
   // Loading state
   if (isLoading) {
     return (
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <Box sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         minHeight: '100vh',
-        p: 2 
+        p: 2
       }}>
         <Box sx={{ textAlign: 'center', maxWidth: 400 }}>
           <CircularProgress size={60} />
@@ -1106,7 +1116,7 @@ const ExpenditureDashboard: React.FC = () => {
   if (apiError) {
     return (
       <Box sx={{ p: { xs: 2, md: 3 }, minHeight: '100vh' }}>
-        <Alert 
+        <Alert
           severity="error"
           sx={{ mb: 2 }}
         >
@@ -1117,16 +1127,16 @@ const ExpenditureDashboard: React.FC = () => {
             {apiError}
           </Typography>
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            <Button 
+            <Button
               variant="contained"
               color="error"
-              size="small" 
+              size="small"
               onClick={() => fetchData()}
               disabled={isLoading}
             >
               Retry
             </Button>
-            <Button 
+            <Button
               variant="outlined"
               size="small"
               onClick={() => window.location.reload()}
@@ -1135,7 +1145,7 @@ const ExpenditureDashboard: React.FC = () => {
             </Button>
           </Box>
         </Alert>
-        
+
         <Card sx={{ mt: 2 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>
@@ -1172,44 +1182,44 @@ const ExpenditureDashboard: React.FC = () => {
     );
   }
 
-    return (
+  return (
     <Box sx={{ p: { xs: 2, md: 3 }, bgcolor: '#f5f5f5', minHeight: '100vh' }}>
       {/* Header */}
       <Card sx={{ mb: 3 }}>
-              <CardContent>
+        <CardContent>
           <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
             <Box>
               <Typography variant="h4" gutterBottom>
                 SpendTimeline
-                </Typography>
+              </Typography>
               <Typography variant="body2" color="textSecondary">
                 Personal Finance Dashboard
-          </Typography>
-                </Box>
+              </Typography>
+            </Box>
             <Box display="flex" gap={1} flexWrap="wrap">
-        <Badge badgeContent={activeFilterCount > 0 ? activeFilterCount : undefined} color="primary">
-              <Button 
-                variant="outlined"
-                startIcon={<FilterList />}
-                onClick={() => setDrawerOpen(true)}
-              >
-                Filters
-              </Button>
-        </Badge>
+              <Badge badgeContent={activeFilterCount > 0 ? activeFilterCount : undefined} color="primary">
+                <Button
+                  variant="outlined"
+                  startIcon={<FilterList />}
+                  onClick={() => setDrawerOpen(true)}
+                >
+                  Filters
+                </Button>
+              </Badge>
               <Button variant="outlined" startIcon={<Download />} onClick={exportToCSV}>
                 Export CSV
               </Button>
-      </Box>
-      </Box>
+            </Box>
+          </Box>
 
           {/* Period Indicator */}
           {!showAllData && (
             <Box sx={{ mt: 2, mb: 1, textAlign: 'center' }}>
-              <Chip 
+              <Chip
                 label={
-                  yearlyMode 
+                  yearlyMode
                     ? `Viewing: ${appliedFilters.year || availableYears[availableYears.length - 1]}`
-                    : currentMonth 
+                    : currentMonth
                       ? `Viewing: ${currentMonth.month} ${currentMonth.year}`
                       : 'Select a period'
                 }
@@ -1217,70 +1227,70 @@ const ExpenditureDashboard: React.FC = () => {
                 variant="outlined"
                 sx={{ fontWeight: 'bold' }}
               />
-                </Box>
+            </Box>
           )}
 
           {/* Stats Cards */}
           <Grid container spacing={2} sx={{ mt: 2 }}>
             <Grid item xs={6} sm={3}>
               <Card sx={{ bgcolor: '#e3f2fd' }}>
-            <CardContent>
+                <CardContent>
                   <Typography variant="body2" color="textSecondary">
                     Total Spent
-              </Typography>
+                  </Typography>
                   <Typography variant="h5">₹{stats.total.toFixed(2)}</Typography>
                   <Typography variant="caption" color="textSecondary">
-                    {showAllData 
+                    {showAllData
                       ? (appliedFilters.year ? `in ${appliedFilters.year}` : 'All time')
-                      : yearlyMode 
+                      : yearlyMode
                         ? `in ${appliedFilters.year || availableYears[availableYears.length - 1]}`
-                        : currentMonth 
+                        : currentMonth
                           ? `in ${currentMonth.month}`
                           : ''}
                   </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
             <Grid item xs={6} sm={3}>
               <Card sx={{ bgcolor: '#f3e5f5' }}>
-            <CardContent>
+                <CardContent>
                   <Typography variant="body2" color="textSecondary">
                     Transactions
-              </Typography>
+                  </Typography>
                   <Typography variant="h5">{stats.count}</Typography>
                   <Typography variant="caption" color="textSecondary">
-                    {showAllData 
+                    {showAllData
                       ? (appliedFilters.year ? `in ${appliedFilters.year}` : 'All time')
-                      : yearlyMode 
+                      : yearlyMode
                         ? 'this year'
                         : 'this month'}
-                    </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
             <Grid item xs={6} sm={3}>
               <Card sx={{ bgcolor: '#e8f5e9' }}>
-            <CardContent>
+                <CardContent>
                   <Typography variant="body2" color="textSecondary">
                     Average
-              </Typography>
+                  </Typography>
                   <Typography variant="h5">₹{stats.average.toFixed(2)}</Typography>
                   <Typography variant="caption" color="textSecondary">
                     per transaction
                   </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
             <Grid item xs={6} sm={3}>
               <Card sx={{ bgcolor: '#fff3e0' }}>
-            <CardContent>
+                <CardContent>
                   <Typography variant="body2" color="textSecondary">
                     Anomalies
-              </Typography>
+                  </Typography>
                   <Typography variant="h5">{stats.anomalies.length}</Typography>
                   <Typography variant="caption" color="textSecondary">
                     high spending
-                    </Typography>
+                  </Typography>
                 </CardContent>
               </Card>
             </Grid>
@@ -1326,14 +1336,14 @@ const ExpenditureDashboard: React.FC = () => {
               Show All Data
             </Button>
           </Box>
-          
+
           {showAllData ? (
             <Box display="flex" flexDirection="column" alignItems="center" mt={2} gap={1}>
               <Typography variant="h6" color="secondary">
                 Viewing All Data
-                          </Typography>
+              </Typography>
               {appliedFilters.year && (
-                <Chip 
+                <Chip
                   label={`Filtered: ${appliedFilters.year}`}
                   onDelete={() => {
                     setAppliedFilters({ ...appliedFilters, year: '' });
@@ -1364,7 +1374,7 @@ const ExpenditureDashboard: React.FC = () => {
               </Box>
               {appliedFilters.year && (
                 <Box display="flex" justifyContent="center" mt={1}>
-                                            <Chip
+                  <Chip
                     label={`Filtered: ${appliedFilters.year}`}
                     onDelete={() => {
                       setAppliedFilters({ ...appliedFilters, year: '' });
@@ -1372,11 +1382,11 @@ const ExpenditureDashboard: React.FC = () => {
                       setCurrentMonth(availableMonths[availableMonths.length - 1]);
                     }}
                     color="primary"
-                                              size="small"
+                    size="small"
                   />
                 </Box>
-                          )}
-                        </Box>
+              )}
+            </Box>
           ) : (
             <Box display="flex" justifyContent="center" alignItems="center" mt={2}>
               <FormControl size="small" sx={{ minWidth: 200 }}>
@@ -1398,17 +1408,17 @@ const ExpenditureDashboard: React.FC = () => {
               </FormControl>
             </Box>
           )}
-            </CardContent>
-          </Card>
+        </CardContent>
+      </Card>
 
       {/* Chart Selection Tabs */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
             <Typography variant="h6">
-              {selectedChart === 'timeline' 
+              {selectedChart === 'timeline'
                 ? (showAllData ? 'All Time Timeline' : yearlyMode ? 'Yearly Timeline' : 'Monthly Timeline')
-                : selectedChart === 'yearly' 
+                : selectedChart === 'yearly'
                   ? 'Year Comparison'
                   : selectedChart === 'category'
                     ? 'Category Breakdown'
@@ -1420,8 +1430,8 @@ const ExpenditureDashboard: React.FC = () => {
               <Typography variant="caption" color="textSecondary">
                 {currentMonth.month} {currentMonth.year}
               </Typography>
-                    )}
-                  </Box>
+            )}
+          </Box>
           <Tabs
             value={selectedChart}
             onChange={(_, newValue) => setSelectedChart(newValue)}
@@ -1429,18 +1439,18 @@ const ExpenditureDashboard: React.FC = () => {
             scrollButtons="auto"
           >
             <Tab icon={<ShowChart />} label="Timeline" value="timeline" />
-            <Tab 
-              icon={<BarChart />} 
-              label={!yearlyMode && !showAllData ? "Monthly" : "Yearly"} 
-              value="yearly" 
+            <Tab
+              icon={<BarChart />}
+              label={!yearlyMode && !showAllData ? "Monthly" : "Yearly"}
+              value="yearly"
             />
             <Tab icon={<PieChart />} label="Category" value="category" />
             <Tab icon={<ShowChart />} label="Cumulative" value="cumulative" />
             <Tab icon={<BarChart />} label="Pareto" value="pareto" />
           </Tabs>
           <Box sx={{ mt: 3 }}>{renderChart()}</Box>
-            </CardContent>
-          </Card>
+        </CardContent>
+      </Card>
 
       {/* Anomalies Panel */}
       {stats.anomalies.length > 0 && (
@@ -1452,9 +1462,9 @@ const ExpenditureDashboard: React.FC = () => {
                 High Spending Anomalies
               </Typography>
               <Tooltip title="Transactions that are 3x or more above the average for this view">
-                <Chip 
-                  label={`Threshold: ₹${(stats.average * 3).toFixed(2)}`} 
-                  size="small" 
+                <Chip
+                  label={`Threshold: ₹${(stats.average * 3).toFixed(2)}`}
+                  size="small"
                   color="warning"
                   variant="outlined"
                 />
@@ -1475,9 +1485,9 @@ const ExpenditureDashboard: React.FC = () => {
                         {new Date(tx.date).toLocaleDateString()} • {tx.category}
                       </Typography>
                     </Box>
-                    <Chip 
-                      label={`₹${tx.amount.toFixed(2)}`} 
-                      color="warning" 
+                    <Chip
+                      label={`₹${tx.amount.toFixed(2)}`}
+                      color="warning"
                       size="small"
                     />
                   </Box>
@@ -1508,7 +1518,7 @@ const ExpenditureDashboard: React.FC = () => {
               }}
               sx={{ width: { xs: '100%', sm: 300 } }}
             />
-      </Box>
+          </Box>
 
           {/* Desktop Table View */}
           <Box sx={{ display: { xs: 'none', md: 'block' } }}>
@@ -1517,9 +1527,9 @@ const ExpenditureDashboard: React.FC = () => {
                 <TableHead>
                   <TableRow>
                     <TableCell>
-          <Button 
-                  size="small" 
-                  onClick={() => {
+                      <Button
+                        size="small"
+                        onClick={() => {
                           if (sortField === 'date') {
                             setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
                           } else {
@@ -1529,7 +1539,7 @@ const ExpenditureDashboard: React.FC = () => {
                         }}
                       >
                         Date {sortField === 'date' && (sortOrder === 'asc' ? '↑' : '↓')}
-          </Button>
+                      </Button>
                     </TableCell>
                     <TableCell>Description</TableCell>
                     <TableCell>
@@ -1572,14 +1582,14 @@ const ExpenditureDashboard: React.FC = () => {
                       <TableCell>{new Date(tx.date).toLocaleDateString()}</TableCell>
                       <TableCell>{tx.description}</TableCell>
                       <TableCell>
-                        <Chip 
-                          label={tx.category} 
-                          size="small" 
-                          sx={{ 
+                        <Chip
+                          label={tx.category}
+                          size="small"
+                          sx={{
                             backgroundColor: getCategoryColor(tx.category),
                             color: '#fff',
                             fontWeight: 'bold'
-                          }} 
+                          }}
                         />
                       </TableCell>
                       <TableCell>{tx.sub_category}</TableCell>
@@ -1619,14 +1629,14 @@ const ExpenditureDashboard: React.FC = () => {
                     </Typography>
                   </Box>
                   <Box display="flex" gap={1} mb={1} flexWrap="wrap">
-                    <Chip 
-                      label={tx.category} 
-                      size="small" 
-                      sx={{ 
+                    <Chip
+                      label={tx.category}
+                      size="small"
+                      sx={{
                         backgroundColor: getCategoryColor(tx.category),
                         color: '#fff',
                         fontWeight: 'bold'
-                      }} 
+                      }}
                     />
                     {tx.sub_category && (
                       <Chip label={tx.sub_category} size="small" variant="outlined" />
@@ -1664,22 +1674,22 @@ const ExpenditureDashboard: React.FC = () => {
               <Close />
             </IconButton>
           </Box>
-          
+
           <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel>Year</InputLabel>
-                  <Select
+            <Select
               value={tempFilters.year}
               onChange={e => setTempFilters({ ...tempFilters, year: e.target.value })}
               label="Year"
-                  >
-                    <MenuItem value="">All Years</MenuItem>
+            >
+              <MenuItem value="">All Years</MenuItem>
               {availableYears.map(year => (
                 <MenuItem key={year} value={year}>
                   {year}
-                        </MenuItem>
-                      ))}
-                  </Select>
-                </FormControl>
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
           <TextField
             fullWidth
@@ -1713,7 +1723,7 @@ const ExpenditureDashboard: React.FC = () => {
 
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
             Amount Range: ₹{tempFilters.amountRange[0].toLocaleString()} - ₹{tempFilters.amountRange[1].toLocaleString()}
-              </Typography>
+          </Typography>
           <Slider
             value={tempFilters.amountRange}
             onChange={(_, newValue) =>
@@ -1729,11 +1739,11 @@ const ExpenditureDashboard: React.FC = () => {
 
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
             Categories
-              </Typography>
+          </Typography>
           <FormGroup sx={{ mb: 3, maxHeight: 300, overflow: 'auto' }}>
             {allCategories.map(category => (
               <FormControlLabel
-                      key={category}
+                key={category}
                 control={
                   <Checkbox
                     checked={tempFilters.categories.includes(category)}
@@ -1764,7 +1774,7 @@ const ExpenditureDashboard: React.FC = () => {
             <Button variant="outlined" onClick={handleResetFilters} fullWidth>
               Reset
             </Button>
-              </Box>
+          </Box>
         </Box>
       </Drawer>
 

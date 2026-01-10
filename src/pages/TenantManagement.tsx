@@ -123,6 +123,10 @@ const TenantManagement: React.FC = () => {
         const response = await fetch('https://akhlaquea01.github.io/records_siwaipatti/tenant.json');
 
         if (!response.ok) {
+          if (response.status === 404) {
+            setTenantData([]);
+            return;
+          }
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
