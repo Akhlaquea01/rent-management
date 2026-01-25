@@ -240,7 +240,7 @@ const Reports: React.FC = () => {
                   const tableHTML = `
                     <div style="font-family: 'Noto Sans Devanagari', Arial, sans-serif; padding: 20px; background: white; page-break-after: ${page < totalPages - 1 ? 'always' : 'avoid'};">
                       <h2 style="text-align: center; margin-bottom: 10px; font-size: 18px; font-weight: bold; white-space: nowrap;">
-                        Monthly Rent Collection Report ${monthName} ${selectedYear} | (Page ${page + 1} of ${totalPages}) 
+                        Monthly Rent Collection Report ${monthName} ${selectedYear} | (Page ${page + 1} of ${totalPages})
                       </h2>
                       <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
                         <thead>
@@ -258,28 +258,42 @@ const Reports: React.FC = () => {
                         </thead>
                         <tbody>
                           ${pageShops.map((shop: any) => {
-                            const monthData = shop.monthlyData?.[monthName];
-                            const previousMonth1Data = shop.monthlyData?.[previousMonth1Name];
-                            const previousMonth2Data = shop.monthlyData?.[previousMonth2Name];
+                    // Helper to get data for a specific date (year/month)
+                    const getMonthData = (date: Date) => {
+                      const year = date.getFullYear();
+                      const month = date.toLocaleDateString("en-US", { month: "long" });
 
-                            const rentAmount = monthData?.rent !== undefined ? monthData.rent : shop.rentAmount;
-                            const finalMonthData = monthData || {
-                              rent: shop.rentAmount,
-                              paid: 0,
-                              status: "Pending",
-                            };
+                      if (year === selectedYear) {
+                        return shop.monthlyData?.[month];
+                      } else {
+                        // Try to get from previous year data
+                        const prevYearShop = data.years[year]?.shops?.[shop.shopNumber];
+                        return prevYearShop?.monthlyData?.[month];
+                      }
+                    };
 
-                            // Calculate due months - use previousYearDues as single source of truth
-                            const dueMonths = shop.previousYearDues?.dueMonths || [];
-                            const totalDues = shop.previousYearDues?.totalDues || 0;
+                    const monthData = getMonthData(currentDate);
+                    const previousMonth1Data = getMonthData(previousMonth1);
+                    const previousMonth2Data = getMonthData(previousMonth2);
 
-                            // Use Hindi name for proper rendering
-                            const tenantName = shop.tenant.tenant_name_hindi || shop.tenant.name || 'N/A';
-                            // If totalDues is 0, duesCount should be 0 even if dueMonths array has entries
-                            const duesCount = totalDues > 0 ? (dueMonths.length > 0 ? dueMonths.length : 0) : 0;
-                            const rowBgColor = duesCount > 1 ? 'background-color: #ffebee;' : '';
+                    const rentAmount = monthData?.rent !== undefined ? monthData.rent : shop.rentAmount;
+                    const finalMonthData = monthData || {
+                      rent: shop.rentAmount,
+                      paid: 0,
+                      status: "Pending",
+                    };
 
-                            return `
+                    // Calculate due months - use previousYearDues as single source of truth
+                    const dueMonths = shop.previousYearDues?.dueMonths || [];
+                    const totalDues = shop.previousYearDues?.totalDues || 0;
+
+                    // Use Hindi name for proper rendering
+                    const tenantName = shop.tenant.tenant_name_hindi || shop.tenant.name || 'N/A';
+                    // If totalDues is 0, duesCount should be 0 even if dueMonths array has entries
+                    const duesCount = totalDues > 0 ? (dueMonths.length > 0 ? dueMonths.length : 0) : 0;
+                    const rowBgColor = duesCount > 0 ? 'background-color: #ffebee;' : '';
+
+                    return `
                               <tr style="${rowBgColor}">
                                 <td style="border: 1px solid #000; padding: 6px; text-align: center;">${duesCount}</td>
                                 <td style="border: 1px solid #000; padding: 6px; text-align: center;">${shop.shopNumber}</td>
@@ -292,7 +306,7 @@ const Reports: React.FC = () => {
                                 <td style="border: 1px solid #000; padding: 6px; text-align: center;"></td>
                               </tr>
                             `;
-                          }).join('')}
+                  }).join('')}
                         </tbody>
                       </table>
                     </div>
@@ -321,7 +335,7 @@ const Reports: React.FC = () => {
 
                 // Get all page elements
                 const pageElements = tempDiv.querySelectorAll('div[style*="page-break-after"]');
-                
+
                 for (let i = 0; i < pageElements.length; i++) {
                   if (i > 0) {
                     pdf.addPage();
@@ -350,7 +364,7 @@ const Reports: React.FC = () => {
                     // Add image to PDF
                     const imgData = canvas.toDataURL('image/png');
                     const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                    
+
                     // Center the image on the page
                     const yOffset = (pageHeight - imgHeight) / 2;
                     pdf.addImage(imgData, 'PNG', margin, yOffset, contentWidth, imgHeight);
@@ -406,9 +420,12 @@ const Reports: React.FC = () => {
                 // Previous Year Pending Months
                 // Only show pending months if totalDues > 0
                 const totalDues = shop.previousYearDues?.totalDues || 0;
-                const prevPending = totalDues > 0 
-                  ? (shop.previousYearDues?.dueMonths || []).join(", ")
-                  : "";
+                let prevPending = "";
+
+                if (totalDues > 0) {
+                  // Use the array from the current shop data (which comes from JSON or valid fallback)
+                  prevPending = (shop.previousYearDues?.dueMonths || []).join(", ");
+                }
                 // Current Year Pending Months
                 const monthlyData = shop.monthlyData || {};
                 // Only count months as pending if they have data AND status is not "Paid"

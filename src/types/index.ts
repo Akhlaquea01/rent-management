@@ -6,6 +6,8 @@ export interface Tenant {
   address: string;
   status: 'Active' | 'Inactive';
   agreementDate: string;
+  total_due?: number;
+  due_months?: string;
 }
 
 export interface DuesInfo {
@@ -194,4 +196,4 @@ export type ViewMode = 'monthly' | 'yearly';
 
 export interface CategoryColor {
   [category: string]: string;
-} 
+}
