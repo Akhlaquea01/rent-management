@@ -460,24 +460,6 @@ export const RentProvider: React.FC<RentProviderProps> = ({ children }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load all years data in background for application-wide access
-  useEffect(() => {
-    const loadAllYearsData = async () => {
-      for (let year = 2019; year <= new Date().getFullYear(); year++) {
-        const yearStr = year.toString();
-        if (!state.data.years[yearStr] && !state.loadingYears.has(yearStr)) {
-          fetchYearData(yearStr);
-        }
-      }
-    };
-
-    // Only start loading all years after the initial data is loaded
-    if (!state.loading && Object.keys(state.data.years).length > 0) {
-      loadAllYearsData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.loading, state.data.years, state.loadingYears]);
-
   // Memoize the context value to prevent unnecessary re-renders
   const contextValue: RentContextType = useMemo(
     () => ({
