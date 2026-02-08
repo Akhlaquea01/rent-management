@@ -37,7 +37,6 @@ A comprehensive, modern web application for managing rent collection, tenant tra
 
 **Technical Implementation**:
 - Uses Chart.js for data visualization (Pie, Bar charts)
-- Custom hooks for filter management (`useExpenditureFilters`)
 - Material-UI components for consistent design
 - TypeScript interfaces for type safety
 - Hardcoded sample data with 25+ realistic expense entries

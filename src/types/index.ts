@@ -178,20 +178,6 @@ export interface ExpenditureData {
   yearlySummaries: YearlySummary[];
 }
 
-export interface ExpenditureFilters {
-  amountRange: {
-    min: number;
-    max: number;
-  };
-  selectedCategories: string[];
-  dateRange: {
-    start: string;
-    end: string;
-  };
-  searchQuery: string;
-  paymentMethods: string[];
-}
-
 export type ViewMode = 'monthly' | 'yearly';
 
 export interface CategoryColor {
