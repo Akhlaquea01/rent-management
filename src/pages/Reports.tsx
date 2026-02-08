@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -26,6 +26,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useRentContext } from "../context/RentContext";
 import { calculateTotalDues } from "../utils/duesCalculator";
+import { getActiveShops } from "../utils/reportUtils";
 
 const Reports: React.FC = () => {
   const { state, fetchYearData, isYearLoading } = useRentContext();
@@ -60,35 +61,15 @@ const Reports: React.FC = () => {
   }, [selectedYear, data.years, fetchYearData, isYearLoading]);
 
   // Get shops for selected year
-  const selectedYearShops = data.years[selectedYear.toString()]?.shops || {};
-
-  // Parse shop number for sorting
-  const parseShopNumber = (shopNum: string) => {
-    const match = shopNum.match(/^(\d+)(?:-(\w+))?$/);
-    return {
-      number: match ? parseInt(match[1], 10) : 0,
-      suffix: match?.[2] || ''
-    };
-  };
+  const selectedYearShops = data.years[selectedYear.toString()]?.shops;
 
   // Compute stats from new data structure and sort by shop number
   // Filter out inactive shops
-  const shopsArray = Object.entries(selectedYearShops)
-    .map(([shopNumber, shop]: [string, any]) => ({
-      shopNumber,
-      ...shop,
-    }))
-    .filter((shop: any) => shop.tenant.status === "Active") // Only include active shops
-    .sort((a, b) => {
-      const shopA = parseShopNumber(a.shopNumber);
-      const shopB = parseShopNumber(b.shopNumber);
-
-      if (shopA.number !== shopB.number) {
-        return shopA.number - shopB.number;
-      }
-
-      return shopA.suffix.localeCompare(shopB.suffix);
-    });
+  // Memoized to avoid expensive re-computation on every render
+  const shopsArray = useMemo(
+    () => getActiveShops(selectedYearShops),
+    [selectedYearShops]
+  );
 
   const totalShops = shopsArray.length; // Now only active shops
   const activeShops = totalShops; // All shops in array are active
