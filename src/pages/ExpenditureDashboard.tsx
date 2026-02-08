@@ -104,6 +104,9 @@ const COLORS = [
   '#009688', '#FFC107', '#00BCD4', '#8BC34A', '#673AB7'
 ];
 
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
 // Category color mapping
 const getCategoryColor = (category: string): string => {
   const categoryColors: { [key: string]: string } = {
@@ -404,9 +407,8 @@ const ExpenditureDashboard: React.FC = () => {
     });
 
     months.sort((a, b) => {
-      const dateA = new Date(`${a.month} 1, ${a.year}`);
-      const dateB = new Date(`${b.month} 1, ${b.year}`);
-      return dateA.getTime() - dateB.getTime();
+      if (a.year !== b.year) return a.year.localeCompare(b.year);
+      return MONTHS_LONG.indexOf(a.month) - MONTHS_LONG.indexOf(b.month);
     });
 
     return {
@@ -491,7 +493,7 @@ const ExpenditureDashboard: React.FC = () => {
     filtered.sort((a, b) => {
       let comparison = 0;
       if (sortField === 'date') {
-        comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+        comparison = a.date.localeCompare(b.date);
       } else if (sortField === 'amount') {
         comparison = a.amount - b.amount;
       } else {
@@ -521,9 +523,9 @@ const ExpenditureDashboard: React.FC = () => {
       // In monthly mode, show only the current selected month
       if (currentMonth) {
         transactions = transactions.filter(tx => {
-          const txDate = new Date(tx.date);
-          const txMonth = txDate.toLocaleDateString('en-US', { month: 'long' });
-          const txYear = txDate.getFullYear().toString();
+          const txYear = tx.date.substring(0, 4);
+          const monthIndex = parseInt(tx.date.substring(5, 7), 10) - 1;
+          const txMonth = MONTHS_LONG[monthIndex];
           return txMonth === currentMonth.month && txYear === currentMonth.year;
         });
       }
@@ -554,9 +556,10 @@ const ExpenditureDashboard: React.FC = () => {
       // When showing all data, aggregate by month with readable names
       const monthlyData: Record<string, { amount: number; sortKey: string }> = {};
       currentViewTransactions.forEach(tx => {
-        const date = new Date(tx.date);
-        const monthName = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-        const sortKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const year = tx.date.substring(0, 4);
+        const monthIndex = parseInt(tx.date.substring(5, 7), 10) - 1;
+        const monthName = `${MONTHS_SHORT[monthIndex]} ${year}`;
+        const sortKey = tx.date.substring(0, 7);
 
         if (!monthlyData[monthName]) {
           monthlyData[monthName] = { amount: 0, sortKey };
@@ -572,8 +575,8 @@ const ExpenditureDashboard: React.FC = () => {
       // For yearly mode, show all 12 months
       const monthlyData: Record<string, number> = {};
       currentViewTransactions.forEach(tx => {
-        const date = new Date(tx.date);
-        const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
+        const monthIndex = parseInt(tx.date.substring(5, 7), 10) - 1;
+        const monthKey = MONTHS_SHORT[monthIndex];
         monthlyData[monthKey] = (monthlyData[monthKey] || 0) + tx.amount;
       });
 
@@ -595,8 +598,7 @@ const ExpenditureDashboard: React.FC = () => {
       // Create data for all days
       const dailyData: Record<number, number> = {};
       currentViewTransactions.forEach(tx => {
-        const date = new Date(tx.date);
-        const day = date.getDate();
+        const day = parseInt(tx.date.substring(8, 10), 10);
         dailyData[day] = (dailyData[day] || 0) + tx.amount;
       });
 
