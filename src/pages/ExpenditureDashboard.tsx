@@ -106,6 +106,10 @@ const COLORS = [
 
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const SHORT_MONTH_NAMES = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+];
 
 // Category color mapping
 const getCategoryColor = (category: string): string => {
@@ -557,9 +561,11 @@ const ExpenditureDashboard: React.FC = () => {
       const monthlyData: Record<string, { amount: number; sortKey: string }> = {};
       currentViewTransactions.forEach(tx => {
         const year = tx.date.substring(0, 4);
-        const monthIndex = parseInt(tx.date.substring(5, 7), 10) - 1;
+        const monthStr = tx.date.substring(5, 7);
+        const monthIndex = parseInt(monthStr, 10) - 1;
         const monthName = `${MONTHS_SHORT[monthIndex]} ${year}`;
-        const sortKey = tx.date.substring(0, 7);
+
+        const sortKey = `${year}-${monthStr}`;
 
         if (!monthlyData[monthName]) {
           monthlyData[monthName] = { amount: 0, sortKey };
@@ -575,14 +581,14 @@ const ExpenditureDashboard: React.FC = () => {
       // For yearly mode, show all 12 months
       const monthlyData: Record<string, number> = {};
       currentViewTransactions.forEach(tx => {
+        // tx.date format: "YYYY-MM-DD"
         const monthIndex = parseInt(tx.date.substring(5, 7), 10) - 1;
-        const monthKey = MONTHS_SHORT[monthIndex];
+        const monthKey = SHORT_MONTH_NAMES[monthIndex];
         monthlyData[monthKey] = (monthlyData[monthKey] || 0) + tx.amount;
       });
 
-      const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       // Show all months, even if no data
-      return monthOrder.map(month => ({
+      return SHORT_MONTH_NAMES.map(month => ({
         date: month,
         amount: monthlyData[month] || 0
       }));
