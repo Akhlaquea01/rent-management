@@ -6,6 +6,7 @@ import React, {
   ReactNode,
   useMemo,
 } from "react";
+import { produce } from "immer";
 import { RentManagementData, ShopData, AdvanceTransaction } from "../types";
 
 // Initial state
@@ -54,121 +55,97 @@ type RentAction =
 
 // Reducer function
 const rentReducer = (state: RentState, action: RentAction): RentState => {
-  switch (action.type) {
-    case "SET_LOADING":
-      return { ...state, loading: action.payload };
+  return produce(state, (draft) => {
+    switch (action.type) {
+      case "SET_LOADING":
+        draft.loading = action.payload;
+        break;
 
-    case "SET_ERROR":
-      return { ...state, error: action.payload };
+      case "SET_ERROR":
+        draft.error = action.payload;
+        break;
 
-    case "SET_DATA":
-      return { ...state, data: action.payload, loading: false, error: null };
+      case "SET_DATA":
+        draft.data = action.payload;
+        draft.loading = false;
+        draft.error = null;
+        break;
 
-    case "SET_YEAR_LOADING": {
-      const { year, loading } = action.payload;
-      const newLoadingYears = new Set<string>(state.loadingYears);
-      if (loading) {
-        newLoadingYears.add(year);
-      } else {
-        newLoadingYears.delete(year);
-      }
-      return { ...state, loadingYears: newLoadingYears };
-    }
-
-    case "SET_YEAR_DATA": {
-      const { year, yearData } = action.payload;
-      const newData = { ...state.data };
-      newData.years = { ...newData.years, [year]: yearData };
-      return { ...state, data: newData };
-    }
-
-    case "ADD_TENANT": {
-      const { year, shopNumber, shopData } = action.payload;
-      const newData = { ...state.data };
-      // Create a deep copy to ensure React detects the change
-      newData.years = { ...newData.years };
-      if (!newData.years[year]) {
-        newData.years[year] = { shops: {} };
-      } else {
-        newData.years[year] = { ...newData.years[year] };
-      }
-      newData.years[year].shops = {
-        ...newData.years[year].shops,
-        [shopNumber]: shopData,
-      };
-
-      return { ...state, data: newData };
-    }
-
-    case "UPDATE_TENANT": {
-      const { year, shopNumber, shopData } = action.payload;
-      const newData = { ...state.data };
-      if (newData.years[year] && newData.years[year].shops[shopNumber]) {
-        // Create a deep copy to ensure React detects the change
-        newData.years = { ...newData.years };
-        newData.years[year] = { ...newData.years[year] };
-        newData.years[year].shops = {
-          ...newData.years[year].shops,
-          [shopNumber]: shopData,
-        };
+      case "SET_YEAR_LOADING": {
+        const { year, loading } = action.payload;
+        if (loading) {
+          draft.loadingYears.add(year);
+        } else {
+          draft.loadingYears.delete(year);
+        }
+        break;
       }
 
-      return { ...state, data: newData };
-    }
-
-    case "DELETE_TENANT": {
-      const { year, shopNumber } = action.payload;
-      const newData = { ...state.data };
-      if (newData.years[year] && newData.years[year].shops[shopNumber]) {
-        // Create a deep copy to ensure React detects the change
-        newData.years = { ...newData.years };
-        newData.years[year] = { ...newData.years[year] };
-        const { [shopNumber]: _, ...rest } = newData.years[year].shops;
-        newData.years[year].shops = rest;
+      case "SET_YEAR_DATA": {
+        const { year, yearData } = action.payload;
+        draft.data.years[year] = yearData;
+        break;
       }
 
-      return { ...state, data: newData };
-    }
-
-    case "UPDATE_MONTHLY_DATA": {
-      const { year, shopNumber, month, monthlyData } = action.payload;
-      const newData = { ...state.data };
-      if (newData.years[year] && newData.years[year].shops[shopNumber]) {
-        // Create a deep copy to ensure React detects the change
-        newData.years = { ...newData.years };
-        newData.years[year] = { ...newData.years[year] };
-        newData.years[year].shops = { ...newData.years[year].shops };
-        newData.years[year].shops[shopNumber] = {
-          ...newData.years[year].shops[shopNumber],
-        };
-        newData.years[year].shops[shopNumber].monthlyData = {
-          ...newData.years[year].shops[shopNumber].monthlyData,
-          [month]: monthlyData,
-        };
+      case "ADD_TENANT": {
+        const { year, shopNumber, shopData } = action.payload;
+        if (!draft.data.years[year]) {
+          draft.data.years[year] = { shops: {} };
+        }
+        draft.data.years[year].shops[shopNumber] = shopData;
+        break;
       }
 
-      return { ...state, data: newData };
-    }
-
-    case "ADD_ADVANCE_TRANSACTION": {
-      const { shopNumber, transaction } = action.payload;
-      const newData = { ...state.data };
-      // Create a deep copy to ensure React detects the change
-      newData.advanceTransactions = { ...newData.advanceTransactions };
-      if (!newData.advanceTransactions[shopNumber]) {
-        newData.advanceTransactions[shopNumber] = [];
+      case "UPDATE_TENANT": {
+        const { year, shopNumber, shopData } = action.payload;
+        if (
+          draft.data.years[year] &&
+          draft.data.years[year].shops[shopNumber]
+        ) {
+          draft.data.years[year].shops[shopNumber] = shopData;
+        }
+        break;
       }
-      newData.advanceTransactions[shopNumber] = [
-        ...newData.advanceTransactions[shopNumber],
-        transaction,
-      ];
 
-      return { ...state, data: newData };
+      case "DELETE_TENANT": {
+        const { year, shopNumber } = action.payload;
+        if (
+          draft.data.years[year] &&
+          draft.data.years[year].shops[shopNumber]
+        ) {
+          delete draft.data.years[year].shops[shopNumber];
+        }
+        break;
+      }
+
+      case "UPDATE_MONTHLY_DATA": {
+        const { year, shopNumber, month, monthlyData } = action.payload;
+        if (
+          draft.data.years[year] &&
+          draft.data.years[year].shops[shopNumber]
+        ) {
+          if (!draft.data.years[year].shops[shopNumber].monthlyData) {
+            draft.data.years[year].shops[shopNumber].monthlyData = {};
+          }
+          draft.data.years[year].shops[shopNumber].monthlyData[month] =
+            monthlyData;
+        }
+        break;
+      }
+
+      case "ADD_ADVANCE_TRANSACTION": {
+        const { shopNumber, transaction } = action.payload;
+        if (!draft.data.advanceTransactions[shopNumber]) {
+          draft.data.advanceTransactions[shopNumber] = [];
+        }
+        draft.data.advanceTransactions[shopNumber].push(transaction);
+        break;
+      }
+
+      default:
+        break;
     }
-
-    default:
-      return state;
-  }
+  });
 };
 
 // Context interface
