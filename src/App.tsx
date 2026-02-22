@@ -14,6 +14,8 @@ import TenantHistory from "./pages/TenantHistory";
 import Reports from "./pages/Reports";
 import ExpenditureDashboard from "./pages/ExpenditureDashboard";
 import Login from "./pages/Login";
+import LoadingState from "./components/ui/LoadingState";
+import ErrorState from "./components/ui/ErrorState";
 
 // Contexts
 import { RentProvider, useRentContext } from "./context/RentContext";
@@ -79,11 +81,9 @@ function AppContent() {
   }
 
   if (loading)
-    return <div style={{ padding: 40, fontSize: 20 }}>Loading data...</div>;
+    return <LoadingState variant="page" />;
   if (error)
-    return (
-      <div style={{ padding: 40, fontSize: 20, color: "red" }}>{error}</div>
-    );
+    return <ErrorState message={error} onRetry={() => window.location.reload()} />;
 
   return (
     <Router

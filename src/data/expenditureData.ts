@@ -1,25 +1,12 @@
 import { ExpenditureData, Expense, MonthlySummary, YearlySummary } from '../types';
-
-// API endpoint for expenditure data
-const EXPENDITURE_API_URL = 'https://akhlaquea01.github.io/records_siwaipatti/expenses.json';
-
-// Interface for API response
-interface ApiExpenseResponse {
-  data: Expense[];
-}
+import { fetchFlatExpenses } from '../services/expenseService';
 
 // Function to fetch expenditure data from API
 export const fetchExpenditureData = async (): Promise<Expense[]> => {
   try {
-    const response = await fetch(EXPENDITURE_API_URL);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const apiData: ApiExpenseResponse = await response.json();
-    return apiData.data;
+    return await fetchFlatExpenses();
   } catch (error) {
     console.error('Error fetching expenditure data:', error);
-    // Return empty array as fallback
     return [];
   }
 };
@@ -39,23 +26,23 @@ const extractPaymentMethods = (expenses: Expense[]): string[] => {
 // Generate monthly summaries
 const generateMonthlySummaries = (expenses: Expense[]): MonthlySummary[] => {
   const monthlyData: { [key: string]: { total: number; byCategory: { [key: string]: number }; count: number } } = {};
-  
+
   expenses.forEach(expense => {
     const month = new Date(expense.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
-    
+
     if (!monthlyData[month]) {
       monthlyData[month] = { total: 0, byCategory: {}, count: 0 };
     }
-    
+
     monthlyData[month].total += expense.amount;
     monthlyData[month].count += 1;
-    
+
     if (!monthlyData[month].byCategory[expense.category]) {
       monthlyData[month].byCategory[expense.category] = 0;
     }
     monthlyData[month].byCategory[expense.category] += expense.amount;
   });
-  
+
   return Object.entries(monthlyData).map(([month, data]) => ({
     month,
     total: data.total,
@@ -68,29 +55,29 @@ const generateMonthlySummaries = (expenses: Expense[]): MonthlySummary[] => {
 // Generate yearly summaries
 const generateYearlySummaries = (expenses: Expense[]): YearlySummary[] => {
   const yearlyData: { [key: string]: { total: number; byCategory: { [key: string]: number }; byMonth: { [key: string]: number }; count: number } } = {};
-  
+
   expenses.forEach(expense => {
     const year = new Date(expense.date).getFullYear().toString();
     const month = new Date(expense.date).toLocaleDateString('en-US', { month: 'long' });
-    
+
     if (!yearlyData[year]) {
       yearlyData[year] = { total: 0, byCategory: {}, byMonth: {}, count: 0 };
     }
-    
+
     yearlyData[year].total += expense.amount;
     yearlyData[year].count += 1;
-    
+
     if (!yearlyData[year].byCategory[expense.category]) {
       yearlyData[year].byCategory[expense.category] = 0;
     }
     yearlyData[year].byCategory[expense.category] += expense.amount;
-    
+
     if (!yearlyData[year].byMonth[month]) {
       yearlyData[year].byMonth[month] = 0;
     }
     yearlyData[year].byMonth[month] += expense.amount;
   });
-  
+
   return Object.entries(yearlyData).map(([year, data]) => ({
     year,
     total: data.total,
@@ -105,7 +92,7 @@ const generateYearlySummaries = (expenses: Expense[]): YearlySummary[] => {
 export const createExpenditureData = async (): Promise<ExpenditureData> => {
   const expenses = await fetchExpenditureData();
   const categories = extractCategories(expenses);
-  
+
   return {
     expenses,
     categories,
@@ -125,17 +112,17 @@ export const expenditureData: ExpenditureData = {
 // Function to generate category colors dynamically
 export const generateCategoryColors = (categories: string[]): { [key: string]: string } => {
   const colorPalette = [
-    "#4CAF50", "#FF9800", "#2196F3", "#E91E63", "#9C27B0", 
+    "#4CAF50", "#FF9800", "#2196F3", "#E91E63", "#9C27B0",
     "#FF5722", "#F44336", "#607D8B", "#795548", "#3F51B5",
     "#009688", "#FFC107", "#E91E63", "#673AB7", "#FF9800",
     "#4CAF50", "#F44336", "#00BCD4", "#8BC34A", "#FF5722"
   ];
-  
+
   const colors: { [key: string]: string } = {};
   categories.forEach((category, index) => {
     colors[category] = colorPalette[index % colorPalette.length];
   });
-  
+
   return colors;
 };
 

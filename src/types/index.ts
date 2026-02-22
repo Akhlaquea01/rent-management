@@ -61,33 +61,7 @@ export interface RentManagementData {
   };
 }
 
-// Legacy interfaces for backward compatibility
-export interface TenantLegacy {
-  id: string;
-  name: string;
-  shopNumber: string;
-  rentAmount: number;
-  status: string;
-  advanceAmount: number;
-  agreementDate: string;
-  phoneNumber: string;
-  email: string;
-  address: string;
-  createdAt: string;
-  updatedAt: string;
-}
 
-
-
-export interface AdvanceTransactionLegacy {
-  id: string;
-  tenantId: string;
-  type: string;
-  amount: number;
-  date: string;
-  description: string;
-  createdAt: string;
-}
 
 export interface DashboardStats {
   totalShops: number;

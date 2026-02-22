@@ -7,8 +7,10 @@ import {
   Typography,
   Alert,
   Paper,
+  CircularProgress,
 } from "@mui/material";
 import { LockOutlined } from "@mui/icons-material";
+import * as authService from "../services/authService";
 
 interface LoginProps {
   onLogin: () => void;
@@ -17,18 +19,30 @@ interface LoginProps {
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const currentYear = new Date().getFullYear().toString();
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+    setLoading(true);
 
-    if (password === currentYear) {
-      // Store authentication in localStorage
-      localStorage.setItem("rentManagementAuth", "true");
-      localStorage.setItem("rentManagementAuthTime", Date.now().toString());
-      onLogin();
-    } else {
-      setError("Incorrect password. Please try again.");
+    try {
+      const result = await authService.login(password);
+      if (result.success) {
+        localStorage.setItem("rentManagementAuth", "true");
+        localStorage.setItem("rentManagementAuthTime", Date.now().toString());
+        onLogin();
+      } else {
+        setError(result.message || "Incorrect password. Please try again.");
+      }
+    } catch (err: any) {
+      if (err?.status === 401) {
+        setError("Incorrect password. Please try again.");
+      } else {
+        setError("Unable to reach the server. Please try again later.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -96,6 +110,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               fullWidth
               variant="contained"
               size="large"
+              disabled={loading}
               sx={{
                 py: 1.5,
                 fontSize: "1.1rem",
@@ -106,7 +121,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 },
               }}
             >
-              Login
+              {loading ? <CircularProgress size={24} color="inherit" /> : "Login"}
             </Button>
           </form>
 
@@ -116,4 +131,4 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   );
 };
 
-export default Login; 
+export default Login;

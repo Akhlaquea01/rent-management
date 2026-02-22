@@ -7,6 +7,8 @@ import React, {
   useMemo,
 } from "react";
 import { RentManagementData, ShopData, AdvanceTransaction } from "../types";
+import * as rentLedgerService from "../services/rentLedgerService";
+import * as advanceTrackerService from "../services/advanceTrackerService";
 
 // Initial state
 const initialData: RentManagementData = {
@@ -216,18 +218,14 @@ export const RentProvider: React.FC<RentProviderProps> = ({ children }) => {
     loadingYears: new Set<string>(),
   });
 
-  // Fetch advance transactions from data.json
+  // Fetch advance transactions from API
   const fetchAdvanceTransactions = async () => {
     try {
-      const res = await fetch(
-        "https://akhlaquea01.github.io/records_siwaipatti/data.json"
-      );
-      const json = await res.json();
+      const res = await advanceTrackerService.getAll();
 
-      // data.json now only contains advanceTransactions
-      const transformedData = {
+      const transformedData: RentManagementData = {
         years: {},
-        advanceTransactions: json.advanceTransactions || {},
+        advanceTransactions: res.data || {},
       };
 
       dispatch({ type: "SET_DATA", payload: transformedData });
@@ -251,7 +249,7 @@ export const RentProvider: React.FC<RentProviderProps> = ({ children }) => {
     }
   };
 
-  // Fetch year-specific data
+  // Fetch year-specific data from API
   const fetchYearData = async (year: string) => {
     // Don't fetch if already loading or already loaded
     if (state.loadingYears.has(year) || state.data.years[year]) {
@@ -261,90 +259,56 @@ export const RentProvider: React.FC<RentProviderProps> = ({ children }) => {
     dispatch({ type: "SET_YEAR_LOADING", payload: { year, loading: true } });
 
     try {
-      const res = await fetch(
-        `https://akhlaquea01.github.io/records_siwaipatti/${year}.json`
-      );
+      const res = await rentLedgerService.getYearView(year);
+      const yearData = res.data?.[year];
 
-      if (!res.ok) {
-        if (res.status === 404) {
-          // If year data is missing (e.g. 2026), try to load previous year (2025)
-          // to get the list of active shops
-          const prevYear = (parseInt(year) - 1).toString();
-          console.warn(`Year ${year} not found, checking ${prevYear}...`);
-
-          try {
-            const prevRes = await fetch(
-              `https://akhlaquea01.github.io/records_siwaipatti/${prevYear}.json`
-            );
-
-            if (prevRes.ok) {
-              const prevJson = await prevRes.json();
-              const prevYearData = prevJson[prevYear];
-
-              // Save previous year data to state so reports can access it
-              dispatch({
-                type: "SET_YEAR_DATA",
-                payload: { year: prevYear, yearData: prevYearData }
-              });
-
-              // Creates a new year structure based on previous year's shops
-              // Preserves shop details and tenant status, but clears monthly data
-              const newYearShops: any = {};
-
-              Object.entries(prevYearData.shops).forEach(([shopNo, shopData]: [string, any]) => {
-                // Only carry over active shops
-                if (shopData.tenant && shopData.tenant.status === 'Active') {
-                  newYearShops[shopNo] = {
-                    ...shopData,
-                    monthlyData: {}, // Reset monthly data for new year
-                    // Carry over dues from previous year JSON as it was updated
-                    previousYearDues: shopData.previousYearDues
-                  };
-                }
-              });
-
-              dispatch({
-                type: "SET_YEAR_DATA",
-                payload: { year, yearData: { shops: newYearShops } }
-              });
-              return;
-            }
-          } catch (prevErr) {
-            console.error(`Failed to fallback to ${prevYear}:`, prevErr);
-          }
-
-          // If fallback fails or no previous data, initialize as empty
-          dispatch({
-            type: "SET_YEAR_DATA",
-            payload: { year, yearData: { shops: {} } }
-          });
-          return;
-        }
-        throw new Error(`Failed to load data for year ${year}`);
-      }
-
-      const json = await res.json();
-
-      // Extract the year data from the response
-      const yearData = json[year];
       if (!yearData) {
-        // If JSON exists but year key is missing, treat as empty
-        dispatch({
-          type: "SET_YEAR_DATA",
-          payload: { year, yearData: { shops: {} } }
-        });
+        // Year not in API — scaffold from previous year's active shops
+        const prevYear = (parseInt(year) - 1).toString();
+        console.warn(`Year ${year} not found in API, scaffolding from ${prevYear}...`);
+
+        try {
+          const prevRes = await rentLedgerService.getYearView(prevYear);
+          const prevYearData = prevRes.data?.[prevYear];
+
+          if (prevYearData) {
+            // Cache prev year data so Reports/TenantHistory can access it
+            dispatch({
+              type: "SET_YEAR_DATA",
+              payload: { year: prevYear, yearData: prevYearData },
+            });
+
+            // Build a blank year using only active shops from previous year
+            const newYearShops: any = {};
+            Object.entries(prevYearData.shops).forEach(([shopNo, shopData]: [string, any]) => {
+              if (shopData.tenant?.status === 'Active') {
+                newYearShops[shopNo] = {
+                  ...shopData,
+                  monthlyData: {},
+                  previousYearDues: shopData.previousYearDues,
+                };
+              }
+            });
+
+            dispatch({
+              type: "SET_YEAR_DATA",
+              payload: { year, yearData: { shops: newYearShops } },
+            });
+            return;
+          }
+        } catch (prevErr) {
+          console.error(`Failed to scaffold from ${prevYear}:`, prevErr);
+        }
+
+        // Fallback: empty year
+        dispatch({ type: "SET_YEAR_DATA", payload: { year, yearData: { shops: {} } } });
         return;
       }
 
       dispatch({ type: "SET_YEAR_DATA", payload: { year, yearData } });
     } catch (err) {
       console.error(`Error loading year ${year}:`, err);
-      // For network errors or other issues, we still want to set some state
-      // regarding the year so we don't retry infinitely if the effect depends on data presence
-      dispatch({
-        type: "SET_YEAR_DATA",
-        payload: { year, yearData: { shops: {} } }
-      });
+      dispatch({ type: "SET_YEAR_DATA", payload: { year, yearData: { shops: {} } } });
       dispatch({ type: "SET_ERROR", payload: `Failed to load data for year ${year}` });
     } finally {
       dispatch({ type: "SET_YEAR_LOADING", payload: { year, loading: false } });

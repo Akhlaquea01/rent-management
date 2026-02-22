@@ -38,6 +38,8 @@ import SearchIcon from '@mui/icons-material/Search';
 import SendIcon from '@mui/icons-material/Send';
 
 import { ApiTenantData } from "../types";
+import * as tenantService from "../services/tenantService";
+import toast from "react-hot-toast";
 
 // Utility function to encode text for WhatsApp URL
 const encodeWhatsAppText = (text: string): string => {
@@ -114,26 +116,24 @@ const TenantManagement: React.FC = () => {
   const [bulkMessageType, setBulkMessageType] = useState<'dues' | 'noc'>('dues');
   const showBulkOption = false;
 
-  // Fetch data from API
+  // Fetch tenant data from API
   useEffect(() => {
     const fetchTenantData = async () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch('https://akhlaquea01.github.io/records_siwaipatti/tenant.json');
+        const res = await tenantService.getAll();
 
-        if (!response.ok) {
-          if (response.status === 404) {
-            setTenantData([]);
-            return;
-          }
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data: ApiTenantData[] = await response.json();
-        setTenantData(data);
+        // Map API response (ApiTenantRecord[]) → ApiTenantData[] that the UI expects
+        const mapped: ApiTenantData[] = res.data.map((record) => ({
+          shop_no: record.shop_no,
+          tenant: record.tenant,
+        }));
+        setTenantData(mapped);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch tenant data');
+        const msg = err instanceof Error ? err.message : 'Failed to fetch tenant data';
+        setError(msg);
+        toast.error(msg);
         console.error('Error fetching tenant data:', err);
       } finally {
         setLoading(false);
