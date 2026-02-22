@@ -52,12 +52,29 @@ const Reports: React.FC = () => {
     .map(Number)
     .sort((a, b) => b - a);
 
-  // Fetch year data when selected year changes
+  // Fetch year data for selected year and any years needed by the selected month's report
   React.useEffect(() => {
-    if (selectedYear && !data.years[selectedYear.toString()] && !isYearLoading(selectedYear.toString())) {
-      fetchYearData(selectedYear.toString());
+    const yearsNeeded = new Set<string>();
+    if (selectedYear) yearsNeeded.add(selectedYear.toString());
+
+    // Check if the selected month implies we need previous year's data for the report
+    if (selectedMonth) {
+      const currentDate = new Date(selectedMonth + "-01");
+      const prev1 = new Date(currentDate);
+      prev1.setMonth(currentDate.getMonth() - 1);
+      yearsNeeded.add(prev1.getFullYear().toString());
+
+      const prev2 = new Date(currentDate);
+      prev2.setMonth(currentDate.getMonth() - 2);
+      yearsNeeded.add(prev2.getFullYear().toString());
     }
-  }, [selectedYear, data.years, fetchYearData, isYearLoading]);
+
+    yearsNeeded.forEach(year => {
+      if (!data.years[year] && !isYearLoading(year)) {
+        fetchYearData(year);
+      }
+    });
+  }, [selectedYear, selectedMonth, data.years, fetchYearData, isYearLoading]);
 
   // Get shops for selected year
   const selectedYearShops = data.years[selectedYear.toString()]?.shops || {};
