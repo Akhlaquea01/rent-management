@@ -1,16 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Grid,
   Card,
   CardContent,
   Typography,
   Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   useTheme,
   useMediaQuery,
   FormControl,
@@ -20,6 +14,7 @@ import {
   Switch,
   FormControlLabel,
 } from '@mui/material';
+import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import {
   People as PeopleIcon,
   Payment as PaymentIcon,
@@ -27,7 +22,7 @@ import {
   AccountBalance as AccountBalanceIcon,
   FileDownload as FileDownloadIcon,
 } from '@mui/icons-material';
-import { useRentContext } from "../context/RentContext";
+import { useDashboardStats } from "../hooks/useDashboardStats";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import CollectionGraphs from "../components/CollectionGraphs";
@@ -45,47 +40,44 @@ const StatCard: React.FC<{
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   return (
-    <Card sx={{ height: "100%" }}>
-      <CardContent sx={{ p: isMobile ? 1.5 : 2 }}>
+    <Card
+      sx={{
+        height: "100%",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+        borderLeft: `5px solid ${color}`,
+        transition: "transform 0.2s",
+        "&:hover": {
+          transform: "translateY(-2px)",
+          boxShadow: "0 6px 16px rgba(0,0,0,0.1)",
+        }
+      }}
+    >
+      <CardContent sx={{ p: isMobile ? 2 : 3 }}>
         <Box
           sx={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            mb: 1
           }}
         >
-          <Box>
-            <Typography
-              color="textSecondary"
-              gutterBottom
-              variant={isMobile ? "caption" : "body2"}
-            >
-              {title}
-            </Typography>
-            <Typography
-              variant={isMobile ? "h6" : "h4"}
-              component="div"
-              sx={{ fontWeight: "bold" }}
-            >
-              {value}
-            </Typography>
-            {subtitle && (
-              <Typography
-                variant={isMobile ? "caption" : "body2"}
-                color="textSecondary"
-              >
-                {subtitle}
-              </Typography>
-            )}
-          </Box>
+          <Typography
+            color="textSecondary"
+            variant={isMobile ? "body2" : "subtitle1"}
+            sx={{ fontWeight: 500 }}
+          >
+            {title}
+          </Typography>
+
           <Box
             sx={{
               backgroundColor: color,
-              borderRadius: "50%",
-              p: isMobile ? 0.5 : 1,
+              borderRadius: "12px",
+              p: 1,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              boxShadow: `0 4px 8px ${color}40`,
             }}
           >
             {React.cloneElement(icon as React.ReactElement, {
@@ -93,104 +85,100 @@ const StatCard: React.FC<{
             })}
           </Box>
         </Box>
+
+        <Typography
+          variant={isMobile ? "h5" : "h4"}
+          component="div"
+          sx={{ fontWeight: "bold", mb: 0.5 }}
+        >
+          {value}
+        </Typography>
+
+        {subtitle && (
+          <Typography
+            variant={isMobile ? "caption" : "body2"}
+            color="textSecondary"
+            sx={{ display: 'block' }}
+          >
+            {subtitle}
+          </Typography>
+        )}
       </CardContent>
     </Card>
   );
 };
 
 const Dashboard: React.FC = () => {
-  const { state, fetchYearData, isYearLoading } = useRentContext();
-  const { data, loading, error } = state;
+  const {
+    loading,
+    error,
+    selectedYear,
+    setSelectedYear,
+    availableYears,
+    loadedYears,
+    showInactiveShops,
+    setShowInactiveShops,
+    shopsArray,
+    stats,
+    overdueShops,
+  } = useDashboardStats();
 
-  // Available years to fetch (2019 to current year)
-  const availableYears = React.useMemo(() => {
-    const years = [];
-    for (let year = 2019; year <= new Date().getFullYear(); year++) {
-      years.push(year.toString());
-    }
-    return years.sort().reverse();
-  }, []);
-
-  const loadedYears = data && data.years ? Object.keys(data.years).sort().reverse() : [];
-  const defaultYear = loadedYears.includes(new Date().getFullYear().toString())
-    ? new Date().getFullYear().toString()
-    : loadedYears[0] || new Date().getFullYear().toString();
-  const [selectedYear, setSelectedYear] = useState<string>(defaultYear);
-  const [showInactiveShops, setShowInactiveShops] = useState<boolean>(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
-  // Fetch year data when selected year changes
-  React.useEffect(() => {
-    if (selectedYear && !data.years[selectedYear] && !isYearLoading(selectedYear)) {
-      fetchYearData(selectedYear);
+  const columns: GridColDef[] = React.useMemo(() => {
+    const cols: GridColDef[] = [
+      { field: 'tenantName', headerName: 'Name', flex: 1, minWidth: 150 },
+      { field: 'shopNumber', headerName: 'Shop', width: 100 },
+    ];
+
+    if (showInactiveShops) {
+      cols.push({
+        field: 'tenantStatus',
+        headerName: 'Status',
+        width: 120,
+        renderCell: (params: GridRenderCellParams) => (
+          <Typography
+            variant="body2"
+            color={params.value === "Active" ? "success.main" : "error.main"}
+            sx={{ fontWeight: "bold" }}
+          >
+            {params.value}
+          </Typography>
+        ),
+      });
     }
-  }, [selectedYear, data.years, fetchYearData, isYearLoading]);
 
+    cols.push({
+      field: 'totalDues',
+      headerName: 'Due Amount',
+      type: 'number',
+      width: 150,
+      renderCell: (params: GridRenderCellParams) => (
+         <Typography
+            variant="body2"
+            color="error.main"
+            sx={{ fontWeight: "bold" }}
+          >
+            ₹{params.value.toLocaleString()}
+          </Typography>
+      )
+    });
 
+     cols.push({
+      field: 'dueMonths',
+      headerName: 'Due Months',
+      flex: 1,
+      minWidth: 200,
+      valueGetter: (params) => params.value?.join(', ') || '',
+    });
+
+    return cols;
+  }, [showInactiveShops]);
 
   if (loading && loadedYears.length === 0) return <div>Loading...</div>;
   if (error && error.includes(selectedYear)) return <div style={{ color: "red" }}>{error}</div>;
-  if (!data || !data.years) return <div>No data available.</div>;
-  const shops = data.years[selectedYear]?.shops || {};
-
-  // Compute dashboard stats from new data structure
-  const shopsArray = Object.entries(shops).map(
-    ([shopNumber, shop]: [string, any]) => ({
-      shopNumber,
-      ...shop,
-      totalDues: shop.previousYearDues?.totalDues || 0,
-    })
-  );
-
-  const totalShops = shopsArray.length;
-  const activeShops = shopsArray.filter(
-    (shop: any) => shop.tenant.status === "Active"
-  ).length;
-  const inactiveShops = totalShops - activeShops;
-
-  const totalRentCollected = shopsArray.reduce((sum: number, shop: any) => {
-    const monthlyData = shop.monthlyData || {};
-    return sum + (Object.values(monthlyData) as any[]).reduce(
-      (monthSum: number, month: any) => monthSum + (Number(month.paid) || 0),
-      0
-    );
-  }, 0);
-
-  const totalDues = shopsArray.reduce(
-    (sum: number, shop: any) => sum + (shop.previousYearDues?.totalDues || 0),
-    0
-  );
-
-  const totalAdvance = shopsArray.reduce((sum: number, shop: any) => {
-    return sum + (shop.advanceAmount || 0);
-  }, 0);
-
-  const stats = {
-    totalShops,
-    activeShops,
-    inactiveShops,
-    totalRentCollected,
-    totalDues,
-    totalAdvance,
-  };
-
-
-
-  const overdueShops = shopsArray
-    .filter((shop: any) => {
-      const hasDues = shop.totalDues > 0;
-      const isActive = shop.tenant.status === "Active";
-      
-      if (showInactiveShops) {
-        return hasDues; // Show both active and inactive shops with dues
-      } else {
-        return hasDues && isActive; // Show only active shops with dues
-      }
-    })
-    .sort(
-      (a: any, b: any) => b.totalDues - a.totalDues
-    );
+  // if (shopsArray.length === 0 && !loading) return <div>No data available.</div>;
 
   return (
     <Box>
@@ -472,47 +460,17 @@ const Dashboard: React.FC = () => {
                   ))}
                 </Box>
               ) : (
-                <TableContainer
-                  sx={{ height: 300, overflow: "auto", width: "100%" }}
-                >
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Name</TableCell>
-                        <TableCell>Shop</TableCell>
-                        {showInactiveShops && <TableCell>Status</TableCell>}
-                        <TableCell align="right">Due Amount</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {overdueShops.map((shop: any) => (
-                        <TableRow key={shop.shopNumber}>
-                          <TableCell>{shop.tenant.name}</TableCell>
-                          <TableCell>{shop.shopNumber}</TableCell>
-                          {showInactiveShops && (
-                            <TableCell>
-                              <Typography
-                                variant="body2"
-                                color={shop.tenant.status === "Active" ? "success.main" : "error.main"}
-                                sx={{ fontWeight: "bold" }}
-                              >
-                                {shop.tenant.status}
-                              </Typography>
-                            </TableCell>
-                          )}
-                          <TableCell align="right">
-                            <Typography
-                              color="error.main"
-                              sx={{ fontWeight: "bold" }}
-                            >
-                              ₹{shop.totalDues.toLocaleString()}
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                <div style={{ height: 400, width: '100%' }}>
+                  <DataGrid
+                    rows={overdueShops}
+                    columns={columns}
+                    getRowId={(row) => row.shopNumber}
+                    pageSize={5}
+                    rowsPerPageOptions={[5, 10, 25]}
+                    disableSelectionOnClick
+                    density="compact"
+                  />
+                </div>
               )}
             </CardContent>
           </Card>
